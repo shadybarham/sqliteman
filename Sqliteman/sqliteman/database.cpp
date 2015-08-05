@@ -74,7 +74,7 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
-		exception(tr("Error while getting the fileds of %1: %2.").arg(table).arg(query.lastError().text()));
+		exception(tr("Error while getting the fields of %1: %2.").arg(table).arg(query.lastError().text()));
 		return fields;
 	}
 
@@ -91,23 +91,28 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	createQuery.first();
 	// Grab the complete CREATE statement
 	QString createStatement = createQuery.value(0).toString();
+	// This regexp matches a single SQL identifier
+	QString id = "(?:(?:[0-9A-Za-z_]+)|(?:(?:\"[^\"]*\")+))";
+	QString idlist = "(?:(?:\\s*" + id + "\\s+" + id + "\\s*(?:,\\s*)?)+)";
 	// Reduce the CREATE statement down to just the field info
-	createStatement.replace(QRegExp("CREATE TABLE .* \\((.*)\\).*"), "\\1");
+	createStatement.replace(QRegExp(
+		"^CREATE TABLE\\s+" + id + "\\s*\\((" + idlist + ")\\).*$"), "\\1");
 	// Make a list with all of the individual field statements
-	QStringList params = createStatement.split(QRegExp(","));
-	// Initialize ourselfs a Field Map -- keys and vals are QStrings
+	// Initialize ourselves a Field Map -- keys and vals are QStrings
 	QHash<QString, QString> fieldMap;
-	// Hashify the params list
-	while(!params.isEmpty())
+	while (!createStatement.isEmpty())
 	{
-		// e.g. "id INTEGER PRIMARY KEY"
-		QString parameter = params.takeFirst().trimmed();
-		// Tokenize the parameter
-		QStringList words = parameter.split(" ");
-		// Grab the field name
-		QString fieldName = words.takeFirst().remove('"');
-		// Grab the full field type
-		QString fieldType = words.join(" ");
+		QString fieldName = createStatement;
+		fieldName.replace(QRegExp("^\\s*(" + id + ").*$"), "\\1");
+		if (fieldName.startsWith("\""))
+		{
+			fieldName.replace("\"\"", "\"");
+			fieldName = fieldName.mid(1, fieldName.size() - 2);
+		}
+		createStatement.replace(QRegExp("(^\\s*" + id + ")(.*$)"), "\\2");
+		QString fieldType = createStatement;
+		fieldType.replace(QRegExp("^\\s*(" + id + ").*$"), "\\1");
+		createStatement.replace(QRegExp("^(\\s*" + id + "\\s*,?)(.*$)"), "\\2");
 		// Populate the hash
 		fieldMap[fieldName] = fieldType;
 	}
