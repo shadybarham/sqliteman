@@ -93,6 +93,7 @@ void ImportTableDialog::slotAccepted()
 {
 	QList<QStringList> values;
 
+	//FIXME update display if importing current table
 	//FIXME only need to check for pending if importing current table
 	if (   (fileEdit->text().isEmpty())
 		|| (!creator)
@@ -178,7 +179,10 @@ void ImportTableDialog::slotAccepted()
 		if (dia.exec())
 		{
 			if (Database::execSql("COMMIT;"))
+			{
 				accept();
+				return;
+			}
 		}
 		Database::execSql("ROLLBACK;");
 	}
@@ -275,6 +279,7 @@ QVariant ImportTable::BaseModel::headerData(int section, Qt::Orientation orienta
 	return QVariant();
 }
 
+//FIXME handle quoted strings
 ImportTable::CSVModel::CSVModel(QString fileName, int skipHeader, QString separator, QObject * parent, int maxRows)
 	: BaseModel(parent)
 {
