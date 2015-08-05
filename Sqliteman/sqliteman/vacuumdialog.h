@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <qdialog.h>
 
+#include "litemanwindow.h"
 #include "ui_vacuumdialog.h"
 
 /*! \brief Handle DB file (un)used space.
@@ -21,11 +22,15 @@ class VacuumDialog : public QDialog
 	Q_OBJECT
 
 	public:
-		VacuumDialog(QWidget * parent = 0);
+		VacuumDialog(LiteManWindow * parent = 0);
 		~VacuumDialog(){};
 
 	private:
 		Ui::VacuumDialog ui;
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
     private slots:
 		void allButton_clicked();

@@ -13,10 +13,11 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 
 
-CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema, QWidget * parent)
+CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema, LiteManWindow * parent)
 	: QDialog(parent),
 	update(false)
 {
+	creator = parent;
 	ui.setupUi(this);
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
 
@@ -35,20 +36,23 @@ void CreateViewDialog::nameEdit_textChanged(const QString& text)
 
 void CreateViewDialog::createButton_clicked()
 {
-	QString sql(QString("CREATE VIEW \"%1\".\"%2\" AS %3;")
+	if (creator && creator->checkForPending())
+	{
+		QString sql(QString("CREATE VIEW \"%1\".\"%2\" AS %3;")
 			.arg(ui.databaseCombo->currentText())
 			.arg(ui.nameEdit->text())
 			.arg(ui.sqlEdit->text()));
 
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	
-	if(query.lastError().isValid())
-	{
-		ui.resultEdit->setText(tr("Error while creating view: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
-		return;
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		
+		if(query.lastError().isValid())
+		{
+			ui.resultEdit->setText(tr("Error while creating view: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
+			return;
+		}
+		ui.resultEdit->setText(tr("View created successfully"));
+		update = true;
+		m_schema = ui.databaseCombo->currentText();
+		m_name = ui.nameEdit->text();
 	}
-	ui.resultEdit->setText(tr("View created successfully"));
-	update = true;
-	m_schema = ui.databaseCombo->currentText();
-	m_name = ui.nameEdit->text();
 }

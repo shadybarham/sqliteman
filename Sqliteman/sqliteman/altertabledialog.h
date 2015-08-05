@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #define ALTERTABLEDIALOG_H
 
 #include "database.h"
+#include "litemanwindow.h"
 #include "tableeditordialog.h"
 
 
@@ -28,7 +29,9 @@ class AlterTableDialog : public TableEditorDialog
 	Q_OBJECT
 
 	public:
-		AlterTableDialog(QWidget * parent = 0, const QString & tableName = 0, const QString & schema = 0);
+		AlterTableDialog(LiteManWindow * parent = 0,
+						 const QString & tableName = 0,
+					     const QString & schema = 0);
 		~AlterTableDialog(){};
 
 		bool update;
@@ -74,6 +77,10 @@ class AlterTableDialog : public TableEditorDialog
 
 		//! \brief Returns a list of DDL statements to recreate reqired obejcts after all.
 		QStringList originalSource();
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
 	private slots:
 		void addField();

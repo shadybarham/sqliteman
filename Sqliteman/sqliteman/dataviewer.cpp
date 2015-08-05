@@ -106,37 +106,46 @@ DataViewer::~DataViewer()
     settings.setValue("dataviewer/state", saveState());
 }
 
-bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
+bool DataViewer::checkForPending()
 {
 	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (old && old->pendingTransaction())
 	{
 		int com = QMessageBox::question(this, tr("Sqliteman"),
-										tr("There is a pending transaction in progress. Perform commit?"
-										   "\n\nHelp:\nYes = commit\nNo = rollback"
-										   "\nCancel = skip this operation and stay in the current table"),
-										   QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+			tr("There is a pending transaction in progress. Perform commit?"
+			   "\n\nHelp:\nYes = commit\nNo = rollback"
+			   "\nCancel = skip this operation and stay in the current table"),
+			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
 		if (com == QMessageBox::No)
+		{
 			rollback();
-		else if (com == QMessageBox::Cancel)
-			return false;
+			return true;
+		}
+		else if (com == QMessageBox::Cancel) { return false; }
 		else
 		{
 			if (!old->submitAll())
 			{
+				/* This should never happen */
 				int ret = QMessageBox::question(this, tr("Sqliteman"),
-						tr("There is a pending transaction in progress. That cannot be commited now."\
-						"\nError: %1\n"\
-						"Perform rollback?").arg(old->lastError().text()),
-						QMessageBox::Yes, QMessageBox::No);
-				if(ret == QMessageBox::Yes)
-					rollback();
-				else
-					return false;
-
+					tr("There is a pending transaction in progress."
+					   " That cannot be committed now."
+					   "\nError: %1\n"
+					   "Perform rollback?").arg(old->lastError().text()),
+												QMessageBox::Yes, QMessageBox::No);
+				if (ret == QMessageBox::Yes) { rollback(); }
+				else { return false; }
 			}
+            old->setPendingTransaction(false);
+			return true;
 		}
 	}
+	else { return true; }
+}
+
+bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
+{
+	if (!checkForPending()) { return false; }
 
 //	delete makes snapshot window empty
 // 	delete(ui.tableView->model());
@@ -313,8 +322,9 @@ void DataViewer::commit()
 	if (!model->submitAll())
 	{
 		int ret = QMessageBox::question(this, tr("Sqliteman"),
-				tr("There is a pending transaction in progress. That cannot be commited now."\
-				   "\nError: %1\n"\
+				tr("There is a pending transaction in progress."
+				   " That cannot be committed now."
+				   "\nError: %1\n"
 				   "Perform rollback?").arg(model->lastError().text()),
 				QMessageBox::Yes, QMessageBox::No);
 		if(ret == QMessageBox::Yes)

@@ -3,6 +3,9 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	
+	FIXME if we fail and leave the old table renamed, we need to force a table
+	tree update.
 */
 
 #include <QCheckBox>
@@ -13,13 +16,16 @@ for which a new license (GPL+exception) is in place.
 #include "utils.h"
 
 
-AlterTableDialog::AlterTableDialog(QWidget * parent, const QString & tableName, const QString & schema)
+AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
+								   const QString & tableName,
+								   const QString & schema)
 	: TableEditorDialog(parent),
 	m_table(tableName),
 	m_schema(schema),
 	m_protectedRows(0),
 	m_dropColumns(0)
 {
+	creator = parent;
 	update = false;
 
 	ui.nameEdit->setText(tableName);
@@ -136,17 +142,19 @@ QStringList AlterTableDialog::originalSource()
 bool AlterTableDialog::renameTable()
 {
 	QString newTableName(ui.nameEdit->text().trimmed());
-	if (m_table == newTableName)
-		return true;
-	
-	QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
-			.arg(m_schema)
-			.arg(m_table)
-			.arg(newTableName);
-	if (execSql(sql, tr("Renaming the table \"%1\" to \"%2\".").arg(m_table).arg(newTableName)))
+	if (creator && creator->checkForPending())
 	{
-		m_table = newTableName;
-		return true;
+		if (m_table == newTableName) { return true; }
+	
+		QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
+				.arg(m_schema)
+				.arg(m_table)
+				.arg(newTableName);
+		if (execSql(sql, tr("Renaming the table \"%1\" to \"%2\".").arg(m_table).arg(newTableName)))
+		{
+			m_table = newTableName;
+			return true;
+		}
 	}
 	return false;
 }
@@ -258,7 +266,7 @@ bool AlterTableDialog::addColumns()
 	// only if it's required to do
 	if (m_protectedRows == ui.columnTable->rowCount())
 		return true;
-
+	
 	for(int i = m_protectedRows; i < ui.columnTable->rowCount(); i++)
 	{
 		f = getColumn(i);
@@ -278,7 +286,8 @@ bool AlterTableDialog::addColumns()
 		QSqlQuery query(fullSql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Error while altering table %1: %2.\n%3")
+			ui.resultEdit->setText(
+				tr("Error while altering table %1: %2.\n%3")
 										.arg(m_table)
 										.arg(query.lastError().text())
 										.arg(fullSql));

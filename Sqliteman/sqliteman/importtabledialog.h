@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #ifndef IMPORTTABLEDIALOG_H
 #define IMPORTTABLEDIALOG_H
 
+#include "litemanwindow.h"
 #include "ui_importtabledialog.h"
 
 
@@ -20,12 +21,17 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 	Q_OBJECT
 
 	public:
-		ImportTableDialog(QWidget * parent = 0, const QString & tableName = 0, const QString & schema = 0);
+		ImportTableDialog(LiteManWindow * parent = 0,
+						  const QString & tableName = 0,
+						  const QString & schema = 0);
 
 	private:
-		QObject * m_parent;
-		//! Remember the originally requsted name
+		//! Remember the originally requested name
 		QString m_tableName;
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
 		QString sqliteSeparator();
 

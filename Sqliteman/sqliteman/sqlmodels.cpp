@@ -3,6 +3,8 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+FIXME if table name contains non-alphanumeric characters, no rows are displayed,
+although they are actually still there as proved by renaming it back again.
 */
 
 #include <QColor>

@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <qwidget.h>
 
+#include "litemanwindow.h"
 #include "ui_createindexdialog.h"
 
 
@@ -26,7 +27,8 @@ class CreateIndexDialog : public QDialog
 		\param schema name of the db schema
 		\param parent standard Qt parent
 		*/
-		CreateIndexDialog(const QString & tabName, const QString & schema, QWidget * parent = 0);
+		CreateIndexDialog(const QString & tabName, const QString & schema,
+						  LiteManWindow * parent = 0);
 		~CreateIndexDialog(){};
 
 		bool update;
@@ -36,6 +38,10 @@ class CreateIndexDialog : public QDialog
 		QString m_schema;
 
 		void checkToEnable();
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
 	private slots:
 		void tableColumns_itemChanged(QTableWidgetItem* item);

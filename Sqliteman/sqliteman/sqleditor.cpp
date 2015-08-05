@@ -27,10 +27,11 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 
 
-SqlEditor::SqlEditor(QWidget * parent)
+SqlEditor::SqlEditor(LiteManWindow * parent)
 	: QMainWindow(parent),
    	  m_fileWatcher(0)
 {
+	creator = parent;
 	ui.setupUi(this);
 
 #ifdef Q_WS_MAC
@@ -249,9 +250,14 @@ QString SqlEditor::prepareExec(toSQLParse::tokenizer &tokens, int line, int pos)
 
 void SqlEditor::action_Run_SQL_triggered()
 {
-    QString sql(query());
-	emit showSqlResult(sql);
-    appendHistory(sql);
+	//for some strange reason the qobject_cast fails here
+	//LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
+	if (creator && creator->checkForPending())
+	{
+		QString sql(query());
+		emit showSqlResult(sql);
+	    appendHistory(sql);
+	}
 }
 
 void SqlEditor::actionRun_Explain_triggered()
@@ -264,6 +270,9 @@ void SqlEditor::actionRun_Explain_triggered()
 
 void SqlEditor::actionRun_as_Script_triggered()
 {
+	//for some strange reason the qobject_cast fails here
+	//LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
+	if ((!creator) || !(creator->checkForPending())) { return; }
 	m_scriptCancelled = false;
 	toSQLParse::editorTokenizer tokens(ui.sqlTextEdit);
 	int cpos, cline;
@@ -341,7 +350,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 
 void SqlEditor::actionCreateView_triggered()
 {
-	CreateViewDialog dia("", "", this);
+	CreateViewDialog dia("", "", creator);
 
 	dia.setText(query());
 	dia.exec();

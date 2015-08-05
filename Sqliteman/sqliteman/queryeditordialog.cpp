@@ -110,6 +110,7 @@ QueryEditorDialog::~QueryEditorDialog()
 
 QString QueryEditorDialog::statement()
 {
+	//FIXME quote column names, might be reserved words
 	QString logicWord;
 	QString sql = "SELECT ";
 

@@ -111,6 +111,10 @@ LiteManWindow::~LiteManWindow()
 	Preferences::deleteInstance();
 }
 
+bool LiteManWindow::checkForPending() {
+	return dataViewer->checkForPending();
+}
+
 void LiteManWindow::closeEvent(QCloseEvent * e)
 {
 	if (!sqlEditor->saveOnExit()) {
@@ -507,6 +511,8 @@ void LiteManWindow::open(const QString & file)
 
 void LiteManWindow::openDatabase(const QString & fileName)
 {
+	if (!dataViewer->checkForPending()) { return; }
+	
 	bool isOpened = false;
 
 	QSqlDatabase db = QSqlDatabase::database(SESSION_NAME);
@@ -643,8 +649,13 @@ void LiteManWindow::buildQuery()
 	int ret = dlg.exec();
 
 	if(ret == QDialog::Accepted)
+	{
 		/*runQuery*/
-		execSql(dlg.statement());
+		if (dataViewer->checkForPending())
+		{
+			execSql(dlg.statement());
+		}
+	}
 }
 
 void LiteManWindow::handleSqlEditor()
@@ -672,6 +683,7 @@ void LiteManWindow::execSql(QString query)
 		QMessageBox::warning(this, tr("No SQL statement"), tr("You are trying to run an undefined SQL query. Hint: select your query in the editor"));
 		return;
 	}
+	if (!dataViewer->checkForPending()) { return; }
 
 	dataViewer->freeResources();
 	sqlEditor->setStatusMessage();
@@ -772,6 +784,7 @@ void LiteManWindow::renameTable()
 	{
 		if (text == item->text(0))
 			return;
+		if (!dataViewer->checkForPending()) { return; }
 		QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
 								.arg(item->text(1))
 								.arg(item->text(0))
@@ -786,6 +799,7 @@ void LiteManWindow::populateTable()
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if(!item)
 		return;
+	if (!dataViewer->checkForPending()) { return; }
 	PopulatorDialog dlg(this, item->text(0), item->text(1));
 	dlg.exec();
 	treeItemActivated(item, 0);
@@ -809,11 +823,14 @@ void LiteManWindow::importTable()
 
 void LiteManWindow::dropTable()
 {
+	//FIXME dropped table still displayed
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
 		return;
 
+	//FIXME only need this if we drop the table we're looking at
+	if (!dataViewer->checkForPending()) { return; }
 	int ret = QMessageBox::question(this, m_appName,
 					tr("Are you sure that you wish to drop the table \"%1\"?").arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
@@ -845,6 +862,7 @@ void LiteManWindow::alterView()
 
 void LiteManWindow::dropView()
 {
+	//FIXME dropped view still displayed
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
@@ -897,6 +915,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 	if(!item)
 		return;
 
+	if (!dataViewer->checkForPending()) { return; }
 	if (item->type() == TableTree::TableType || item->type() == TableTree::ViewType
 		|| item->type() == TableTree::SystemType)
 	{

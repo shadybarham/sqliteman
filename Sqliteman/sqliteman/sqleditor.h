@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include <QWidget>
 #include <QFileSystemWatcher>
 
+#include "litemanwindow.h"
 #include "ui_sqleditor.h"
 #include "sqlparser/tosqlparse.h"
 
@@ -30,7 +31,7 @@ class SqlEditor : public QMainWindow
 	Q_OBJECT
 
 	public:
-		SqlEditor(QWidget * parent = 0);
+		SqlEditor(LiteManWindow * parent = 0);
 		~SqlEditor();
 
 		bool saveOnExit();
@@ -97,6 +98,10 @@ class SqlEditor : public QMainWindow
 
 		//! Reset the QFileSystemWatcher for new name.
 		void setFileWatcher(const QString & newFileName);
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
 	private slots:
 		void action_Run_SQL_triggered();

@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 #include <QSqlError>
 
 #include "createtriggerdialog.h"
+#include "litemanwindow.h"
 #include "database.h"
 #include "tabletree.h"
 
@@ -55,14 +56,18 @@ END;").arg(schema).arg(name));
 
 void CreateTriggerDialog::createButton_clicked()
 {
-	QString sql(ui.textEdit->text());
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	
-	if(query.lastError().isValid())
+	LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
+	if (lmw && lmw->checkForPending())
 	{
-		ui.resultEdit->setText(tr("Error while creating trigger: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
-		return;
+		QString sql(ui.textEdit->text());
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		
+		if(query.lastError().isValid())
+		{
+			ui.resultEdit->setText(tr("Error while creating trigger: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
+			return;
+		}
+		ui.resultEdit->setText(tr("Trigger created successfully"));
+		update = true;
 	}
-	ui.resultEdit->setText(tr("Trigger created successfully"));
-	update = true;
 }

@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #ifndef CREATETABLEDIALOG_H
 #define CREATETABLEDIALOG_H
 
+#include "litemanwindow.h"
 #include "tableeditordialog.h"
 
 
@@ -19,7 +20,7 @@ class CreateTableDialog : public TableEditorDialog
 	Q_OBJECT
 
 	public:
-		CreateTableDialog(QWidget * parent = 0);
+		CreateTableDialog(LiteManWindow * parent = 0);
 		~CreateTableDialog(){};
 
 		bool update;
@@ -32,6 +33,10 @@ class CreateTableDialog : public TableEditorDialog
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
 		QString getSQLfromGUI();
+
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 };
 
 #endif

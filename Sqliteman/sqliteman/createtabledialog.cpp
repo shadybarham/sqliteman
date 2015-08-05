@@ -14,9 +14,10 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 
 
-CreateTableDialog::CreateTableDialog(QWidget * parent)
+CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	: TableEditorDialog(parent)
 {
+	creator = parent;
 	update = false;
 	ui.removeButton->setEnabled(false); // Disable row removal
 	addField(); // A table should have at least one field
@@ -52,21 +53,24 @@ QString CreateTableDialog::getSQLfromGUI()
 
 void CreateTableDialog::createButton_clicked()
 {
-	QString sql;
-	// from GUI
-	if (ui.tabWidget->currentIndex() == 0)
-		sql = getSQLfromGUI();
-	else
-		sql = ui.textEdit->text();
-
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	if(query.lastError().isValid())
+	if (creator && creator->checkForPending())
 	{
-		ui.resultEdit->setText(tr("Error while creating table: %1.\n\n%2").arg(query.lastError().text()).arg(sql));
-		return;
+		QString sql;
+		// from GUI
+		if (ui.tabWidget->currentIndex() == 0)
+			sql = getSQLfromGUI();
+		else
+			sql = ui.textEdit->text();
+
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if(query.lastError().isValid())
+		{
+			ui.resultEdit->setText(tr("Error while creating table: %1.\n\n%2").arg(query.lastError().text()).arg(sql));
+			return;
+		}
+		update = true;
+		ui.resultEdit->setText(tr("Table created successfully"));
 	}
-	update = true;
-	ui.resultEdit->setText(tr("Table created successfully"));
 }
 
 void CreateTableDialog::tabWidget_currentChanged(int index)

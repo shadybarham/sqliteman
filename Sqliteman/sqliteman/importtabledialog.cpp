@@ -3,6 +3,9 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	
+	FIXME Attempt to import data gets
+	Error executing: cannot rollback - no transaction is active Unable to fetch row.
 */
 #include <QFileDialog>
 #include <QMessageBox>
@@ -23,11 +26,11 @@ for which a new license (GPL+exception) is in place.
 #include "sqliteprocess.h"
 
 
-ImportTableDialog::ImportTableDialog(QWidget * parent, const QString & tableName, const QString & schema)
+ImportTableDialog::ImportTableDialog(LiteManWindow * parent, const QString & tableName, const QString & schema)
 	: QDialog(parent),
-	  m_parent(parent),
 	  m_tableName(tableName)
 {
+	creator = parent;
 	setupUi(this);
 
 	QString n;
@@ -90,8 +93,13 @@ void ImportTableDialog::slotAccepted()
 {
 	QList<QStringList> values;
 
-	if (fileEdit->text().isEmpty())
+	//FIXME only need to check for pending if importing current table
+	if (   (fileEdit->text().isEmpty())
+		|| (!creator)
+		|| !(creator->checkForPending()))
+	{
 		return;
+	}
 	
 	int skipHeader = skipHeaderCheck->isChecked() ? skipHeaderBox->value() : 0;
 

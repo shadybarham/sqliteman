@@ -34,6 +34,7 @@ class DataViewer : public QMainWindow
 		/*! \brief Set data model. See Qt model/view documentation.
 		\retval bool true when the model is set succesfully
 		*/
+		bool checkForPending();
 		bool setTableModel(QAbstractItemModel * model, bool showButtons = false);
 		//! \brief Set text to the status widget.
 		void setStatusText(const QString & text);

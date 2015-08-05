@@ -15,10 +15,13 @@ for which a new license (GPL+exception) is in place.
 #include "utils.h"
 
 
-CreateIndexDialog::CreateIndexDialog(const QString & tabName, const QString & schema, QWidget * parent)
+CreateIndexDialog::CreateIndexDialog(const QString & tabName,
+									 const QString & schema,
+									 LiteManWindow * parent)
 	: QDialog(parent),
 	m_schema(schema)
 {
+	creator = parent;
 	update = false;
 	ui.setupUi(this);
 	ui.tableNameLabel->setText(tabName);
@@ -55,31 +58,34 @@ CreateIndexDialog::CreateIndexDialog(const QString & tabName, const QString & sc
 
 void CreateIndexDialog::createButton_clicked()
 {
-	QStringList cols;
-	for (int i = 0; i < ui.tableColumns->rowCount(); ++i)
+	if (creator && creator->checkForPending())
 	{
-		if (ui.tableColumns->item(i, 1)->checkState() == Qt::Checked)
-			cols.append(QString("%1 %2")
-						.arg(ui.tableColumns->item(i, 0)->text())
-						.arg(qobject_cast<QComboBox*>(ui.tableColumns->cellWidget(i, 2))->currentText()));
-	}
-	QString sql(QString("create %1 index \"%2\".\"%3\" on %4 (%5);")
-			.arg(ui.uniqueCheckBox->isChecked() ? "unique" : "")
-			.arg(m_schema)
-			.arg(ui.indexNameEdit->text())
-			.arg(ui.tableNameLabel->text())
-			.arg(cols.join(", ")));
+		QStringList cols;
+		for (int i = 0; i < ui.tableColumns->rowCount(); ++i)
+		{
+			if (ui.tableColumns->item(i, 1)->checkState() == Qt::Checked)
+				cols.append(QString("%1 %2")
+							.arg(ui.tableColumns->item(i, 0)->text())
+							.arg(qobject_cast<QComboBox*>(ui.tableColumns->cellWidget(i, 2))->currentText()));
+		}
+		QString sql(QString("create %1 index \"%2\".\"%3\" on %4 (%5);")
+				.arg(ui.uniqueCheckBox->isChecked() ? "unique" : "")
+				.arg(m_schema)
+				.arg(ui.indexNameEdit->text())
+				.arg(ui.tableNameLabel->text())
+				.arg(cols.join(", ")));
 
-	QSqlQuery q(sql, QSqlDatabase::database(SESSION_NAME));
-	if(q.lastError().isValid())
-	{
-		ui.resultEdit->setText(tr("Error while creating index: %1\n%2.")
-								.arg(q.lastError().text())
-								.arg(sql));
-		return;
+		QSqlQuery q(sql, QSqlDatabase::database(SESSION_NAME));
+		if(q.lastError().isValid())
+		{
+			ui.resultEdit->setText(tr("Error while creating index: %1\n%2.")
+									.arg(q.lastError().text())
+									.arg(sql));
+			return;
+		}
+		ui.resultEdit->setText(tr("Index created successfully."));
+		update = true;
 	}
-	ui.resultEdit->setText(tr("Index created successfully."));
-	update = true;
 }
 
 void CreateIndexDialog::tableColumns_itemChanged(QTableWidgetItem* item)

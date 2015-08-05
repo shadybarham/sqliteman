@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <qwidget.h>
 
+#include "litemanwindow.h"
 #include "ui_createviewdialog.h"
 
 
@@ -21,7 +22,8 @@ class AlterViewDialog : public QDialog
 	Q_OBJECT
 
 	public:
-		AlterViewDialog(const QString & name, const QString & schema, QWidget * parent = 0);
+		AlterViewDialog(const QString & name,
+						const QString & schema, LiteManWindow * parent = 0);
 		~AlterViewDialog(){};
 
 		bool update;
@@ -29,6 +31,10 @@ class AlterViewDialog : public QDialog
 
 	private:
 		Ui::CreateViewDialog ui;
+		
+		// We ought to be able use use parent() for this, but for some reason
+		// qobject_cast<LiteManWindow*>(parent()) doesn't work
+		LiteManWindow * creator;
 
 	private slots:
 		void createButton_clicked();

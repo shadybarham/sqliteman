@@ -44,6 +44,7 @@ class LiteManWindow : public QMainWindow
 		void setLanguage(QString l) { m_lang = l; };
 
 		QString mainDbPath() { return m_mainDbPath; };
+		bool checkForPending();
 
 	signals:
 		void prefsChanged();
@@ -166,9 +167,9 @@ class LiteManWindow : public QMainWindow
 		as it does not support database.table naming schema */
 		QMap<QString,QString> attachedDb;
 
+		DataViewer * dataViewer;
 		QSplitter * splitter;
 		SchemaBrowser * schemaBrowser;
-		DataViewer * dataViewer;
 		SqlEditor* sqlEditor;
 		QSplitter* splitterSql;
 		HelpBrowser * helpBrowser;

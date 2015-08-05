@@ -9,9 +9,10 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 
 
-VacuumDialog::VacuumDialog(QWidget * parent)
+VacuumDialog::VacuumDialog(LiteManWindow * parent)
 	: QDialog(parent)
 {
+	creator = parent;
 	ui.setupUi(this);
 
 	ui.tableList->addItems(Database::getObjects("table").values());
@@ -23,16 +24,22 @@ VacuumDialog::VacuumDialog(QWidget * parent)
 
 void VacuumDialog::allButton_clicked()
 {
-	Database::execSql("vacuum;");
+	if (creator && creator->checkForPending())
+	{
+		Database::execSql("vacuum;");
+	}
 }
 
 void VacuumDialog::tableButton_clicked()
 {
 	QList<QListWidgetItem *> list(ui.tableList->selectedItems());
-	for (int i = 0; i < list.size(); ++i)
+	if (creator && creator->checkForPending())
 	{
-		if (!Database::execSql(QString("vacuum %1;").arg(list.at(i)->text())))
-			break;
+		for (int i = 0; i < list.size(); ++i)
+		{
+			if (!Database::execSql(QString("vacuum %1;").arg(list.at(i)->text())))
+				break;
+		}
 	}
 }
 
