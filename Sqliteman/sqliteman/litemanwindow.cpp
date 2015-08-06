@@ -96,6 +96,7 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 
 	statusBar();
 	m_sqliteVersionLabel = new QLabel(this);
+	m_activeTable = QString();
 	statusBar()->addPermanentWidget(m_sqliteVersionLabel);
 
 	readSettings();
@@ -591,6 +592,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		schemaBrowser->tableTree->buildTree();
 		schemaBrowser->buildPragmasTree();
 		dataViewer->setTableModel(new QSqlQueryModel(), false);
+		m_activeTable = QString();
 	
 		// Update the title
 		setWindowTitle(QString("%1 - %2").arg(fi.fileName()).arg(m_appName));
@@ -651,10 +653,7 @@ void LiteManWindow::buildQuery()
 	if(ret == QDialog::Accepted)
 	{
 		/*runQuery*/
-		if (dataViewer->checkForPending())
-		{
-			execSql(dlg.statement());
-		}
+		execSql(dlg.statement());
 	}
 }
 
@@ -686,6 +685,7 @@ void LiteManWindow::execSql(QString query)
 	if (!dataViewer->checkForPending()) { return; }
 
 	dataViewer->freeResources();
+	m_activeTable = QString();
 	sqlEditor->setStatusMessage();
 
 	QTime time;
@@ -764,10 +764,18 @@ void LiteManWindow::alterTable()
 	if(!item)
 		return;
 
-	AlterTableDialog dlg(this, item->text(0), item->text(1));
+	bool isActive = m_activeTable == item->text(0);
+	AlterTableDialog dlg(this, item->text(0), item->text(1), isActive);
 	dlg.exec();
-	if (dlg.update)
-		schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
+	switch (dlg.updateStage)
+	{
+		case 2:
+			if (isActive) { treeItemActivated(item, 0); }
+			//FALLTHRU
+		case 1:
+			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
+		// default (case 0) is to do nothing
+	}
 }
 
 void LiteManWindow::renameTable()
@@ -784,7 +792,6 @@ void LiteManWindow::renameTable()
 	{
 		if (text == item->text(0))
 			return;
-		if (!dataViewer->checkForPending()) { return; }
 		QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
 								.arg(item->text(1))
 								.arg(item->text(0))
@@ -799,25 +806,43 @@ void LiteManWindow::populateTable()
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if(!item)
 		return;
-	if (!dataViewer->checkForPending()) { return; }
+	bool isActive = m_activeTable == item->text(0);
+	if (isActive && !dataViewer->checkForPending()) { return; }
 	PopulatorDialog dlg(this, item->text(0), item->text(1));
 	dlg.exec();
-	treeItemActivated(item, 0);
+	if (isActive && dlg.update) {
+		treeItemActivated(item, 0); 
+	}
 }
 
 void LiteManWindow::importTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
-	if(item)
+	if (item)
 	{
-		ImportTableDialog dlg(this, item->text(0), item->text(1));
+		ImportTableDialog dlg(this, item->text(0), item->text(1), m_activeTable);
 		dlg.exec();
+		if (dlg.exec() == QDialog::Accepted)
+		{
+			treeItemActivated(item, 0); 
+		}
 	}
 	else
 	{
-		ImportTableDialog dlg(this, "", "main");
+		ImportTableDialog dlg(this, "", "main", m_activeTable);
 		dlg.exec();
+		if (dlg.update)
+		{
+			// This is basically treeItemActivated, but we don't have an item.
+			SqlTableModel * model = new SqlTableModel(0,
+				QSqlDatabase::database(attachedDb["main"]));
+			model->setSchema("main");
+			model->setTable(m_activeTable);
+			model->select();
+			model->setEditStrategy(SqlTableModel::OnManualSubmit);
+			dataViewer->setTableModel(model, true);
+		}
 	}
 }
 
@@ -925,6 +950,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 			SqlQueryModel * model = new SqlQueryModel(0);
 			model->setQuery(QString("select * from \"%1\".\"%2\"").arg(item->text(1)).arg(item->text(0)), QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
+			m_activeTable = QString();
 		}
 		else
 		{
@@ -934,6 +960,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 			model->select();
 			model->setEditStrategy(SqlTableModel::OnManualSubmit);
 			dataViewer->setTableModel(model, true);
+			m_activeTable = item->text(0);
 		}
 	}
 }

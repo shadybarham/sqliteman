@@ -4,8 +4,9 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	
-	FIXME Attempt to import data gets
-	Error executing: cannot rollback - no transaction is active Unable to fetch row.
+	FIXME make cancel work properly
+	FIXME handle column names in first row
+	FIXME we seem to be importing twice
 */
 #include <QFileDialog>
 #include <QMessageBox>
@@ -26,10 +27,14 @@ for which a new license (GPL+exception) is in place.
 #include "sqliteprocess.h"
 
 
-ImportTableDialog::ImportTableDialog(LiteManWindow * parent, const QString & tableName, const QString & schema)
+ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
+									 const QString & tableName,
+									 const QString & schema,
+									 const QString & activeTable)
 	: QDialog(parent),
-	  m_tableName(tableName)
+	m_tableName(tableName), m_activeTable(activeTable)
 {
+	update = false;
 	creator = parent;
 	setupUi(this);
 
@@ -93,15 +98,11 @@ void ImportTableDialog::slotAccepted()
 {
 	QList<QStringList> values;
 
-	//FIXME update display if importing current table
-	//FIXME only need to check for pending if importing current table
-	if (   (fileEdit->text().isEmpty())
-		|| (!creator)
-		|| !(creator->checkForPending()))
+	if (fileEdit->text().isEmpty())
 	{
 		return;
 	}
-	
+
 	int skipHeader = skipHeaderCheck->isChecked() ? skipHeaderBox->value() : 0;
 
 	switch (tabWidget->currentIndex())
@@ -140,9 +141,19 @@ void ImportTableDialog::slotAccepted()
 				  tableComboBox->currentText(),
 				  binds.join(", "));
 
-	if (!Database::execSql("BEGIN TRANSACTION;"))
+	//FIXME if we can really have more than one schema, we need to check that too.
+	if (   (m_activeTable == tableComboBox->currentText())
+		&& ((!creator) || !(creator->checkForPending())))
+	{
 		return;
-
+	}
+	// FIXME what if we're not in autocommit mode?
+	if (!Database::execSql("BEGIN TRANSACTION;"))
+	{
+		// FIXME emit some failure message here
+		return;
+	}
+	
 	foreach (l, values)
 	{
 		++row;
@@ -178,9 +189,12 @@ void ImportTableDialog::slotAccepted()
 		ImportTableLogDialog dia(log, this);
 		if (dia.exec())
 		{
+			//FIXME need to override errors here
 			if (Database::execSql("COMMIT;"))
 			{
+				update = m_alteringActive;
 				accept();
+				// FIXME we seem to be redisplaying the dialog here.
 				return;
 			}
 		}

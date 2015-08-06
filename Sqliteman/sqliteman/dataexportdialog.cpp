@@ -108,6 +108,7 @@ void DataExportDialog::checkButtonStatus()
 
 bool DataExportDialog::doExport()
 {
+	//FIXME don't export blanks for deleted records
 	progress = new QProgressDialog("Exporting...", "Abort", 0, 0, this);
 	connect(progress, SIGNAL(canceled()), this, SLOT(cancel()));
 	progress->setWindowModality(Qt::WindowModal);

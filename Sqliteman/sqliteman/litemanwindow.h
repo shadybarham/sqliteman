@@ -157,6 +157,7 @@ class LiteManWindow : public QMainWindow
 		QString m_mainDbPath;
 		QString m_appName;
 		QString m_lang;
+		QString m_activeTable;
 		QLabel * m_sqliteVersionLabel;
 
 		// \brief True if is sqlite3 binary available in the path

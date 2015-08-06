@@ -31,10 +31,16 @@ class AlterTableDialog : public TableEditorDialog
 	public:
 		AlterTableDialog(LiteManWindow * parent = 0,
 						 const QString & tableName = 0,
-					     const QString & schema = 0);
+					     const QString & schema = 0,
+						 const bool isActive = false
+						);
 		~AlterTableDialog(){};
 
-		bool update;
+		// These ought to be enums, but they're so clumsy in C++
+		// 0 nothing yet
+		// 1 table has been renamed
+		// 2 table has been modified
+		int updateStage;
 
 	private:
 		/*! \brief Mappings of the columns to their indexes
@@ -81,6 +87,9 @@ class AlterTableDialog : public TableEditorDialog
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
 		LiteManWindow * creator;
+
+		// true if altering currently active table
+		bool m_alteringActive;
 
 	private slots:
 		void addField();

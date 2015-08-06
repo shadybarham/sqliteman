@@ -23,11 +23,15 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 	public:
 		ImportTableDialog(LiteManWindow * parent = 0,
 						  const QString & tableName = 0,
-						  const QString & schema = 0);
+						  const QString & schema = 0,
+						  const QString & activeTable = 0);
 
+		bool update;
 	private:
 		//! Remember the originally requested name
 		QString m_tableName;
+		// and the originally active name (may be different)
+		QString m_activeTable;
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
@@ -37,6 +41,9 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 
 		void sqlitePreview();
 
+		// true if altering currently active table
+		bool m_alteringActive;
+		
 	private slots:
 		void fileButton_clicked();
 		//! \brief Main import is handled here

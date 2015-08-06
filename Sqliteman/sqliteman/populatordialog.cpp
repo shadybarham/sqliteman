@@ -20,6 +20,7 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 	  m_schema(schema),
 	  m_table(table)
 {
+	update = false;
 	setupUi(this);
 	columnTable->horizontalHeader()->setStretchLastSection(true);
 
@@ -196,6 +197,7 @@ void PopulatorDialog::populateButton_clicked()
 
 	cntPost = tableRowCount();
 	textBrowser->append(tr("It's done. Check messages above."));
+	update = true;
 
 	if (cntPre != -1 && cntPost != -1)
 		textBrowser->append(tr("Row(s) inserted: %1").arg(cntPost-cntPre));

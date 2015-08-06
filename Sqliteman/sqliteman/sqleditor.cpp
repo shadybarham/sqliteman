@@ -250,8 +250,6 @@ QString SqlEditor::prepareExec(toSQLParse::tokenizer &tokens, int line, int pos)
 
 void SqlEditor::action_Run_SQL_triggered()
 {
-	//for some strange reason the qobject_cast fails here
-	//LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
 	if (creator && creator->checkForPending())
 	{
 		QString sql(query());
@@ -270,8 +268,6 @@ void SqlEditor::actionRun_Explain_triggered()
 
 void SqlEditor::actionRun_as_Script_triggered()
 {
-	//for some strange reason the qobject_cast fails here
-	//LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
 	if ((!creator) || !(creator->checkForPending())) { return; }
 	m_scriptCancelled = false;
 	toSQLParse::editorTokenizer tokens(ui.sqlTextEdit);

@@ -39,6 +39,7 @@ class PopulatorDialog : public QDialog, public Ui::PopulatorDialog
 
 	public:
 		PopulatorDialog(QWidget * parent = 0, const QString & table = 0, const QString & schema = 0);
+		bool update;
 		
 	private:
 

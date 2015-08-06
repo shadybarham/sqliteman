@@ -285,6 +285,7 @@ void DataViewer::truncateTable()
 void DataViewer::exportData()
 {
 	QString tmpTableName("<any_table>");
+	//FIXME we should be able to export the result of a query
 	SqlTableModel * m = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (m)
 		tmpTableName = m->tableName();

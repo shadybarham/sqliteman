@@ -3,9 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	
-	FIXME if we fail and leave the old table renamed, we need to force a table
-	tree update.
 */
 
 #include <QCheckBox>
@@ -18,7 +15,8 @@ for which a new license (GPL+exception) is in place.
 
 AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 								   const QString & tableName,
-								   const QString & schema)
+								   const QString & schema,
+								   const bool isActive)
 	: TableEditorDialog(parent),
 	m_table(tableName),
 	m_schema(schema),
@@ -26,7 +24,8 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	m_dropColumns(0)
 {
 	creator = parent;
-	update = false;
+	m_alteringActive = isActive;
+	updateStage = 0;
 
 	ui.nameEdit->setText(tableName);
 // 	ui.nameEdit->setDisabled(true);
@@ -142,7 +141,7 @@ QStringList AlterTableDialog::originalSource()
 bool AlterTableDialog::renameTable()
 {
 	QString newTableName(ui.nameEdit->text().trimmed());
-	if (creator && creator->checkForPending())
+	if ((!m_alteringActive) || (creator && creator->checkForPending()))
 	{
 		if (m_table == newTableName) { return true; }
 	
@@ -150,8 +149,10 @@ bool AlterTableDialog::renameTable()
 				.arg(m_schema)
 				.arg(m_table)
 				.arg(newTableName);
-		if (execSql(sql, tr("Renaming the table \"%1\" to \"%2\".").arg(m_table).arg(newTableName)))
+		if (execSql(sql, tr("Renaming the table \"%1\" to \"%2\".")
+						 .arg(m_table).arg(newTableName)))
 		{
+			updateStage = 1;
 			m_table = newTableName;
 			return true;
 		}
@@ -199,6 +200,7 @@ void AlterTableDialog::createButton_clicked()
 		{
 			return;
 		}
+		updateStage = 1;
 
 		QString sql = QString("CREATE TABLE %1 (\n").arg(m_table);
 		QStringList tmpInsertColumns;
@@ -211,14 +213,14 @@ void AlterTableDialog::createButton_clicked()
 		sql += "\n);\n";
 
 		if (!execSql(sql, tr("Creating new table: %1").arg(m_table)))
+		{
 			return;
+		}
 
-		update = true;
 
 		// insert old data
 		if (!execSql("BEGIN TRANSACTION;", tr("Begin Transaction"), tmpName))
 		{
-			Database::dropTable(tmpName, "main");
 			return;
 		}
 		QString insSql(QString("INSERT INTO \"%1\".\"%2\" (\"%3\") SELECT \"%4\" FROM \"%5\";")
@@ -231,7 +233,8 @@ void AlterTableDialog::createButton_clicked()
 			return;
 		if (!execSql("COMMIT;", tr("Transaction Commit"), tmpName))
 			return;
-
+		updateStage = 2;
+		
 		// drop old table
 		if (!execSql(QString("DROP TABLE \"%1\";").arg(tmpName),
 			 tr("Dropping original table %1").arg(tmpName),
@@ -244,10 +247,9 @@ void AlterTableDialog::createButton_clicked()
 	}
 
 	// handle add columns
-	if (addColumns())
-		update = true;
+	addColumns();
 
-	if (update)
+	if (updateStage > 0)
 	{
 		resetStructure();
 		ui.resultEdit->append(tr("Alter Table Done"));
@@ -293,6 +295,7 @@ bool AlterTableDialog::addColumns()
 										.arg(fullSql));
 			return false;
 		}
+		updateStage = 2;
 	}
 	ui.resultEdit->append(tr("Columns added successfully"));
 	return true;
