@@ -106,6 +106,12 @@ DataViewer::~DataViewer()
     settings.setValue("dataviewer/state", saveState());
 }
 
+void DataViewer::setNotPending()
+{
+	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (old) { old->setPendingTransaction(false); }
+}
+
 bool DataViewer::checkForPending()
 {
 	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());

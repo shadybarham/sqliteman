@@ -512,7 +512,7 @@ void LiteManWindow::open(const QString & file)
 
 void LiteManWindow::openDatabase(const QString & fileName)
 {
-	if (!dataViewer->checkForPending()) { return; }
+	if (!checkForPending()) { return; }
 	
 	bool isOpened = false;
 
@@ -682,7 +682,7 @@ void LiteManWindow::execSql(QString query)
 		QMessageBox::warning(this, tr("No SQL statement"), tr("You are trying to run an undefined SQL query. Hint: select your query in the editor"));
 		return;
 	}
-	if (!dataViewer->checkForPending()) { return; }
+	if (!checkForPending()) { return; }
 
 	dataViewer->freeResources();
 	m_activeTable = QString();
@@ -807,7 +807,7 @@ void LiteManWindow::populateTable()
 	if(!item)
 		return;
 	bool isActive = m_activeTable == item->text(0);
-	if (isActive && !dataViewer->checkForPending()) { return; }
+	if (isActive && !checkForPending()) { return; }
 	PopulatorDialog dlg(this, item->text(0), item->text(1));
 	dlg.exec();
 	if (isActive && dlg.update) {
@@ -848,14 +848,14 @@ void LiteManWindow::importTable()
 
 void LiteManWindow::dropTable()
 {
-	//FIXME dropped table still displayed
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
 		return;
 
-	//FIXME only need this if we drop the table we're looking at
-	if (!dataViewer->checkForPending()) { return; }
+	bool isActive = m_activeTable == item->text(0);
+	// don't check for pending, we're dropping it anyway
+	if (isActive) { dataViewer->setNotPending(); }
 	int ret = QMessageBox::question(this, m_appName,
 					tr("Are you sure that you wish to drop the table \"%1\"?").arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
@@ -864,6 +864,11 @@ void LiteManWindow::dropTable()
 	{
 		if (Database::dropTable(item->text(0), item->text(1)))
 			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
+		if (isActive)
+		{
+			dataViewer->setTableModel(new QSqlQueryModel(), false);
+			m_activeTable = QString();
+		}
 	}
 }
 
@@ -937,10 +942,13 @@ void LiteManWindow::dropIndex()
 
 void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 {
-	if(!item)
+	if (   (!item)
+		|| (   (m_activeTable == item->text(0))
+//			&& (m_activeSchema == item->text(1)) //will be needed for real schemas
+		)
+		|| !checkForPending())
 		return;
 
-	if (!dataViewer->checkForPending()) { return; }
 	if (item->type() == TableTree::TableType || item->type() == TableTree::ViewType
 		|| item->type() == TableTree::SystemType)
 	{
