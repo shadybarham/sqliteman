@@ -221,6 +221,9 @@ int main(int argc, char ** argv)
 	wnd->setLanguage(cli.localeCode());
 	wnd->show();
 
+	// for some strange reason it sometimes doesn't get shown....
+	// wnd->dataViewer->ui.mainToolBar->setVisible(true);
+
 	int r = app.exec();
 	delete wnd;
 	return r;

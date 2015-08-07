@@ -241,6 +241,7 @@ void TableTree::mousePressEvent(QMouseEvent *event)
 			< QApplication::startDragDistance())
 		return;
 
+	if (!currentItem()) { return; }
 	if (currentItem()->type() != TableTree::TableType &&
 		   currentItem()->type() != TableTree::ViewType &&
 		   currentItem()->type() != TableTree::DatabaseItemType &&

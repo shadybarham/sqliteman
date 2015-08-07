@@ -3,6 +3,10 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	
+	FIXME replacing a blob by another blob using the Multiline Editor causes it to
+	become badly confused and eventually SEGV. The problem isn't in my changes as
+	it was there in upstream/master
 */
 
 #include <QMessageBox>
@@ -37,8 +41,6 @@ DataViewer::DataViewer(QWidget * parent)
     ui.snapshotToolBar->setIconSize(QSize(16, 16));
 #endif
 
-	handleBlobPreview(false);
-
 	ui.splitter->setCollapsible(0, false);
 	ui.splitter->setCollapsible(1, false);
 	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
@@ -52,7 +54,13 @@ DataViewer::DataViewer(QWidget * parent)
 	ui.actionClose->setIcon(Utils::getIcon("close.png"));
 	ui.action_Goto_Line->setIcon(Utils::getIcon("go-next-use.png"));
 
-    actInsertNull = new QAction(Utils::getIcon("setnull.png"), tr("Insert NULL"), ui.tableView);
+	ui.mainToolBar->show();
+	ui.exportToolBar->show();
+	ui.snapshotToolBar->show();
+	
+	handleBlobPreview(false);
+
+	actInsertNull = new QAction(Utils::getIcon("setnull.png"), tr("Insert NULL"), ui.tableView);
     connect(actInsertNull, SIGNAL(triggered()), this, SLOT(actInsertNull_triggered()));
     actOpenEditor = new QAction(Utils::getIcon("edit.png"), tr("Open Data Editor..."), ui.tableView);
     connect(actOpenEditor, SIGNAL(triggered()), this, SLOT(actOpenEditor_triggered()));
@@ -98,6 +106,13 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(tableView_dataResized(int, int, int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionResized(int, int, int)),
 			this, SLOT(tableView_dataResized(int, int, int)));
+	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(horizontalHeaderClicked(int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(verticalHeaderClicked(int)));
+	connect(ui.tableView, SIGNAL(clicked(QModelIndex)),
+			this, SLOT(tableItemClicked(QModelIndex)));
+	singleItemSelected = false;
 }
 
 DataViewer::~DataViewer()
@@ -149,6 +164,73 @@ bool DataViewer::checkForPending()
 	else { return true; }
 }
 
+void DataViewer::updateButtons()
+{
+	QAbstractItemModel * model = ui.tableView->model();
+	bool editable;
+	bool pending;
+	bool haveRows;
+	bool rowSelected;
+	bool canPreview;
+	int tab = ui.tabWidget->currentIndex();
+	SqlTableModel * table = qobject_cast<SqlTableModel *>(model);
+	if (model)
+	{
+		if (table)
+		{
+			editable = true;
+			pending = table->pendingTransaction();
+		}
+		else
+		{
+			editable = false;
+			pending = false;
+		}
+		haveRows = model->rowCount() > 0;
+	}
+	else
+	{
+		editable = false;
+		pending = false;
+		haveRows = false;
+	}
+	rowSelected =    ui.tableView->currentIndex().isValid()
+				  && ui.tableView->currentIndex().row() >= 0;
+	if (rowSelected && singleItemSelected)
+	{
+		QPixmap pm;
+		QVariant data = ui.tableView->model()->data(ui.tableView->currentIndex(),
+													Qt::EditRole);
+		pm.loadFromData(data.toByteArray());
+		canPreview = !pm.isNull();
+	}
+	else
+	{
+		canPreview = false;
+	}
+	ui.actionNew_Row->setEnabled(editable);
+	ui.actionRemove_Row->setEnabled(editable && rowSelected);
+	ui.actionTruncate_Table->setEnabled(editable && haveRows);
+	ui.actionCommit->setEnabled(pending);
+	ui.actionRollback->setEnabled(pending);
+	if (canPreview || ui.actionBLOB_Preview->isChecked())
+	{
+		ui.actionBLOB_Preview->setEnabled(true);
+		ui.blobPreviewBox->setVisible(
+			canPreview && ui.actionBLOB_Preview->isChecked());
+	}
+	else
+	{
+		ui.actionBLOB_Preview->setEnabled(false);
+		ui.blobPreviewBox->setVisible(false);
+	}
+	ui.actionExport_Data->setEnabled(haveRows);
+	ui.action_Goto_Line->setEnabled(haveRows && (tab != 2));
+	ui.actionRipOut->setEnabled(haveRows);
+	ui.tabWidget->setTabEnabled(1, rowSelected);
+	ui.tabWidget->setTabEnabled(2, ui.scriptEdit->lines() > 1);
+}
+
 bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 {
 	if (!checkForPending()) { return false; }
@@ -164,7 +246,7 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 	ui.itemView->setModel(model);
 	ui.tabWidget->setCurrentIndex(0);
 	resizeViewToContents(model);
-	setShowButtons(showButtons);
+	updateButtons();
 	
 	QString cached;
 	if (qobject_cast<QSqlQueryModel*>(model)->rowCount() != 0
@@ -236,17 +318,6 @@ void DataViewer::showStatusText(bool show)
 	(show) ? ui.statusText->show() : ui.statusText->hide();
 }
 
-void DataViewer::setShowButtons(bool show)
-{
-	ui.actionTruncate_Table->setEnabled(show && ui.tableView->model()->rowCount() > 0);
-	ui.actionRemove_Row->setEnabled(show && ui.tableView->model()->rowCount() > 0);
-	ui.actionNew_Row->setEnabled(show);
-	ui.actionCommit->setEnabled(show);
-	ui.actionRollback->setEnabled(show);
-	ui.actionRipOut->setEnabled(ui.tableView->model()->rowCount() > 0);
-	ui.actionExport_Data->setEnabled(ui.tableView->model()->rowCount() > 0);
-}
-
 void DataViewer::addRow()
 {
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
@@ -254,7 +325,7 @@ void DataViewer::addRow()
 	{
 		model->insertRows(model->rowCount(), 1);
 		ui.tableView->scrollToBottom();
-		setShowButtons(true);
+		updateButtons();
 	}
 }
 
@@ -264,7 +335,7 @@ void DataViewer::removeRow()
 	if(model)
 	{
 		model->removeRows(ui.tableView->currentIndex().row(), 1);
-		setShowButtons(true);
+		updateButtons();
 	}
 }
 
@@ -286,6 +357,7 @@ void DataViewer::truncateTable()
 	while (model->canFetchMore())
 		model->fetchMore();
 	model->removeRows(0, model->rowCount());
+	updateButtons();
 }
 
 void DataViewer::exportData()
@@ -340,7 +412,7 @@ void DataViewer::commit()
 	}
 	model->setPendingTransaction(false);
 	resizeViewToContents(model);
-	setShowButtons(true);
+	updateButtons();
 }
 
 void DataViewer::rollback()
@@ -353,7 +425,7 @@ void DataViewer::rollback()
 	model->revertAll();
 	model->setPendingTransaction(false);
 	resizeViewToContents(model);
-	setShowButtons(true);
+	updateButtons();
 }
 
 void DataViewer::copyHandler()
@@ -431,9 +503,15 @@ void DataViewer::openStandaloneWindow()
 
 void DataViewer::handleBlobPreview(bool state)
 {
-	ui.blobPreviewBox->setVisible(state);
 	if (state)
 		tableView_selectionChanged(QItemSelection(), QItemSelection());
+	updateButtons();
+	if (ui.blobPreviewBox->isVisible())
+	{
+		ui.blobPreview->setBlobData(
+			ui.tableView->model()->data(ui.tableView->currentIndex(),
+										Qt::EditRole));
+	}
 }
 
 void DataViewer::tableView_selectionChanged(const QItemSelection &, const QItemSelection &)
@@ -442,15 +520,8 @@ void DataViewer::tableView_selectionChanged(const QItemSelection &, const QItemS
     bool enable = (tm != 0);
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
-
-    if (ui.blobPreviewBox->isVisible())
-    {
-	    ui.blobPreview->setBlobData(ui.tableView->model()->data(ui.tableView->currentIndex(),
-		    													Qt::EditRole)
-			    				   );
-    }
-	
 }
+
 void DataViewer::tabWidget_currentChanged(int ix)
 {
 	if (ix == 0)
@@ -471,7 +542,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	if (ui.actionBLOB_Preview->isChecked())
 		ui.blobPreviewBox->setVisible(ix!=2);
 	ui.statusText->setVisible(ix != 2);
-	ui.action_Goto_Line->setEnabled(ix!=2);
+	updateButtons();
 }
 
 void DataViewer::itemView_indexChanged()
@@ -488,7 +559,7 @@ void DataViewer::showSqlScriptResult(QString line)
 	ui.scriptEdit->append("\n");
 	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
 	ui.tabWidget->setCurrentIndex(2);
-	setShowButtons(false);
+	updateButtons();
 }
 
 void DataViewer::sqlScriptStart()
@@ -530,6 +601,7 @@ void DataViewer::gotoLine()
 	ui.tableView->selectionModel()->select(QItemSelection(left, left),
 										   QItemSelectionModel::ClearAndSelect);
 	ui.tableView->setCurrentIndex(left);
+	updateButtons();
 }
 
 void DataViewer::actOpenEditor_triggered()
@@ -542,6 +614,24 @@ void DataViewer::actInsertNull_triggered()
     ui.tableView->model()->setData(ui.tableView->currentIndex(), QString(), Qt::EditRole); 
 }
 
+void DataViewer::horizontalHeaderClicked(int)
+{
+	singleItemSelected = false;
+	updateButtons();
+}
+
+void DataViewer::verticalHeaderClicked(int)
+{
+	singleItemSelected = false;
+	updateButtons();
+}
+
+//FIXME The first blob to be enabled gets "cannot be displayed"
+void DataViewer::tableItemClicked(QModelIndex)
+{
+	singleItemSelected = true;
+	updateButtons();
+}
 
 /* Tools *************************************************** */
 
