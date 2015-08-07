@@ -520,6 +520,13 @@ void DataViewer::tableView_selectionChanged(const QItemSelection &, const QItemS
     bool enable = (tm != 0);
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
+	updateButtons();
+	if (ui.blobPreviewBox->isVisible())
+	{
+		ui.blobPreview->setBlobData(
+			ui.tableView->model()->data(ui.tableView->currentIndex(),
+										Qt::EditRole));
+	}
 }
 
 void DataViewer::tabWidget_currentChanged(int ix)
