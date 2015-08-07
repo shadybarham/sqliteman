@@ -19,6 +19,7 @@ class QAction;
 class QSplitter;
 class QSqlQueryModel;
 class QResizeEvent;
+class QModelIndex;
 
 
 /*! \brief A Complex widget handling the database outputs and status messages.
@@ -62,6 +63,7 @@ class DataViewer : public QMainWindow
 	private:
 		Ui::DataViewer ui;
 		bool dataResized;
+		bool singleItemSelected;
 
         QAction * actOpenEditor;
         QAction * actInsertNull;
@@ -69,7 +71,7 @@ class DataViewer : public QMainWindow
 		void resizeViewToContents(QAbstractItemModel * model);
 		void resizeEvent(QResizeEvent * event);
 		//! \brief Show/hide action tools
-		void setShowButtons(bool show);
+		void updateButtons();
 
 	private slots:
 		void addRow();
@@ -118,6 +120,10 @@ class DataViewer : public QMainWindow
 
         void actOpenEditor_triggered();
         void actInsertNull_triggered();
+
+		void horizontalHeaderClicked(int);
+		void verticalHeaderClicked(int);
+		void tableItemClicked(QModelIndex);
 };
 
 
