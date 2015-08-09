@@ -122,6 +122,7 @@ class DataViewer : public QMainWindow
         void actOpenEditor_triggered();
         void actInsertNull_triggered();
 
+		void rowDoubleClicked(int);
 		void horizontalHeaderClicked(int);
 		void verticalHeaderClicked(int);
 		void tableItemClicked(QModelIndex);

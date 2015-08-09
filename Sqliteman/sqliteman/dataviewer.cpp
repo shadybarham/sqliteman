@@ -6,7 +6,10 @@ for which a new license (GPL+exception) is in place.
 	
 	FIXME replacing a blob by another blob using the Multiline Editor causes it to
 	become badly confused and eventually SEGV. The problem isn't in my changes as
-	it was there in upstream/master
+	it was there in upstream/master.
+	
+	No longer quite as bad, but still doesn't update blob viewer or mark as
+	needing a commit right away as it should
 */
 
 #include <QMessageBox>
@@ -106,6 +109,8 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(tableView_dataResized(int, int, int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionResized(int, int, int)),
 			this, SLOT(tableView_dataResized(int, int, int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
+			this, SLOT(rowDoubleClicked(int)));
 	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionClicked(int)),
 			this, SLOT(horizontalHeaderClicked(int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionClicked(int)),
@@ -621,6 +626,11 @@ void DataViewer::actInsertNull_triggered()
     ui.tableView->model()->setData(ui.tableView->currentIndex(), QString(), Qt::EditRole); 
 }
 
+void DataViewer::rowDoubleClicked(int)
+{
+	ui.tabWidget->setCurrentIndex(1);
+}
+		
 void DataViewer::horizontalHeaderClicked(int)
 {
 	singleItemSelected = false;
