@@ -7,7 +7,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "vacuumdialog.h"
 #include "database.h"
-
+#include "utils.h"
 
 VacuumDialog::VacuumDialog(LiteManWindow * parent)
 	: QDialog(parent)
@@ -37,7 +37,8 @@ void VacuumDialog::tableButton_clicked()
 	{
 		for (int i = 0; i < list.size(); ++i)
 		{
-			if (!Database::execSql(QString("vacuum %1;").arg(list.at(i)->text())))
+			if (!Database::execSql(QString("vacuum %1;")
+								   .arg(Utils::quote(list.at(i)->text()))))
 				break;
 		}
 	}

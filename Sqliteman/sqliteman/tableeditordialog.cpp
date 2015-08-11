@@ -11,7 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include <QSettings>
 
 #include "tableeditordialog.h"
-
+#include "utils.h"
 
 TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QString & tableName): QDialog(parent)
 {
@@ -88,7 +88,9 @@ void TableEditorDialog::tabWidget_currentChanged(int index)
 
 QString TableEditorDialog::getFullName(const QString & objName)
 {
-	return QString("\"%1\".\"%2\"").arg(ui.databaseCombo->currentText()).arg(objName);
+	return QString("%1.%2")
+				   .arg(Utils::quote(ui.databaseCombo->currentText()))
+				   .arg(Utils::quote(objName));
 }
 
 DatabaseTableField TableEditorDialog::getColumn(int row)
@@ -134,7 +136,8 @@ DatabaseTableField TableEditorDialog::getColumn(int row)
 	field.name = nameItem->text();
 	field.type = type;
 	field.notnull = nn;
-	field.defval = (ui.columnTable->item(row, 3) == 0) ? "" : ui.columnTable->item(row, 3)->text();
+	field.defval = (ui.columnTable->item(row, 3) == 0)
+				   ? "" : ui.columnTable->item(row, 3)->text();
 	field.pk = pk;
 	field.comment = "";
 
@@ -149,10 +152,8 @@ QString TableEditorDialog::getDefaultClause(const QString & defVal)
 	defVal.toDouble(&ok);
 	if (ok)
 		return QString(" DEFAULT (%1)").arg(defVal);
-	else if (defVal.simplified().left(1) == "'")
-		return QString(" DEFAULT (%1)").arg(defVal);
 	else
-		return QString(" DEFAULT ('%1')").arg(defVal);
+		return QString(" DEFAULT (%1)").arg(Utils::literal(defVal));
 }
 
 QString TableEditorDialog::getColumnClause(DatabaseTableField column)
@@ -162,5 +163,5 @@ QString TableEditorDialog::getColumnClause(DatabaseTableField column)
 
 	QString nn(column.notnull ? " NOT NULL" : "");
 	QString def(getDefaultClause(column.defval));
-	return "    \"" + column.name + "\" " + column.type + nn + def + ",\n";
+	return " " + Utils::quote(column.name) + " " + column.type + nn + def + ",\n";
 }

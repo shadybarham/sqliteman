@@ -124,8 +124,8 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 
 QStringList AlterTableDialog::originalSource()
 {
-	QString ixsql("select sql from \"%1\".sqlite_master where type in ('index', 'trigger') and tbl_name = '%2';");
-	QSqlQuery query(ixsql.arg(m_schema).arg(m_table), QSqlDatabase::database(SESSION_NAME));
+	QString ixsql("select sql from %1.sqlite_master where type in ('index', 'trigger') and tbl_name = '%2';");
+	QSqlQuery query(ixsql.arg(Utils::quote(m_schema)).arg(Utils::quote(m_table)), QSqlDatabase::database(SESSION_NAME));
 	QStringList ret;
 
 	if (query.lastError().isValid())
@@ -145,11 +145,11 @@ bool AlterTableDialog::renameTable()
 	{
 		if (m_table == newTableName) { return true; }
 	
-		QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
-				.arg(m_schema)
-				.arg(m_table)
-				.arg(newTableName);
-		if (execSql(sql, tr("Renaming the table \"%1\" to \"%2\".")
+		QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
+					  .arg(Utils::quote(m_schema))
+					  .arg(Utils::quote(m_table))
+					  .arg(Utils::quote(newTableName));
+		if (execSql(sql, tr("Renaming the table %1 to %2.")
 						 .arg(m_table).arg(newTableName)))
 		{
 			updateStage = 1;
@@ -170,7 +170,7 @@ void AlterTableDialog::createButton_clicked()
 	// drop columns first
 // 	if (m_dropColumns > 0)
 	{
-        FieldList oldColumns = Database::tableFields(m_table, m_schema);    
+        FieldList oldColumns = Database::tableFields(m_table, m_schema);
 		QStringList existingObjects = Database::getObjects().keys();
 		// indexes and triggers on the original table
 		QStringList originalSrc = originalSource();
@@ -194,15 +194,19 @@ void AlterTableDialog::createButton_clicked()
             }
 		}
 
-		if (!execSql(QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
-							.arg(m_schema).arg(m_table).arg(tmpName),
+		if (!execSql(QString("ALTER TABLE %1.%2 RENAME TO %3;")
+					 .arg(Utils::quote(m_schema))
+					 .arg(Utils::quote(m_table))
+					 .arg(Utils::quote(tmpName)),
 					 tr("Rename original table to %1").arg(tmpName)))
 		{
 			return;
 		}
 		updateStage = 1;
 
-		QString sql = QString("CREATE TABLE %1 (\n").arg(m_table);
+		QString sql = QString("CREATE TABLE %1.%2 (\n")
+					  .arg(Utils::quote(m_schema))
+					  .arg(Utils::quote(m_table));
 		QStringList tmpInsertColumns;
 		foreach (DatabaseTableField f, newColumns)
 		{
@@ -223,11 +227,14 @@ void AlterTableDialog::createButton_clicked()
 		{
 			return;
 		}
-		QString insSql(QString("INSERT INTO \"%1\".\"%2\" (\"%3\") SELECT \"%4\" FROM \"%5\";")
-								.arg(m_schema).arg(m_table)
-								.arg(tmpInsertColumns.join("\",\""))
-								.arg(tmpSelectColumns.join("\",\""))
-								.arg(tmpName));
+		QString insSql(QString(
+			"INSERT INTO %1.%2 (%3) SELECT %4 FROM %5.%6;")
+			.arg(Utils::quote(m_schema))
+			.arg(Utils::quote(m_table))
+			.arg(Utils::quote(tmpInsertColumns))
+			.arg(Utils::quote(tmpSelectColumns))
+			.arg(Utils::quote(m_schema))
+			.arg(Utils::quote(tmpName)));
         //qDebug() << insSql;
 		if (!execSql(insSql, tr("Data Transfer"), tmpName))
 			return;
@@ -236,7 +243,9 @@ void AlterTableDialog::createButton_clicked()
 		updateStage = 2;
 		
 		// drop old table
-		if (!execSql(QString("DROP TABLE \"%1\";").arg(tmpName),
+		if (!execSql(QString("DROP TABLE %1.%2;")
+					 .arg(Utils::quote(m_schema))
+					 .arg(Utils::quote(tmpName)),
 			 tr("Dropping original table %1").arg(tmpName),
 				tmpName))
 			return;
@@ -260,7 +269,7 @@ bool AlterTableDialog::addColumns()
 {
 	// handle new columns
 	DatabaseTableField f;
-	QString sql("ALTER TABLE \"%1\".\"%2\" ADD COLUMN \"%3\" %4 %5 %6;");
+	QString sql("ALTER TABLE %1.%2 ADD COLUMN %3 %4 %5 %6;");
 	QString nn;
 	QString def;
 	QString fullSql;
@@ -278,12 +287,12 @@ bool AlterTableDialog::addColumns()
 		nn = f.notnull ? " NOT NULL" : "";
 		def = getDefaultClause(f.defval);
 
-		fullSql = sql.arg(ui.databaseCombo->currentText())
-					.arg(m_table)
-					.arg(f.name)
-					.arg(f.type)
-					.arg(nn)
-					.arg(def);
+		fullSql = sql.arg(Utils::quote(ui.databaseCombo->currentText()))
+					 .arg(Utils::quote(m_table))
+					 .arg(Utils::quote(f.name))
+					 .arg(f.type)
+					 .arg(nn)
+					 .arg(def);
 
 		QSqlQuery query(fullSql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())

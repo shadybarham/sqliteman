@@ -13,7 +13,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "populatordialog.h"
 #include "populatorcolumnwidget.h"
-
+#include "utils.h"
 
 PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const QString & schema)
 	: QDialog(parent),
@@ -91,8 +91,8 @@ void PopulatorDialog::checkActionTypes()
 
 qlonglong PopulatorDialog::tableRowCount()
 {
-	QString sql("select count(1) from \"%1\".\"%2\";");
-	QSqlQuery query(sql.arg(m_schema).arg(m_table),
+	QString sql("select count(1) from %1.%2;");
+	QSqlQuery query(sql.arg(Utils::quote(m_schema)).arg(Utils::quote(m_table)),
 					QSqlDatabase::database(SESSION_NAME));
 	query.exec();
 	if (query.lastError().isValid())
@@ -114,7 +114,7 @@ QString PopulatorDialog::sqlColumns()
 		if (i.action != Populator::T_IGNORE)
 			s.append(i.name);
 	}
-	return s.join("\", \"");
+		return Utils::quote(s);
 }
 
 QString PopulatorDialog::sqlBinds()
@@ -125,7 +125,7 @@ QString PopulatorDialog::sqlBinds()
 		if (i.action != Populator::T_IGNORE)
 			s.append(i.name);
 	}
-	return s.join(", :");
+		return Utils::quote(s);
 }
 
 void PopulatorDialog::populateButton_clicked()
@@ -138,10 +138,12 @@ void PopulatorDialog::populateButton_clicked()
 		m_columnList.append(qobject_cast<PopulatorColumnWidget*>(columnTable->cellWidget(i, 2))->column());
 
 	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
-	QString sql = "INSERT %1 INTO \"%2\".\"%3\" (\"%4\") VALUES (:%5);";
+	QString sql = "INSERT %1 INTO %2.%3 (%4) VALUES (:%5);";
 	query.prepare(sql.arg(constraintBox->isChecked() ? "OR IGNORE" : "")
-			.arg(m_schema).arg(m_table)
-			.arg(sqlColumns()).arg(sqlBinds()));
+					 .arg(Utils::quote(m_schema))
+					 .arg(Utils::quote(m_table))
+					 .arg(sqlColumns())
+					 .arg(sqlBinds()));
 
 	cntPre = tableRowCount();
 
@@ -205,8 +207,10 @@ void PopulatorDialog::populateButton_clicked()
 
 QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 {
-	QString sql("select max(%1) from \"%2\".\"%3\";");
-	QSqlQuery query(sql.arg(c.name).arg(m_schema).arg(m_table),
+	QString sql("select max(%1) from %2.%3;");
+	QSqlQuery query(sql.arg(Utils::quote(c.name))
+					   .arg(Utils::quote(m_schema))
+					   .arg(Utils::quote(m_table)),
 					QSqlDatabase::database(SESSION_NAME));
 	query.exec();
 
@@ -289,7 +293,7 @@ QVariantList PopulatorDialog::dateValues(Populator::PopColumn c)
 {
 	QVariantList ret;
 
-	// prepare some variables to spped up things on the loop
+	// prepare some variables to speed up things on the loop
 	// current time
 	QDateTime now(QDateTime::currentDateTime());
 	// timestamp of "now"

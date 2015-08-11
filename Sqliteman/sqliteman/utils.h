@@ -22,6 +22,17 @@ QString getTranslator(const QString & localeName);
 //! \brief Check if the object tre should be refileld depending on sql statement
 bool updateObjectTree(const QString & sql);
 
+//! \brief Quote identifier for generated SQL statement
+QString quote(QString s);
+
+//! \brief Quote list of identifiers for generated SQL statement
+QString quote(QStringList l);
+
+QString literal(QString s);
+
+QString unQuote(QString s);
+
+QString like(QString s);
 };
 
 #endif

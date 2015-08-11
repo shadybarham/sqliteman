@@ -11,7 +11,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "constraintsdialog.h"
 #include "database.h"
-
+#include "utils.h"
 
 ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & schema, QWidget * parent)
 	: QDialog(parent),
@@ -39,13 +39,15 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 		nnCols << column.name;
 		stmt = QString("SELECT RAISE(ABORT, 'New %2 value IS NULL') WHERE new.%1 IS NULL;\n")
 				.arg(column.name)
-				.arg(column.name);
+				.arg(Utils::quote(column.name));
 		inserts << "-- NOT NULL check" << stmt;
 		updates << "-- NOT NULL check"<< stmt;
 	}
 
 	// get FKs
-	QString sql(QString("pragma \"%1\".foreign_key_list (\"%2\");").arg(schema).arg(tabName));
+			QString sql(QString("pragma %1.foreign_key_list (%2);")
+								.arg(Utils::quote(schema))
+								.arg(Utils::quote(tabName)));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
@@ -69,28 +71,31 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 		nnTemplate = "";
 		if (nnCols.contains(column, Qt::CaseInsensitive))
 		{
-			nnTemplate = QString("\n    new.%1 IS NOT NULL AND").arg(column);
+			nnTemplate = QString("\n    new.%1 IS NOT NULL AND")
+								 .arg(Utils::quote(column));
 		}
 		thenTemplate = QString("\n    RAISE(ABORT, '%1 violates foreign key %2(%3)')")
 				.arg(column)
 				.arg(fkTab)
 				.arg(fkColumn);
-		stmt = QString("SELECT %1\n    where %2 (SELECT %3 FROM %4 WHERE %5 = new.%6) IS NULL;\n")
-				.arg(thenTemplate)
-				.arg(nnTemplate)
-				.arg(fkColumn)
-				.arg(fkTab)
-				.arg(fkColumn)
-				.arg(column)
-				;
+		stmt = QString("SELECT %1\n    where %2 "
+					   "(SELECT %3 FROM %4 WHERE %5 = new.%6) IS NULL;\n")
+					   .arg(thenTemplate)
+					   .arg(nnTemplate)
+					   .arg(Utils::quote(fkColumn))
+					   .arg(Utils::quote(fkTab))
+					   .arg(Utils::quote(fkColumn))
+					   .arg(Utils::quote(column));
 		inserts << "-- FK check" << stmt;
 		updates << "-- FK check" << stmt;
-		deletes << "-- FK check" << QString("SELECT %1 WHERE (SELECT %2 FROM %3 WHERE %4 = old.%5) IS NOT NULL;\n")
-				.arg(thenTemplate)
-				.arg(fkColumn)
-				.arg(fkTab)
-				.arg(fkColumn)
-				.arg(column);
+		deletes << "-- FK check" <<
+			QString("SELECT %1 WHERE "
+					"(SELECT %2 FROM %3 WHERE %4 = old.%5) IS NOT NULL;\n")
+					.arg(thenTemplate)
+					.arg(Utils::quote(fkColumn))
+					.arg(Utils::quote(fkTab))
+					.arg(Utils::quote(fkColumn))
+					.arg(Utils::quote(column));
 	}
 
 	// to the GUI
@@ -104,9 +109,9 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 void ConstraintsDialog::createButton_clicked()
 {
 	QString templ = QString("CREATE TRIGGER %1 BEFORE %2 ON %3.%4 FOR EACH ROW\n"
-                       "BEGIN\n"
-                       "%5\n\n%6"
-                       "END;");
+	                        "BEGIN\n"
+	                        "%5\n\n%6"
+	                        "END;");
 
 	QString status("INSERT trigger\n");
 	createTrigger("begin transaction;");

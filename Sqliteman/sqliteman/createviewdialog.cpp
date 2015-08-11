@@ -11,7 +11,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "createviewdialog.h"
 #include "database.h"
-
+#include "utils.h"
 
 CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema, LiteManWindow * parent)
 	: QDialog(parent),
@@ -38,9 +38,9 @@ void CreateViewDialog::createButton_clicked()
 {
 	if (creator && creator->checkForPending())
 	{
-		QString sql(QString("CREATE VIEW \"%1\".\"%2\" AS %3;")
-			.arg(ui.databaseCombo->currentText())
-			.arg(ui.nameEdit->text())
+		QString sql(QString("CREATE VIEW %1.%2 AS %3;")
+			.arg(Utils::quote(ui.databaseCombo->currentText()))
+			.arg(Utils::quote(ui.nameEdit->text()))
 			.arg(ui.sqlEdit->text()));
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));

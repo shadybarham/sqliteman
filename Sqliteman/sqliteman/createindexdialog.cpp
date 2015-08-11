@@ -65,14 +65,14 @@ void CreateIndexDialog::createButton_clicked()
 		{
 			if (ui.tableColumns->item(i, 1)->checkState() == Qt::Checked)
 				cols.append(QString("%1 %2")
-							.arg(ui.tableColumns->item(i, 0)->text())
+							.arg(Utils::quote(ui.tableColumns->item(i, 0)->text()))
 							.arg(qobject_cast<QComboBox*>(ui.tableColumns->cellWidget(i, 2))->currentText()));
 		}
-		QString sql(QString("create %1 index \"%2\".\"%3\" on %4 (%5);")
+		QString sql(QString("create %1 index %2.%3 on %4 (%5);")
 				.arg(ui.uniqueCheckBox->isChecked() ? "unique" : "")
-				.arg(m_schema)
-				.arg(ui.indexNameEdit->text())
-				.arg(ui.tableNameLabel->text())
+				.arg(Utils::quote(m_schema))
+				.arg(Utils::quote(ui.indexNameEdit->text()))
+				.arg(Utils::quote(ui.tableNameLabel->text()))
 				.arg(cols.join(", ")));
 
 		QSqlQuery q(sql, QSqlDatabase::database(SESSION_NAME));

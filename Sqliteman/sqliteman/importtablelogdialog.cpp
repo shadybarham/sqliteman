@@ -7,7 +7,6 @@ for which a new license (GPL+exception) is in place.
 
 #include "importtablelogdialog.h"
 
-
 ImportTableLogDialog::ImportTableLogDialog(QStringList log, QWidget * parent)
 	: QDialog(parent)
 {

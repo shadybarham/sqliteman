@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "altertriggerdialog.h"
 #include "database.h"
+#include "utils.h"
 
 
 AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & schema, QWidget * parent)
@@ -22,7 +23,10 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	ui.createButton->setText(tr("&Alter"));
 	setWindowTitle("Alter Trigger");
 
-	QString sql(QString("select sql from \"%1\".sqlite_master where name = '%2';").arg(schema).arg(name));
+	QString sql(QString(
+		"select sql from %1.sqlite_master where name = %2;")
+		.arg(Utils::quote(schema))
+		.arg(Utils::quote(name)));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 		ui.textEdit->setText(tr("Cannot get trigger from the database."));
@@ -41,8 +45,11 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 
 void AlterTriggerDialog::createButton_clicked()
 {
-	QSqlQuery drop(QString("DROP TRIGGER \"%1\".\"%2\";").arg(m_schema).arg(m_name),
-				  QSqlDatabase::database(SESSION_NAME));
+	QSqlQuery drop(QString(
+				   "DROP TRIGGER %1.%2;")
+				   .arg(Utils::quote(m_schema))
+				   .arg(Utils::quote(m_name)),
+				   QSqlDatabase::database(SESSION_NAME));
 	if(drop.lastError().isValid())
 	{
 		ui.resultEdit->setText(tr("Cannot drop trigger: %1.\n\n%2").arg(drop.lastError().text()).arg(m_name));

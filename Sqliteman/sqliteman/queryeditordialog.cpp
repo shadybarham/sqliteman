@@ -9,7 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QLineEdit>
 
 #include "queryeditordialog.h"
-
+#include "utils.h"
 
 TermEditor::TermEditor(const FieldList & fieldList, QWidget * parent)
 	: QWidget(parent)
@@ -110,7 +110,6 @@ QueryEditorDialog::~QueryEditorDialog()
 
 QString QueryEditorDialog::statement()
 {
-	//FIXME quote column names, might be reserved words
 	QString logicWord;
 	QString sql = "SELECT ";
 
@@ -119,13 +118,12 @@ QString QueryEditorDialog::statement()
 		sql += "* ";
 	else
 	{
-		foreach (QString s, selectModel->stringList())
-			sql += s + ", ";
-		sql = sql.remove(sql.size() - 2, 2); 	// cut the extra ", "
+		sql += Utils::quote(selectModel->stringList());
 	}
 
 	// Add table name
-	sql += (" FROM \"" + m_schema + "\".\"" + tableList->currentText() + "\"");
+			sql += (" FROM " + Utils::quote(m_schema) + "." +
+					Utils::quote(tableList->currentText()));
 
 	// Optionaly add terms
 	if(termsLayout->count() > 0)
@@ -145,32 +143,33 @@ QString QueryEditorDialog::statement()
 			TermEditor * term = qobject_cast<TermEditor *>(widget);
 			if(term)
 			{
-				sql += term->selectedField();
+				sql += Utils::quote(term->selectedField());
 
 				switch(term->selectedRelation())
 				{
 					case 0:		// Contains
-						sql += (" LIKE '%" + term->selectedValue() + "%'");
+						sql += (" LIKE " + Utils::like(term->selectedValue()));
 						break;
 
 					case 1: 	// Doesn't contain
-						sql += (" NOT LIKE '%" + term->selectedValue() + "%'");
+						sql += (" NOT LIKE "
+								+ Utils::like(term->selectedValue()));
 						break;
 
 					case 2:		// Equals
-						sql += (" = '" + term->selectedValue() + "'");
+						sql += (" = " + Utils::literal(term->selectedValue()));
 						break;
 
 					case 3:		// Not equals
-						sql += (" <> '" + term->selectedValue() + "'");
+						sql += (" <> " + Utils::literal(term->selectedValue()));
 						break;
 
 					case 4:		// Bigger than
-						sql += (" > '" + term->selectedValue() + "'");
+						sql += (" > " + Utils::literal(term->selectedValue()));
 						break;
 
 					case 5:		// Smaller than
-						sql += (" < '" + term->selectedValue() + "'");
+						sql += (" < " + Utils::literal(term->selectedValue()));
 						break;
 				}
 			}

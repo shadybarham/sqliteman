@@ -484,7 +484,9 @@ void DataViewer::openStandaloneWindow()
 				+ QDateTime::currentDateTime().toString() + " - " 
 				+ tr("Data Snapshot"));
 		qm = new SqlQueryModel(w);
-		qm->setQuery(QString("select * from \"%1\".\"%2\";").arg(tm->schema()).arg(tm->tableName()),
+		qm->setQuery(QString("select * from %1.%2;")
+					.arg(Utils::quote(tm->schema()))
+					.arg(Utils::quote(tm->tableName())),
 					QSqlDatabase::database(SESSION_NAME));
 	}
 	else
@@ -643,7 +645,6 @@ void DataViewer::verticalHeaderClicked(int)
 	updateButtons();
 }
 
-//FIXME The first blob to be enabled gets "cannot be displayed"
 void DataViewer::tableItemClicked(QModelIndex)
 {
 	singleItemSelected = true;

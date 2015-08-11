@@ -44,3 +44,37 @@ bool Utils::updateObjectTree(const QString & sql)
 		return true;
 	return false;
 }
+
+QString Utils::quote(QString s)
+{
+	return "\"" + s.replace("\"", "\"\"") + "\"";
+}
+
+QString Utils::quote(QStringList l)
+{
+	foreach (QString s, l) { s.replace("\"", "\"\""); }
+	return "\"" + l.join("\", \"") + "\"";
+}
+
+QString Utils::literal(QString s)
+{
+	return "'" + s.replace("'", "''") + "'";
+}
+
+QString Utils::unQuote(QString s)
+{
+	if (s.startsWith("'")) {
+		s.replace("''", "'");
+		return s.mid(1, s.size() - 2);
+	}
+	else if (s.startsWith("\"")) {
+		s.replace("\"\"", "\"");
+		return s.mid(1, s.size() - 2);
+	}
+	else { return s; }
+}
+
+QString Utils::like(QString s)
+{
+	return "'%" + s.replace("'", "''") + "%'";
+}

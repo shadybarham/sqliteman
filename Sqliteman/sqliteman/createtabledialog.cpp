@@ -12,7 +12,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "createtabledialog.h"
 #include "database.h"
-
+#include "utils.h"
 
 CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	: TableEditorDialog(parent)
@@ -35,7 +35,9 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 
 QString CreateTableDialog::getSQLfromGUI()
 {
-	QString sql(QString("CREATE TABLE %1 (\n").arg(getFullName(ui.nameEdit->text())));
+	QString sql(QString("CREATE TABLE %1.%2 (\n")
+						.arg(Utils::quote(ui.databaseCombo->currentText()))
+						.arg(Utils::quote(ui.nameEdit->text())));
 	QString nn;
 	QString def;
 	DatabaseTableField f;

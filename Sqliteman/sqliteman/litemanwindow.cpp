@@ -792,10 +792,10 @@ void LiteManWindow::renameTable()
 	{
 		if (text == item->text(0))
 			return;
-		QString sql = QString("ALTER TABLE \"%1\".\"%2\" RENAME TO \"%3\";")
-								.arg(item->text(1))
-								.arg(item->text(0))
-								.arg(text);
+		QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
+					  .arg(Utils::quote(item->text(1)))
+					  .arg(Utils::quote(item->text(0)))
+					  .arg(Utils::quote(text));
 		if (Database::execSql(sql))
 			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
 	}
@@ -956,7 +956,10 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 		if (item->type() == TableTree::ViewType || item->type() == TableTree::SystemType)
 		{
 			SqlQueryModel * model = new SqlQueryModel(0);
-			model->setQuery(QString("select * from \"%1\".\"%2\"").arg(item->text(1)).arg(item->text(0)), QSqlDatabase::database(SESSION_NAME));
+			model->setQuery(QString("select * from %1.%2")
+							.arg(item->text(1))
+							.arg(item->text(0)),
+							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
 			m_activeTable = QString();
 		}
@@ -1109,7 +1112,8 @@ void LiteManWindow::attachDatabase()
 void LiteManWindow::detachDatabase()
 {
 	QString dbname(schemaBrowser->tableTree->currentItem()->text(0));
-	if (!Database::execSql(QString("detach database \"%1\";").arg(dbname)))
+	if (!Database::execSql(QString("detach database %1;")
+								   .arg(Utils::quote(dbname))))
 		return;
 
 	QSqlDatabase::database(attachedDb[dbname]).rollback();
@@ -1196,7 +1200,9 @@ void LiteManWindow::reindex()
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if(!item)
 		return;
-	QString sql(QString("REINDEX \"%1\".\"%2\";").arg(item->text(1)).arg(item->text(0)));
+	QString sql(QString("REINDEX %1.%2;")
+						.arg(Utils::quote(item->text(1)))
+						.arg(Utils::quote(item->text(0))));
 	Database::execSql(sql);
 }
 

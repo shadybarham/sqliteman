@@ -7,7 +7,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "analyzedialog.h"
 #include "database.h"
-
+#include "utils.h"
 
 AnalyzeDialog::AnalyzeDialog(QWidget * parent)
 	: QDialog(parent)
@@ -36,8 +36,9 @@ void AnalyzeDialog::tableButton_clicked()
 	QList<QListWidgetItem *> list(ui.tableList->selectedItems());
 	for (int i = 0; i < list.size(); ++i)
 	{
-		if (!Database::execSql(QString("analyze %1;").arg(list.at(i)->text())))
-			break;;
+		if (!Database::execSql(QString("analyze %1;")
+							   .arg(Utils::quote(list.at(i)->text()))))
+			break;
 	}
 }
 

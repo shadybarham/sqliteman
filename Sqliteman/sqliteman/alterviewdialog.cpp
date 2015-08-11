@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "alterviewdialog.h"
 #include "database.h"
+#include "utils.h"
 
 
 AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
@@ -26,7 +27,9 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	ui.databaseCombo->setDisabled(true);
 	ui.nameEdit->setDisabled(true);
 
-	QSqlQuery query(QString("select sql from \"%1\".sqlite_master where name = '%2';").arg(schema).arg(name),
+	QSqlQuery query(QString(
+					"select sql from %1.sqlite_master where name = %2;")
+					.arg(Utils::quote(schema)).arg(Utils::quote(name)),
 					 QSqlDatabase::database(SESSION_NAME));
 	while (query.next())
 	{
@@ -51,9 +54,9 @@ void AlterViewDialog::createButton_clicked()
 	{
 		update = true;
 		ui.resultEdit->clear();
-		QString sql(QString("DROP VIEW \"%1\".\"%2\"")
-				.arg(ui.databaseCombo->currentText())
-				.arg(ui.nameEdit->text()));
+		QString sql(QString("DROP VIEW %1.%2")
+					.arg(Utils::quote(ui.databaseCombo->currentText()))
+					.arg(Utils::quote(ui.nameEdit->text())));
 		QSqlQuery dropQuery(sql, QSqlDatabase::database(SESSION_NAME));
 		if (dropQuery.lastError().isValid())
 		{
@@ -61,10 +64,10 @@ void AlterViewDialog::createButton_clicked()
 			ui.resultEdit->moveCursor(QTextCursor::Start);
 		}
 
-		sql = QString("CREATE VIEW \"%1\".\"%2\" AS\n%3;")
-				.arg(ui.databaseCombo->currentText())
-				.arg(ui.nameEdit->text())
-				.arg(ui.sqlEdit->text());
+		sql = QString("CREATE VIEW %1.%2 AS\n%3;")
+		.arg(Utils::quote(ui.databaseCombo->currentText()))
+		.arg(Utils::quote(ui.nameEdit->text()))
+		.arg(ui.sqlEdit->text());
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		
 		if(query.lastError().isValid())

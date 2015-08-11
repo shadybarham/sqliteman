@@ -16,7 +16,8 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "preferences.h"
 #include "shell.h"
-
+#include "utils.h"
+#include "sqlitesyntax.h"
 
 void Database::exception(const QString & message)
 {
@@ -56,7 +57,9 @@ DbAttach Database::getDatabases()
 
 bool Database::dropTable(const QString & table, const QString & schema)
 {
-	QString sql = QString("DROP TABLE \"%1\".\"%2\";").arg(schema).arg(table);
+	QString sql = QString("DROP TABLE %1.%2;")
+						  .arg(Utils::quote(schema))
+						  .arg(Utils::quote(table));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
@@ -69,8 +72,12 @@ bool Database::dropTable(const QString & table, const QString & schema)
 
 FieldList Database::tableFields(const QString & table, const QString & schema)
 {
+// debug hack
+	QRegExp tre(sqlExpression, Qt::CaseInsensitive);
 	FieldList fields;
-	QString sql(QString("PRAGMA \"%1\".TABLE_INFO(\"%2\");").arg(schema).arg(table));
+	QString sql(QString("PRAGMA %1.TABLE_INFO(%2);")
+						.arg(Utils::quote(schema))
+						.arg(Utils::quote(table)));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
@@ -79,7 +86,9 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	}
 
 	// Build a query string to SELECT the CREATE statement from sqlite_master
-    QString createSQL(QString("SELECT sql FROM %2 WHERE name=\"%1\";").arg(table).arg(getMaster(schema)));
+	    QString createSQL(QString("SELECT sql FROM %2 WHERE name=%1;")
+						  .arg(Utils::quote(table))
+						  .arg(getMaster(schema)));
 //    QString createSQL(QString("SELECT sql FROM sqlite_master WHERE name=\"%1\";").arg(table));
 	// Run the query
 	QSqlQuery createQuery(createSQL, QSqlDatabase::database(SESSION_NAME));
@@ -91,28 +100,31 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	createQuery.first();
 	// Grab the complete CREATE statement
 	QString createStatement = createQuery.value(0).toString();
-	// This regexp matches a single SQL identifier
-	QString id = "(?:(?:[0-9A-Za-z_]+)|(?:(?:\"[^\"]*\")+))";
-	QString idlist = "(?:(?:\\s*" + id + "\\s+" + id + "\\s*(?:,\\s*)?)+)";
-	// Reduce the CREATE statement down to just the field info
-	createStatement.replace(QRegExp(
-		"^CREATE TABLE\\s+" + id + "\\s*\\((" + idlist + ")\\).*$"), "\\1");
+	QString fieldList = createStatement;
+	fieldList.replace(QRegExp(sqlCreate, Qt::CaseInsensitive), "\\1");
+	if (fieldList == createStatement)
+	{
+		exception(tr("Cannot parse CREATE statement: %1").arg(createStatement));
+	}
 	// Make a list with all of the individual field statements
 	// Initialize ourselves a Field Map -- keys and vals are QStrings
 	QHash<QString, QString> fieldMap;
-	while (!createStatement.isEmpty())
+	QRegExp matcher(sqlField, Qt::CaseInsensitive);
+	while (!fieldList.isEmpty())
 	{
-		QString fieldName = createStatement;
-		fieldName.replace(QRegExp("^\\s*(" + id + ").*$"), "\\1");
-		if (fieldName.startsWith("\""))
+		QString fieldName = fieldList;
+		QString fieldType = fieldList;
+		QString newFieldList = fieldList;
+		fieldName.replace(matcher, "\\1");
+		fieldType.replace(matcher, "\\2\\3");
+		newFieldList.replace(matcher, "\\4");
+		if (newFieldList == fieldList)
 		{
-			fieldName.replace("\"\"", "\"");
-			fieldName = fieldName.mid(1, fieldName.size() - 2);
+			exception(tr("Cannot extract next field: %1").arg(fieldList));
+			break;
 		}
-		createStatement.replace(QRegExp("(^\\s*" + id + ")(.*$)"), "\\2");
-		QString fieldType = createStatement;
-		fieldType.replace(QRegExp("^\\s*(" + id + ").*$"), "\\1");
-		createStatement.replace(QRegExp("^(\\s*" + id + "\\s*,?)(.*$)"), "\\2");
+		fieldList = newFieldList;
+		fieldName = Utils::unQuote(fieldName);
 		// Populate the hash
 		fieldMap[fieldName] = fieldType;
 	}
@@ -126,14 +138,20 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 		if (field.type.isNull() || field.type.isEmpty())
 			field.type = "NULL";
 		field.notnull = query.value(3).toBool();
-		field.defval = query.value(4).toString();
+		field.defval = Utils::unQuote(query.value(4).toString());
 		field.pk = query.value(5).toBool();
 		if (field.pk) {
 			field.type += " PRIMARY KEY";
 			// autoincrement keyword?
 			// adapted from http://stackoverflow.com/questions/16724409/how-to-programmatically-determine-whether-a-column-is-set-to-autoincrement-in-sq
-            QString autoincSql(QString("SELECT 1 FROM %1 WHERE lower(name) = \"%2\" AND sql LIKE '%\"%3\" %4 AUTOINCREMENT%';").arg(getMaster(schema)).arg(table).arg(field.name).arg(field.type));
-//            QString autoincSql(QString("SELECT 1 FROM %1.sqlite_master WHERE lower(name) = \"%2\" AND sql LIKE '%\"%3\" %4 AUTOINCREMENT%';").arg(schema).arg(table).arg(field.name).arg(field.type));
+            QString autoincSql(QString(
+				"SELECT 1 FROM %1 WHERE lower(name) = "
+				"%2 AND sql LIKE '%5%3 %4 AUTOINCREMENT%';")
+				.arg(getMaster(schema))
+				.arg(Utils::quote(table))
+				.arg(Utils::quote(field.name))
+				.arg(field.type)
+				.arg("%")); // avoid %%
 			QSqlQuery autoincQuery(autoincSql, QSqlDatabase::database(SESSION_NAME));
 			if (!autoincQuery.lastError().isValid() && autoincQuery.first())
 				field.type += " AUTOINCREMENT";
@@ -147,7 +165,9 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
-	QString sql(QString("PRAGMA \"%1\".INDEX_INFO(\"%2\");").arg(schema).arg(index));
+	QString sql(QString("PRAGMA \"%1\".INDEX_INFO(\"%2\");")
+				.arg(Utils::quote(schema))
+				.arg(Utils::quote(index)));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	QStringList fields;
 
@@ -169,11 +189,12 @@ DbObjects Database::getObjects(const QString type, const QString schema)
 
 	QString sql;
 	if (type.isNull())
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1;").arg(getMaster(schema));
-//    sql = QString("SELECT lower(name), lower(tbl_name) FROM \"%1\".sqlite_master;").arg(schema);
+        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1;")
+					  .arg(getMaster(schema));
 	else
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1 WHERE type = '%2' and name not like 'sqlite_%';").arg(getMaster(schema)).arg(type);
-//    sql = QString("SELECT lower(name), lower(tbl_name) FROM \"%1\".sqlite_master WHERE type = '%2' and name not like 'sqlite_%';").arg(schema).arg(type);
+        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1 "
+					  "WHERE type = '%2' and name not like 'sqlite_%';")
+			  .arg(getMaster(schema)).arg(type);
 
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	while(query.next())
@@ -190,7 +211,8 @@ QStringList Database::getSysIndexes(const QString & table, const QString & schem
 	QStringList orig = Database::getObjects("index", schema).values(table);
 	// really all indexes
 	QStringList sysIx;
-	QSqlQuery query(QString("PRAGMA \"%1\".index_list(\"%2\");").arg(schema).arg(table),
+	QSqlQuery query(QString("PRAGMA %1.index_list(%2);")
+					.arg(Utils::quote(schema)).arg(Utils::quote(table)),
 					QSqlDatabase::database(SESSION_NAME));
 
 	QString curr;
@@ -211,10 +233,10 @@ DbObjects Database::getSysObjects(const QString & schema)
 {
 	DbObjects objs;
 
-    QSqlQuery query(QString("SELECT lower(name), lower(tbl_name) FROM %1 WHERE type = 'table' and name like 'sqlite_%';").arg(getMaster(schema)),
+    QSqlQuery query(QString("SELECT lower(name), lower(tbl_name) FROM %1 "
+							"WHERE type = 'table' and name like 'sqlite_%';")
+					.arg(getMaster(schema)),
 					QSqlDatabase::database(SESSION_NAME));
-//    QSqlQuery query(QString("SELECT lower(name), lower(tbl_name) FROM \"%1\".sqlite_master WHERE type = 'table' and name like 'sqlite_%';").arg(schema),
-//					QSqlDatabase::database(SESSION_NAME));
 
 	objs.insert("sqlite_master", "");
 	while(query.next())
@@ -228,7 +250,8 @@ DbObjects Database::getSysObjects(const QString & schema)
 
 bool Database::dropView(const QString & view, const QString & schema)
 {
-	QString sql = QString("DROP VIEW \"%1\".\"%2\";").arg(schema).arg(view);
+	QString sql = QString("DROP VIEW %1.%2;")
+				 .arg(Utils::quote(schema)).arg(Utils::quote(view));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
@@ -241,7 +264,8 @@ bool Database::dropView(const QString & view, const QString & schema)
 
 bool Database::dropIndex(const QString & name, const QString & schema)
 {
-	QString sql = QString("DROP INDEX \"%1\".\"%2\"").arg(schema).arg(name);
+	QString sql = QString("DROP INDEX %1.%2")
+	.arg(Utils::quote(schema)).arg(Utils::quote(name));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
@@ -321,10 +345,8 @@ bool Database::dumpDatabase(const QString & fileName)
 QString Database::describeObject(const QString & name,
 								 const QString & schema)
 {
-    QString sql("select sql from %1 where lower(name) = \"%2\";");
-    QSqlQuery query(sql.arg(getMaster(schema)).arg(name), QSqlDatabase::database(SESSION_NAME));
-//    QString sql("select sql from \"%1\".sqlite_master where lower(name) = \"%2\";");
-//	QSqlQuery query(sql.arg(schema).arg(name), QSqlDatabase::database(SESSION_NAME));
+    QString sql("select sql from %1 where lower(name) = %2;");
+	QSqlQuery query(sql.arg(getMaster(schema)).arg(Utils::quote(name)), QSqlDatabase::database(SESSION_NAME));
 	
 	if (query.lastError().isValid())
 	{
@@ -340,7 +362,8 @@ QString Database::describeObject(const QString & name,
 
 bool Database::dropTrigger(const QString & name, const QString & schema)
 {
-	QString sql = QString("DROP TRIGGER \"%1\".\"%2\";").arg(schema).arg(name);
+	QString sql = QString("DROP TRIGGER %1.%2;")
+				  .arg(Utils::quote(schema)).arg(Utils::quote(name));
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
@@ -445,5 +468,5 @@ QStringList Database::loadExtension(const QStringList & list)
 QString Database::getMaster(const QString &schema)
 {
     if (schema.compare(QString("temp"),Qt::CaseInsensitive)==0) return QString("sqlite_temp_master");
-    return QString("\"%1\".sqlite_master").arg(schema);
+	return QString("%1.sqlite_master").arg(Utils::quote(schema));
 }

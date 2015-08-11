@@ -25,7 +25,7 @@ for which a new license (GPL+exception) is in place.
 #include "importtablelogdialog.h"
 #include "database.h"
 #include "sqliteprocess.h"
-
+#include "utils.h"
 
 ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 									 const QString & tableName,
@@ -137,8 +137,8 @@ void ImportTableDialog::slotAccepted()
 	QStringList binds;
 	for (int i = 0; i < cols; ++i)
 		binds << "?";
-	sql = sql.arg(schemaComboBox->currentText(),
-				  tableComboBox->currentText(),
+	sql = sql.arg(Utils::quote(schemaComboBox->currentText()),
+				  Utils::quote(tableComboBox->currentText()),
 				  binds.join(", "));
 
 	//FIXME if we can really have more than one schema, we need to check that too.
