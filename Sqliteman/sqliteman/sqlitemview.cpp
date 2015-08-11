@@ -62,9 +62,12 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 		QTextEdit * w = new QTextEdit(layoutWidget);
 		w->setReadOnly(true); // TODO: make it transaction reliable
 		w->setAcceptRichText(false);
-		w->setMaximumHeight(50);
-		w->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+		int mh = QFontMetrics(w->currentFont()).lineSpacing();
+		w->setMinimumHeight(mh);
+		w->setSizePolicy(QSizePolicy::Expanding,
+                         QSizePolicy::MinimumExpanding);
 		layout->addWidget(w, i, 1);
+		layout->setRowMinimumHeight(i, mh);
 		m_mapper->addMapping(w, i);
 	}
 	scrollWidget->setWidget(layoutWidget);
