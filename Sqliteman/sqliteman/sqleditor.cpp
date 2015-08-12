@@ -502,8 +502,8 @@ bool SqlEditor::changedConfirm()
 {
 	if (ui.sqlTextEdit->isModified())
 	{
-		int ret = QMessageBox::question(this, tr("New File"),
-					tr("All you changes will be lost. Are you sure?"),
+		int ret = QMessageBox::question(this, tr("New SQL script"),
+					tr("Your current SQL script will be lost. Are you sure?"),
 					QMessageBox::Yes, QMessageBox::No);
 	
 		if (ret == QMessageBox::No)
@@ -519,7 +519,7 @@ bool SqlEditor::saveOnExit()
 	}
 	
 	const int ret = QMessageBox::question(this, tr("Closing SQL Editor"),
-						tr("Document has been changed. Do you want to save its content?"),
+						tr("SQl script has been changed. Do you want to save its content?"),
 						QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
 	
 	if (ret == QMessageBox::No) {
@@ -599,7 +599,7 @@ void SqlEditor::findPrevious()
 
 void SqlEditor::externalFileChange(const QString & path)
 {
-   	int b = QMessageBox::information(this, tr("Unexpected File Change"),
+   	int b = QMessageBox::information(this, tr("SQL editor"),
 									 tr("Your currently edited file has been changed outside " \
 									 "this application. Do you want to reload it?"),
 									 QMessageBox::Yes | QMessageBox::No,
