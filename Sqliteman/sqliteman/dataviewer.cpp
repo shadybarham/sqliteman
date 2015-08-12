@@ -24,6 +24,7 @@ for which a new license (GPL+exception) is in place.
 #include <QInputDialog>
 
 #include "dataviewer.h"
+#include "preferences.h"
 #include "dataexportdialog.h"
 #include "sqlmodels.h"
 #include "database.h"

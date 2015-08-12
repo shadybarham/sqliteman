@@ -66,6 +66,7 @@ class SqlTableModel : public QSqlTableModel
 		QList<int> m_deleteCache;
 		bool m_cropColumns;
 		QMap<int,IndexType> m_header;
+		int m_readRowsCount;
 
 		QVariant data(const QModelIndex & item, int role = Qt::DisplayRole) const;
 		bool setData(const QModelIndex & ix, const QVariant & value, int role = Qt::EditRole);
@@ -77,6 +78,9 @@ class SqlTableModel : public QSqlTableModel
 	private slots:
 		//! \brief Called when is new row created in the view (not in the model).
 		void doPrimeInsert(int, QSqlRecord &);
+
+public slots:
+		bool select();
 };
 
 /*! \brief Simple color/behaviour improvements for standard Qt4 Sql Models */
@@ -106,6 +110,7 @@ class SqlQueryModel : public QSqlQueryModel
 		QString m_blobText;
 		QSqlRecord info;
 		bool m_cropColumns;
+		int m_readRowsCount;
 
 		QVariant data(const QModelIndex & item, int role = Qt::DisplayRole) const;
 };

@@ -204,6 +204,7 @@ PreferencesDialog::PreferencesDialog(QWidget * parent)
 	m_prefsLNF->recentlyUsedSpinBox->setValue(prefs->recentlyUsedCount());
 	m_prefsLNF->openLastDBCheckBox->setChecked(prefs->openLastDB());
 	m_prefsLNF->openLastSqlFileCheckBox->setChecked(prefs->openLastSqlFile());
+	m_prefsLNF->readRowsSpinBox->setValue(prefs->readRowsCount());
 
 	m_prefsData->nullCheckBox->setChecked(prefs->nullHighlight());
 	m_prefsData->nullAliasEdit->setText(prefs->nullHighlightText());
@@ -247,6 +248,7 @@ bool PreferencesDialog::saveSettings()
 	prefs->setRecentlyUsedCount(m_prefsLNF->recentlyUsedSpinBox->value());
 	prefs->setOpenLastDB(m_prefsLNF->openLastDBCheckBox->isChecked());
 	prefs->setOpenLastSqlFile(m_prefsLNF->openLastSqlFileCheckBox->isChecked());
+	prefs->setReadRowsCount(m_prefsLNF->readRowsSpinBox->value());
 	// data results
 	prefs->setNullHighlight(m_prefsData->nullCheckBox->isChecked());
 	prefs->setNullHighlightText(m_prefsData->nullAliasEdit->text());
@@ -285,6 +287,7 @@ void PreferencesDialog::restoreDefaults()
 	m_prefsLNF->recentlyUsedSpinBox->setValue(5);
 	m_prefsLNF->openLastDBCheckBox->setChecked(true);
 	m_prefsLNF->openLastSqlFileCheckBox->setChecked(true);
+	m_prefsLNF->readRowsSpinBox->setValue(256);
 
 	m_prefsData->nullCheckBox->setChecked(true);
 	m_prefsData->nullAliasEdit->setText("{null}");

@@ -30,6 +30,7 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 	m_blobColor = prefs->blobHighlightColor();
 	m_blobText = prefs->blobHighlightText();
 	m_cropColumns = prefs->cropColumns();
+	m_readRowsCount = prefs->readRowsCount();
 
 	connect(this, SIGNAL(primeInsert(int, QSqlRecord &)),
 			this, SLOT(doPrimeInsert(int, QSqlRecord &)));
@@ -229,6 +230,19 @@ void SqlTableModel::setTable(const QString &tableName)
 	QSqlTableModel::setTable(tableName);
 }
 
+bool SqlTableModel::select()
+{
+	bool result = QSqlTableModel::select();
+	while (   result &&
+			  canFetchMore(QModelIndex())
+		   && (   (m_readRowsCount == 0)
+			   || (rowCount() < m_readRowsCount)))
+	{
+		fetchMore();
+	}
+	return result;
+}
+
 void SqlTableModel::setPendingTransaction(bool pending)
 {
 	m_pending = pending;
@@ -257,6 +271,7 @@ SqlQueryModel::SqlQueryModel( QObject * parent)
 	m_blobColor = prefs->blobHighlightColor();
 	m_blobText = prefs->blobHighlightText();
 	m_cropColumns = prefs->cropColumns();
+	m_readRowsCount = prefs->readRowsCount();
 }
 
 QVariant SqlQueryModel::data(const QModelIndex & item, int role) const
@@ -310,10 +325,22 @@ void SqlQueryModel::setQuery ( const QSqlQuery & query )
 {
 	QSqlQueryModel::setQuery(query);
 	info = record();
+	while (   canFetchMore(QModelIndex())
+		   && (   (m_readRowsCount == 0)
+			   || (rowCount() < m_readRowsCount)))
+	{
+		fetchMore();
+	}
 }
 
 void SqlQueryModel::setQuery ( const QString & query, const QSqlDatabase & db)
 {
 	QSqlQueryModel::setQuery(query, db);
 	info = record();
+	while (   canFetchMore(QModelIndex())
+		   && (   (m_readRowsCount == 0)
+			   || (rowCount() < m_readRowsCount)))
+	{
+		fetchMore();
+	}
 }
