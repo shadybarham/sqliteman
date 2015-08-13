@@ -36,8 +36,12 @@ class SqlDelegate : public QItemDelegate
 		void updateEditorGeometry(QWidget *editor,
 								  const QStyleOptionViewItem &option, const QModelIndex &index) const;
 
+    signals:
+        void dataChanged();
+
 	private slots:
 		void editor_closeEditor();
+        void editor_textChanged();
 };
 
 
@@ -64,6 +68,7 @@ class SqlDelegateUi : public QWidget, public Ui::SqlDelegateUi
 
 	signals:
 		void closeEditor();
+        void textChanged();
 
 	private:
 		QVariant m_sqlData;

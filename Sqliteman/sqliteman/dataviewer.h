@@ -117,6 +117,7 @@ class DataViewer : public QMainWindow
 		*/
 		void itemView_indexChanged();
 
+		void tableView_dataChanged();
 		void gotoLine();
 
         void actOpenEditor_triggered();

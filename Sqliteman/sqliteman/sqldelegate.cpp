@@ -27,6 +27,8 @@ QWidget *SqlDelegate::createEditor(QWidget *parent,
 	editor->setFocusPolicy(Qt::StrongFocus);
 	connect(editor, SIGNAL(closeEditor()),
 			this, SLOT(editor_closeEditor()));
+    connect(editor, SIGNAL(textChanged()),
+            this, SLOT(editor_textChanged()));
 	return editor;
 }
 
@@ -59,9 +61,16 @@ void SqlDelegate::editor_closeEditor()
 {
 	SqlDelegateUi *ed = qobject_cast<SqlDelegateUi*>(sender());
 	emit commitData(ed);
+    emit dataChanged();
 	emit closeEditor(ed);
 }
 
+void SqlDelegate::editor_textChanged()
+{
+    SqlDelegateUi *ed = qobject_cast<SqlDelegateUi*>(sender());
+    emit commitData(ed);
+    emit dataChanged();
+}
 
 SqlDelegateUi::SqlDelegateUi(QWidget * parent)
 	: QWidget(parent)
@@ -108,6 +117,7 @@ void SqlDelegateUi::nullButton_clicked(bool)
 {
 	lineEdit->setText(QString());
 	m_sqlData = QString();
+    emit textChanged();
 	emit closeEditor();
 }
 
@@ -118,11 +128,15 @@ void SqlDelegateUi::editButton_clicked(bool state)
 	dia->setData(m_sqlData);
 	qApp->restoreOverrideCursor();
 	if (dia->exec())
+	{
 		m_sqlData = dia->data();
+        emit textChanged();
+	}
 	emit closeEditor();
 }
 
 void SqlDelegateUi::lineEdit_textEdited(const QString & text)
 {
 	m_sqlData = text;
+    emit textChanged();
 }

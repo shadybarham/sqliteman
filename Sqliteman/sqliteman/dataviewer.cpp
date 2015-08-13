@@ -72,7 +72,11 @@ DataViewer::DataViewer(QWidget * parent)
     ui.tableView->addAction(actOpenEditor);
 
 	// custom delegate
-	ui.tableView->setItemDelegate(new SqlDelegate(this));
+	SqlDelegate * delegate = new SqlDelegate(this);
+	ui.tableView->setItemDelegate(delegate);
+	connect(delegate, SIGNAL(dataChanged()),
+		this, SLOT(tableView_dataChanged()));
+
 
 	// workaround for Ctrl+C
 	DataViewerTools::KeyPressEater *keyPressEater = new DataViewerTools::KeyPressEater(this);
@@ -566,6 +570,11 @@ void DataViewer::itemView_indexChanged()
 		ui.tableView->model()->index(ui.itemView->currentIndex(),
 								     ui.itemView->currentColumn())
 							);
+}
+
+void DataViewer::tableView_dataChanged()
+{
+	updateButtons();
 }
 
 void DataViewer::showSqlScriptResult(QString line)
