@@ -55,16 +55,9 @@ class SqlTableModel : public QSqlTableModel
 			None
 		};
 
-		bool m_useNull;
-		QColor m_nullColor;
-		QString m_nullText;
-		bool m_useBlob;
-		QColor m_blobColor;
-		QString m_blobText;
 		bool m_pending;
 		QString m_schema;
 		QList<int> m_deleteCache;
-		bool m_cropColumns;
 		QMap<int,IndexType> m_header;
 		int m_readRowsCount;
 

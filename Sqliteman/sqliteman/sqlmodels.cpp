@@ -23,13 +23,6 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 {
 	m_deleteCache.clear();
 	Preferences * prefs = Preferences::instance();
-	m_useNull = prefs->nullHighlight();
-	m_nullColor = prefs->nullHighlightColor();
-	m_nullText = prefs->nullHighlightText();
-	m_useBlob = prefs->blobHighlight();
-	m_blobColor = prefs->blobHighlightColor();
-	m_blobText = prefs->blobHighlightText();
-	m_cropColumns = prefs->cropColumns();
 	m_readRowsCount = prefs->readRowsCount();
 
 	connect(this, SIGNAL(primeInsert(int, QSqlRecord &)),
@@ -61,31 +54,40 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
         }
     }
 
+	Preferences * prefs = Preferences::instance();
+	bool useNull = prefs->nullHighlight();
+	QColor nullColor = prefs->nullHighlightColor();
+	QString nullText = prefs->nullHighlightText();
+	bool useBlob = prefs->blobHighlight();
+	QColor blobColor = prefs->blobHighlightColor();
+	QString blobText = prefs->blobHighlightText();
+	bool cropColumns = prefs->cropColumns();
+
 	// nulls
-	if (m_useNull && curr.isNull())
+	if (useNull && curr.isNull())
 	{
 		if (role == Qt::BackgroundColorRole)
-			return QVariant(m_nullColor);
+			return QVariant(nullColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("NULL value"));
 		if (role == Qt::DisplayRole)
-			return QVariant(m_nullText);
+			return QVariant(nullText);
 	}
 	// BLOBs
 	// any others handling with blobs - e.g. converting to images etc.
-	// are followed with serious perfromance issues.
+	// are followed with serious performance issues.
 	// Users can see it through edit dialog.
 	if (/*f.type.toUpper() == "BLOB" || */
-		m_useBlob /*&&
+		useBlob /*&&
 		   record().field(item.column()).type() == QVariant::ByteArray*/
 		   && QSqlTableModel::data(item, Qt::DisplayRole).type() == QVariant::ByteArray)
 	{
 		if (role == Qt::BackgroundColorRole)
-			return QVariant(m_blobColor);
+			return QVariant(blobColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("BLOB value"));
 		if (role == Qt::DisplayRole)
-			return QVariant(m_blobText);
+			return QVariant(blobText);
 		if (role == Qt::EditRole)
 // 			return Database::hex(QSqlTableModel::data(item, Qt::DisplayRole).toByteArray());
 			return QSqlTableModel::data(item, Qt::DisplayRole);
@@ -95,7 +97,7 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 	if (role == Qt::ToolTipRole)
 		return QVariant("<qt>" + curr + "</qt>");
 
-	if (role == Qt::DisplayRole && m_cropColumns)
+	if (role == Qt::DisplayRole && cropColumns)
 		return QVariant(curr.length() > 20 ? curr.left(20)+"..." : curr);
 
 	return QSqlTableModel::data(item, role);
@@ -264,13 +266,6 @@ SqlQueryModel::SqlQueryModel( QObject * parent)
 	: QSqlQueryModel(parent)
 {
 	Preferences * prefs = Preferences::instance();
-	m_useNull = prefs->nullHighlight();
-	m_nullColor = prefs->nullHighlightColor();
-	m_nullText = prefs->nullHighlightText();
-	m_useBlob = prefs->blobHighlight();
-	m_blobColor = prefs->blobHighlightColor();
-	m_blobText = prefs->blobHighlightText();
-	m_cropColumns = prefs->cropColumns();
 	m_readRowsCount = prefs->readRowsCount();
 }
 
@@ -288,34 +283,43 @@ QVariant SqlQueryModel::data(const QModelIndex & item, int role) const
 		return QVariant(Qt::AlignTop);
 	}
 
-	if (m_useNull && curr.isNull())
+	Preferences * prefs = Preferences::instance();
+	bool useNull = prefs->nullHighlight();
+	QColor nullColor = prefs->nullHighlightColor();
+	QString nullText = prefs->nullHighlightText();
+	bool useBlob = prefs->blobHighlight();
+	QColor blobColor = prefs->blobHighlightColor();
+	QString blobText = prefs->blobHighlightText();
+	bool cropColumns = prefs->cropColumns();
+
+	if (useNull && curr.isNull())
 	{
 		if (role == Qt::BackgroundColorRole)
-			return QVariant(m_nullColor);
+			return QVariant(nullColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("NULL value"));
 		if (role == Qt::DisplayRole)
-			return QVariant(m_nullText);
+			return QVariant(nullText);
 	}
 
 	if (/*f.type.toUpper() == "BLOB" || */
-		m_useBlob /*&&
+		useBlob /*&&
 		   record().field(item.column()).type() == QVariant::ByteArray*/
 		   && QSqlQueryModel::data(item, Qt::DisplayRole).type() == QVariant::ByteArray)
 	{
 		if (role == Qt::BackgroundColorRole)
-			return QVariant(m_blobColor);
+			return QVariant(blobColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("BLOB value"));
 		if (role == Qt::DisplayRole)
-			return QVariant(m_blobText);
+			return QVariant(blobText);
 	}
 
 	// advanced tooltips
 	if (role == Qt::ToolTipRole)
 		return QVariant("<qt>" + curr + "</qt>");
 
-	if (role == Qt::DisplayRole && m_cropColumns)
+	if (role == Qt::DisplayRole && cropColumns)
 		return QVariant(curr.length() > 20 ? curr.left(20)+"..." : curr);
 
 	return QSqlQueryModel::data(item, role);

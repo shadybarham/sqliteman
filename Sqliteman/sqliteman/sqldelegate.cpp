@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include "sqldelegate.h"
 #include "utils.h"
 #include "multieditdialog.h"
+#include "preferences.h"
 
 
 SqlDelegate::SqlDelegate(QObject * parent)
@@ -103,7 +104,8 @@ void SqlDelegateUi::setSqlData(const QVariant & data)
 		lineEdit->setDisabled(true);
 		lineEdit->setToolTip(tr(
 			"Blobs can be edited with the multiline editor only (Ctrl+Shift+E)"));
-		lineEdit->setText("{blob}");
+		Preferences * prefs = Preferences::instance();
+		lineEdit->setText(prefs->blobHighlightText());
 	}
 	else if (m_sqlData.toString().contains("\n"))
 	{
