@@ -98,14 +98,25 @@ void SqlDelegateUi::setSqlData(const QVariant & data)
 {
 	m_sqlData = data;
 	// blob or multiline
-	if (data.type() == QVariant::ByteArray
-		   || m_sqlData.toString().contains("\n"))
+	if (data.type() == QVariant::ByteArray)
 	{
 		lineEdit->setDisabled(true);
-		lineEdit->setToolTip(tr("Multiline texts can be edited with the enhanced editor only (Ctrl+Shift+E)"));
-		editButton_clicked(true);
+		lineEdit->setToolTip(tr(
+			"Blobs can be edited with the multiline editor only (Ctrl+Shift+E)"));
+		lineEdit->setText("{blob}");
 	}
-	lineEdit->setText(data.toString());
+	else if (m_sqlData.toString().contains("\n"))
+	{
+		lineEdit->setDisabled(true);
+		lineEdit->setToolTip(tr(
+			"Multiline texts can be edited with the multiline editor only"
+			"(Ctrl+Shift+E)"));
+		lineEdit->setText(data.toString());
+	}
+	else
+	{
+		lineEdit->setText(data.toString());
+	}
 }
 
 QVariant SqlDelegateUi::sqlData()

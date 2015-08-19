@@ -37,6 +37,7 @@ class MultiEditDialog : public QDialog, public Ui::MultiEditDialog
 		void blobFileEdit_textChanged(const QString &);
 		void tabWidget_currentChanged(int);
 		void blobFileButton_clicked();
+		void blobRemoveButton_clicked();
 		void blobSaveButton_clicked();
 		void nullCheckBox_stateChanged(int);
 };

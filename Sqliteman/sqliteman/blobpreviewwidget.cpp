@@ -28,7 +28,10 @@ void BlobPreviewWidget::createPreview()
 	pm.loadFromData(m_data);
 
 	if (pm.isNull())
-		m_blobPreview->setText("<qt>" + tr("File content cannot be displayed") + "</qt>");
+	{
+		m_blobPreview->setText("<qt>" + tr("Not a blob") + "</qt>");
+		m_blobSize->setText("");
+	}
 	else
 	{
 		// HACK: "-3" constant are there to prevent recursive
@@ -41,8 +44,8 @@ void BlobPreviewWidget::createPreview()
 		}
 		else
 			m_blobPreview->setPixmap(pm);
-	}
 	m_blobSize->setText(formatSize(m_data.size()));
+	}
 }
 
 void BlobPreviewWidget::setBlobFromFile(const QString & fileName)

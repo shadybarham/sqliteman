@@ -23,6 +23,8 @@ MultiEditDialog::MultiEditDialog(QWidget * parent)
 			this, SLOT(tabWidget_currentChanged(int)));
 	connect(blobFileButton, SIGNAL(clicked()),
 			this, SLOT(blobFileButton_clicked()));
+	connect(blobRemoveButton, SIGNAL(clicked()),
+			this, SLOT(blobRemoveButton_clicked()));
 	connect(blobSaveButton, SIGNAL(clicked()),
 			this, SLOT(blobSaveButton_clicked()));
 	connect(nullCheckBox, SIGNAL(stateChanged(int)),
@@ -38,39 +40,60 @@ void MultiEditDialog::setData(const QVariant & data)
 	blobPreviewLabel->setBlobData(data);
 
 	// Prevent possible text related modification of BLOBs.
-	// It can be done in text editor.
 	if (data.type() == QVariant::ByteArray)
+	{
+		blobRemoveButton->setEnabled(true);
+		blobSaveButton->setEnabled(true);
+		tabWidget->setTabEnabled(0, false);
 		tabWidget->setCurrentIndex(1);
+	}
 	else
+	{
+		blobRemoveButton->setEnabled(false);
+		blobSaveButton->setEnabled(false);
+		tabWidget->setTabEnabled(0, true);
 		tabWidget->setCurrentIndex(0);
+	}
 }
 
 QVariant MultiEditDialog::data()
 {
 	QVariant ret;
-	// NULL
-	if (nullCheckBox->isChecked())
-		return QVariant(QString());
-
-	switch (tabWidget->currentIndex())
+	if (!(nullCheckBox->isChecked()))
 	{
-		// handle text with EOLs
-		case 0:
-			ret = textEdit->toPlainText();
-			break;
-		// handle File2BLOB
-		case 1:
+		switch (tabWidget->currentIndex())
 		{
-			QFile f(blobFileEdit->text());
-			if (f.open(QIODevice::ReadOnly))
-				ret = QVariant(f.readAll())/*.data()*/;
-			break;
+			// handle text with EOLs
+			case 0:
+				ret = textEdit->toPlainText();
+				break;
+			// handle File2BLOB
+			case 1:
+			{
+				QString s = blobFileEdit->text();
+				if (s.isEmpty())
+				{
+					if (m_data.type() == QVariant::ByteArray)
+					{
+						// We already have a blob, but we don't know its filename
+						ret = m_data;
+					}
+				}
+				else
+				{
+					QFile f(s);
+					if (f.open(QIODevice::ReadOnly))
+						ret = QVariant(f.readAll());
+				}
+				break;
+			}
+			// handle DateTime to string
+			case 2:
+				Preferences::instance()
+					->setDateTimeFormat(dateFormatEdit->text());
+				ret =  dateTimeEdit->dateTime().toString(dateFormatEdit->text());
+				break;
 		}
-		// handle DateTime to string
-		case 2:
-			Preferences::instance()->setDateTimeFormat(dateFormatEdit->text());
-			ret =  dateTimeEdit->dateTime().toString(dateFormatEdit->text());
-			break;
 	}
 	return ret;
 }
@@ -86,6 +109,11 @@ void MultiEditDialog::blobFileButton_clicked()
 		blobFileEdit->setText(fileName);
 		blobPreviewLabel->setBlobFromFile(fileName);
 	}
+}
+
+void MultiEditDialog::blobRemoveButton_clicked()
+{
+	setData(QVariant());
 }
 
 void MultiEditDialog::blobSaveButton_clicked()

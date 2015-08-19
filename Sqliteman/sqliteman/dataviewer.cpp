@@ -4,12 +4,8 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	
-	FIXME replacing a blob by another blob using the Multiline Editor causes it to
-	become badly confused and eventually SEGV. The problem isn't in my changes as
-	it was there in upstream/master.
-	
-	No longer quite as bad, but still doesn't update blob viewer or mark as
-	needing a commit right away as it should
+	FIXME OK after inserting blob redisplays multiline editor
+	      text view sometimes displays PNG instead of {blob}
 */
 
 #include <QMessageBox>
