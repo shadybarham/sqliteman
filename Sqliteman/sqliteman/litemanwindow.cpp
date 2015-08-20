@@ -53,6 +53,7 @@ for which a new license (GPL+exception) is in place.
 #include "sqliteprocess.h"
 #include "populatordialog.h"
 #include "utils.h"
+#include "buildtime.h"
 
 #ifdef INTERNAL_SQLDRIVER
 #include "driver/qsql_sqlite.h"
@@ -436,6 +437,9 @@ void LiteManWindow::readSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
+	// FIXME it would be nice to only keep the size and let the user's window
+	// manager position the main window, but Qt doesn't seem to provide a way
+	// to do this.
 	restoreGeometry(settings.value("window/geometry").toByteArray());
 	QByteArray splitterData = settings.value("window/splitter").toByteArray();
 
@@ -628,7 +632,9 @@ void LiteManWindow::about()
 	QMessageBox::about(this, tr("About"),
 					   tr("Sqliteman - SQLite databases made easy\n\n"
 						  "Version %1\n"
-						  "(c) 2007 Petr Vanek").arg(SQLITEMAN_VERSION));
+						  "Parts (c) 2007 Petr Vanek\n"
+                          "Parts (c) 2015 Richard Parkins\n%2"
+					).arg(SQLITEMAN_VERSION).arg(buildtime));
 }
 
 void LiteManWindow::aboutQt()
