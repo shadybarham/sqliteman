@@ -336,11 +336,14 @@ void SqlQueryModel::setQuery ( const QSqlQuery & query )
 {
 	QSqlQueryModel::setQuery(query);
 	info = record();
-	while (   canFetchMore(QModelIndex())
-		   && (   (m_readRowsCount == 0)
-			   || (rowCount() < m_readRowsCount)))
+	if (columnCount() > 0)
 	{
-		fetchMore();
+		while (   canFetchMore(QModelIndex())
+			   && (   (m_readRowsCount == 0)
+				   || (rowCount() < m_readRowsCount)))
+		{
+			fetchMore();
+		}
 	}
 }
 
@@ -348,11 +351,14 @@ void SqlQueryModel::setQuery ( const QString & query, const QSqlDatabase & db)
 {
 	QSqlQueryModel::setQuery(query, db);
 	info = record();
-	while (   canFetchMore(QModelIndex())
-		   && (   (m_readRowsCount == 0)
-			   || (rowCount() < m_readRowsCount)))
+	if (columnCount() > 0)
 	{
-		fetchMore();
+		while (   canFetchMore(QModelIndex())
+			   && (   (m_readRowsCount == 0)
+				   || (rowCount() < m_readRowsCount)))
+		{
+			fetchMore();
+		}
 	}
 }
 

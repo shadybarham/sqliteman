@@ -125,8 +125,8 @@ void LiteManWindow::closeEvent(QCloseEvent * e)
 	
 	writeSettings();
 
-	// check for uncommited transaction in the DB
-	if (!dataViewer->setTableModel(new QSqlQueryModel()))
+	// check for uncommitted transaction in the DB
+	if (!dataViewer->checkForPending())
 	{
 		e->ignore();
 		return;
