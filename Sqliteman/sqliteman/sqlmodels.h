@@ -46,6 +46,11 @@ class SqlTableModel : public QSqlTableModel
 			return QAbstractTableModel::createIndex(row, column, ptr);
 		}
 
+		// release model and delete if m_useCount zero
+		static void detach(SqlTableModel * model);
+		// add a user
+		void attach() { m_useCount++; }
+
 	private:
 
 		enum IndexType {
@@ -57,6 +62,7 @@ class SqlTableModel : public QSqlTableModel
 
 		bool m_pending;
 		QString m_schema;
+		int m_useCount;
 		QList<int> m_deleteCache;
 		QMap<int,IndexType> m_header;
 		int m_readRowsCount;
@@ -94,13 +100,13 @@ class SqlQueryModel : public QSqlQueryModel
 			return QAbstractTableModel::createIndex(row, column, ptr);
 		}
 
+		// release model and delete if m_useCount zero
+		static void detach(SqlQueryModel * model);
+		// add a user
+		void attach() { m_useCount++; }
+
 	private:
-		bool m_useNull;
-		QColor m_nullColor;
-		QString m_nullText;
-		bool m_useBlob;
-		QColor m_blobColor;
-		QString m_blobText;
+		int m_useCount;
 		QSqlRecord info;
 		bool m_cropColumns;
 		int m_readRowsCount;

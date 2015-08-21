@@ -51,6 +51,7 @@ class DataViewer : public QMainWindow
 		void restoreSplitter(QByteArray state) { ui.splitter->restoreState(state); };
 
 		static const QString canFetchMore();
+		bool isTopLevel;
 
 		/*! \brief Free locked resources */
 		void freeResources();

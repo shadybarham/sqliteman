@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>976</width>
+    <width>819</width>
     <height>607</height>
    </rect>
   </property>
@@ -168,23 +168,9 @@
    </attribute>
    <addaction name="actionBLOB_Preview"/>
    <addaction name="actionExport_Data"/>
+   <addaction name="actionRipOut"/>
    <addaction name="action_Goto_Line"/>
    <addaction name="actionClose"/>
-  </widget>
-  <widget class="QToolBar" name="snapshotToolBar">
-   <property name="windowTitle">
-    <string>Misc. Tools</string>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionRipOut"/>
   </widget>
   <action name="actionNew_Row">
    <property name="text">
@@ -228,11 +214,14 @@
    </property>
   </action>
   <action name="actionClose">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Close</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
   </action>
   <action name="actionBLOB_Preview">

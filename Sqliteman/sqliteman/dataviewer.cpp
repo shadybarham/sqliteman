@@ -18,6 +18,7 @@ for which a new license (GPL+exception) is in place.
 #include <QResizeEvent>
 #include <QSettings>
 #include <QInputDialog>
+#include <QtDebug> //qDebug
 
 #include "dataviewer.h"
 #include "preferences.h"
@@ -38,7 +39,6 @@ DataViewer::DataViewer(QWidget * parent)
 #ifdef Q_WS_MAC
     ui.mainToolBar->setIconSize(QSize(16, 16));
     ui.exportToolBar->setIconSize(QSize(16, 16));
-    ui.snapshotToolBar->setIconSize(QSize(16, 16));
 #endif
 
 	ui.splitter->setCollapsible(0, false);
@@ -53,10 +53,12 @@ DataViewer::DataViewer(QWidget * parent)
 	ui.actionExport_Data->setIcon(Utils::getIcon("document-export.png"));
 	ui.actionClose->setIcon(Utils::getIcon("close.png"));
 	ui.action_Goto_Line->setIcon(Utils::getIcon("go-next-use.png"));
+	ui.actionClose->setVisible(false);
+	ui.actionClose->setEnabled(false);
+	isTopLevel = true;
 
 	ui.mainToolBar->show();
 	ui.exportToolBar->show();
-	ui.snapshotToolBar->show();
 	
 	handleBlobPreview(false);
 
@@ -125,6 +127,7 @@ DataViewer::~DataViewer()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
     settings.setValue("dataviewer/state", saveState());
+	freeResources(); // avoid memory leak of model
 }
 
 void DataViewer::setNotPending()
@@ -232,7 +235,7 @@ void DataViewer::updateButtons()
 	}
 	ui.actionExport_Data->setEnabled(haveRows);
 	ui.action_Goto_Line->setEnabled(haveRows && (tab != 2));
-	ui.actionRipOut->setEnabled(haveRows);
+	ui.actionRipOut->setEnabled(haveRows && isTopLevel);
 	ui.tabWidget->setTabEnabled(1, rowSelected);
 	ui.tabWidget->setTabEnabled(2, ui.scriptEdit->lines() > 1);
 }
@@ -241,9 +244,8 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 {
 	if (!checkForPending()) { return false; }
 
-//	delete makes snapshot window empty
-// 	delete(ui.tableView->model());
-// 	delete(ui.tableView->selectionModel());
+	freeResources(); // avoid memory leak of model
+
 	ui.tableView->setModel(model);
 	connect(ui.tableView->selectionModel(),
 			SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
@@ -270,9 +272,19 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 
 void DataViewer::freeResources()
 {
-	QSqlQueryModel * m = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
-	if (m)
-		m->clear();
+	SqlTableModel * t = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (t)
+	{
+		SqlTableModel::detach(t);
+	}
+	else
+	{
+		SqlQueryModel * q = qobject_cast<SqlQueryModel*>(ui.tableView->model());
+		if (q)
+		{
+			SqlQueryModel::detach(q);
+		}
+	}
 }
 
 void DataViewer::tableView_dataResized(int column, int oldWidth, int newWidth) 
@@ -467,7 +479,6 @@ void DataViewer::copyHandler()
 
 void DataViewer::openStandaloneWindow()
 {
-	SqlQueryModel *qm;
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
 
 #ifdef WIN32
@@ -476,7 +487,9 @@ void DataViewer::openStandaloneWindow()
 #else
     DataViewer *w = new DataViewer(this);
 #endif
+	SqlQueryModel *qm = new SqlQueryModel(w);
 	w->setAttribute(Qt::WA_DeleteOnClose);
+	w->isTopLevel = false;
 
 	//! TODO: change setWindowTitle() to the unified QString().arg() sequence aftre string unfreezing
 	if (tm)
@@ -484,7 +497,6 @@ void DataViewer::openStandaloneWindow()
 		w->setWindowTitle(tm->tableName() + " - "
 				+ QDateTime::currentDateTime().toString() + " - " 
 				+ tr("Data Snapshot"));
-		qm = new SqlQueryModel(w);
 		qm->setQuery(QString("select * from %1.%2;")
 					.arg(Utils::quote(tm->schema()))
 					.arg(Utils::quote(tm->tableName())),
@@ -495,15 +507,18 @@ void DataViewer::openStandaloneWindow()
 		w->setWindowTitle("SQL - "
 				+ QDateTime::currentDateTime().toString() + " - " 
 				+ tr("Data Snapshot"));
-		qm = qobject_cast<SqlQueryModel*>(ui.tableView->model());
+		QSqlQueryModel * m = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
+		qm->setQuery(m->query());
 	}
 
+	qm->attach();
 	w->setTableModel(qm);
 	w->ui.statusText->setText(tr("%1 snapshot for: %2")
 								.arg("<tt>"+QDateTime::currentDateTime().toString()+"</tt><br/>")
 								.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
 	w->ui.mainToolBar->hide();
-	w->ui.snapshotToolBar->hide();
+	w->ui.actionRipOut->setEnabled(false);
+	w->ui.actionClose->setEnabled(true);
 	w->ui.actionClose->setVisible(true);
 	w->ui.tabWidget->removeTab(2);
 	w->show();

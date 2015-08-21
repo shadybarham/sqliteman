@@ -19,7 +19,8 @@ although they are actually still there as proved by renaming it back again.
 SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 	: QSqlTableModel(parent, db),
 	m_pending(false),
-	m_schema("")
+	m_schema(""),
+	m_useCount(1)
 {
 	m_deleteCache.clear();
 	Preferences * prefs = Preferences::instance();
@@ -232,6 +233,11 @@ void SqlTableModel::setTable(const QString &tableName)
 	QSqlTableModel::setTable(tableName);
 }
 
+void SqlTableModel::detach (SqlTableModel * model)
+{
+	if (--(model->m_useCount) == 0) { delete model ; }
+}
+
 bool SqlTableModel::select()
 {
 	bool result = QSqlTableModel::select();
@@ -263,7 +269,8 @@ void SqlTableModel::setPendingTransaction(bool pending)
 
 
 SqlQueryModel::SqlQueryModel( QObject * parent)
-	: QSqlQueryModel(parent)
+	: QSqlQueryModel(parent),
+	m_useCount(1)
 {
 	Preferences * prefs = Preferences::instance();
 	m_readRowsCount = prefs->readRowsCount();
@@ -348,3 +355,9 @@ void SqlQueryModel::setQuery ( const QString & query, const QSqlDatabase & db)
 		fetchMore();
 	}
 }
+
+void SqlQueryModel::detach (SqlQueryModel * model)
+{
+	if (--(model->m_useCount) == 0) { delete model ; }
+}
+

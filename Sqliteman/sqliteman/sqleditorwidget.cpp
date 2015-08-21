@@ -69,8 +69,10 @@ SqlEditorWidget::SqlEditorWidget(QWidget * parent)
 
 	connect(this, SIGNAL(linesChanged()),
 			this, SLOT(linesChanged()));
+#if 0
 	connect(this, SIGNAL(cursorPositionChanged(int, int)),
 			this, SLOT(cursorPositionChanged(int, int)));
+#endif
 
 	setCursorPosition(0, 0);
 	linesChanged();
