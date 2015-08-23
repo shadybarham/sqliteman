@@ -437,10 +437,9 @@ void LiteManWindow::readSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-	// FIXME it would be nice to only keep the size and let the user's window
-	// manager position the main window, but Qt doesn't seem to provide a way
-	// to do this.
-	restoreGeometry(settings.value("window/geometry").toByteArray());
+	int hh = settings.value("dataviewer/height", QVariant(607)).toInt();
+	int ww = settings.value("dataviewer/width", QVariant(819)).toInt();
+	resize(ww, hh);
 	QByteArray splitterData = settings.value("window/splitter").toByteArray();
 
 	splitter->restoreState(splitterData);
@@ -467,7 +466,8 @@ void LiteManWindow::writeSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-	settings.setValue("window/geometry", saveGeometry());
+    settings.setValue("dataviewer/height", QVariant(height()));
+    settings.setValue("dataviewer/width", QVariant(width()));
 	settings.setValue("window/size", size());
 	settings.setValue("window/splitter", splitter->saveState());
 	settings.setValue("objectbrowser/show", schemaBrowser->isVisible());
