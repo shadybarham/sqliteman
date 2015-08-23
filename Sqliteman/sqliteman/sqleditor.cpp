@@ -48,7 +48,7 @@ SqlEditor::SqlEditor(LiteManWindow * parent)
     // addon run sql shortcut
 
 	changedLabel = new QLabel(this);
-	cursorTemplate = tr("Col: %1 Row: %2/%3");
+	cursorTemplate = tr("Col: %1 Line: %2/%3");
 	cursorLabel = new QLabel(this);
 	statusBar()->addPermanentWidget(changedLabel);
 	statusBar()->addPermanentWidget(cursorLabel);
