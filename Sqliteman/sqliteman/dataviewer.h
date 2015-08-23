@@ -53,7 +53,7 @@ class DataViewer : public QMainWindow
 		bool isTopLevel;
 
 		/*! \brief Free locked resources */
-		void freeResources();
+		void freeResources(QAbstractItemModel * old);
 
 	public slots:
 		//! \brief Append the line to the "Script Result" tab.

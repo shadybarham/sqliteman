@@ -128,7 +128,7 @@ DataViewer::~DataViewer()
 	    settings.setValue("dataviewer/height", QVariant(height()));
 	    settings.setValue("dataviewer/width", QVariant(width()));
 	}
-	freeResources(); // avoid memory leak of model
+	freeResources( ui.tableView->model()); // avoid memory leak of model
 }
 
 void DataViewer::setNotPending()
@@ -253,9 +253,10 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 {
 	if (!checkForPending()) { return false; }
 
-	freeResources(); // avoid memory leak of model
+	QAbstractItemModel * old = ui.tableView->model();
+	ui.tableView->setModel(model); // references old model
+	freeResources(old); // avoid memory leak of model
 
-	ui.tableView->setModel(model);
 	connect(ui.tableView->selectionModel(),
 			SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
 			this,
@@ -280,16 +281,16 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 	return true;
 }
 
-void DataViewer::freeResources()
+void DataViewer::freeResources(QAbstractItemModel * old)
 {
-	SqlTableModel * t = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	SqlTableModel * t = qobject_cast<SqlTableModel*>(old);
 	if (t)
 	{
 		SqlTableModel::detach(t);
 	}
 	else
 	{
-		SqlQueryModel * q = qobject_cast<SqlQueryModel*>(ui.tableView->model());
+		SqlQueryModel * q = qobject_cast<SqlQueryModel*>(old);
 		if (q)
 		{
 			SqlQueryModel::detach(q);

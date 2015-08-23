@@ -86,7 +86,7 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	}
 
 	// Build a query string to SELECT the CREATE statement from sqlite_master
-	    QString createSQL(QString("SELECT sql FROM %2 WHERE name=%1;")
+	    QString createSQL(QString("SELECT sql FROM %2 WHERE lower(name)=%1;")
 						  .arg(Utils::quote(table))
 						  .arg(getMaster(schema)));
 //    QString createSQL(QString("SELECT sql FROM sqlite_master WHERE name=\"%1\";").arg(table));

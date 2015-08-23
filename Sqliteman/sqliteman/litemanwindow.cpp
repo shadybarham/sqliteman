@@ -123,14 +123,14 @@ void LiteManWindow::closeEvent(QCloseEvent * e)
 		e->ignore ();
 	}
 	
-	writeSettings();
-
 	// check for uncommitted transaction in the DB
 	if (!dataViewer->checkForPending())
 	{
 		e->ignore();
 		return;
 	}
+
+	writeSettings();
 
 	QMapIterator<QString, QString> i(attachedDb);
 	while (i.hasNext())
@@ -437,8 +437,8 @@ void LiteManWindow::readSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-	int hh = settings.value("dataviewer/height", QVariant(607)).toInt();
-	int ww = settings.value("dataviewer/width", QVariant(819)).toInt();
+	int hh = settings.value("litemanwindow/height", QVariant(607)).toInt();
+	int ww = settings.value("litemanwindow/width", QVariant(819)).toInt();
 	resize(ww, hh);
 	QByteArray splitterData = settings.value("window/splitter").toByteArray();
 
@@ -466,9 +466,8 @@ void LiteManWindow::writeSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-    settings.setValue("dataviewer/height", QVariant(height()));
-    settings.setValue("dataviewer/width", QVariant(width()));
-	settings.setValue("window/size", size());
+    settings.setValue("litemanwindow/height", QVariant(height()));
+    settings.setValue("litemanwindow/width", QVariant(width()));
 	settings.setValue("window/splitter", splitter->saveState());
 	settings.setValue("objectbrowser/show", schemaBrowser->isVisible());
 	settings.setValue("sqleditor/show", sqlEditor->isVisible());
@@ -690,7 +689,7 @@ void LiteManWindow::execSql(QString query)
 	}
 	if (!checkForPending()) { return; }
 
-	dataViewer->freeResources();
+	dataViewer->freeResources(dataViewer->tableData());
 	m_activeTable = QString();
 	sqlEditor->setStatusMessage();
 
@@ -708,15 +707,18 @@ void LiteManWindow::execSql(QString query)
 	
 	// Check For Error in the SQL
 	if(model->lastError().isValid())
-		dataViewer->setStatusText(tr("Query Error: %1\n\n%2").arg(model->lastError().text()).arg(query));
+		dataViewer->setStatusText(tr("Query Error: %1<br/><br/>%2")
+								  .arg(model->lastError().text()).arg(query));
 	else
 	{
 		QString cached;
-		if (model->canFetchMore())
-			cached = DataViewer::canFetchMore();
+		if ((model->rowCount() != 0) && (model->canFetchMore()))
+			cached = DataViewer::canFetchMore() + "<br/>";
 		else
 			cached = "";
-		dataViewer->setStatusText(tr("Query OK\nRow(s) returned: %1 %2\n%3").arg(model->rowCount()).arg(cached).arg(query));
+		dataViewer->setStatusText(
+			tr("Query OK:<br/>%3<br/>Row(s) returned: %1 %2")
+			.arg(model->rowCount()).arg(cached).arg(query));
 		if (Utils::updateObjectTree(query))
 			schemaBrowser->tableTree->buildTree();
 	}
@@ -958,7 +960,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 	if (item->type() == TableTree::TableType || item->type() == TableTree::ViewType
 		|| item->type() == TableTree::SystemType)
 	{
-		dataViewer->freeResources();
+		dataViewer->freeResources(dataViewer->tableData());
 		if (item->type() == TableTree::ViewType || item->type() == TableTree::SystemType)
 		{
 			SqlQueryModel * model = new SqlQueryModel(0);
