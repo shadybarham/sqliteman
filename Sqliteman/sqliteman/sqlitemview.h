@@ -13,6 +13,7 @@ for which a new license (GPL+exception) is in place.
 class QDataWidgetMapper;
 class QAbstractItemModel;
 class QLineEdit;
+class QGridLayout;
 
 
 /*! \brief Display one record in one form view.
@@ -38,7 +39,7 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		Use model->currentIndex().row() from "real" indexes for it.
 		*/
 		void setCurrentIndex(int row, int column);
-		int currentIndex();
+		int currentRow();
 		int currentColumn();
 
 	signals:
@@ -50,16 +51,17 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 	private:
 		//! Current active "column"
 		int m_column;
+		int m_row;
 		int m_count;
+		QAbstractItemModel * m_model;
 
-		/*! \brief A "shadow" widget for new layout recreated every time is the model set.
-		This widget is owned by scroll area. It's deleted and re-created on every setModel()
-		call. */
-		QWidget * layoutWidget;
-		//! \brief Mapping tool for model-generic widgets relations. See Qt4 docs.
-		QDataWidgetMapper *m_mapper;
+		QGridLayout * m_gridLayout;
 
 	private slots:
+		void toFirst();
+		void toPrevious();
+		void toNext();
+		void toLast();
 		//! \brief Set the navigation buttons state and "X of Y" label.
 		void updateButtons(int row);
 		/*! Handle app focus change. It chatches only m_mapper's

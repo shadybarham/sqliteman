@@ -578,7 +578,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 void DataViewer::itemView_indexChanged()
 {
 	ui.tableView->setCurrentIndex(
-		ui.tableView->model()->index(ui.itemView->currentIndex(),
+		ui.tableView->model()->index(ui.itemView->currentRow(),
 								     ui.itemView->currentColumn())
 							);
 }
