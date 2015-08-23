@@ -238,6 +238,14 @@ void DataViewer::updateButtons()
 	ui.actionRipOut->setEnabled(haveRows && isTopLevel);
 	ui.tabWidget->setTabEnabled(1, rowSelected);
 	ui.tabWidget->setTabEnabled(2, ui.scriptEdit->lines() > 1);
+
+	// Sometimes the main toolbar doesn't get displayed. Inserting this line
+	// causes it to reappear. Removing the line again does nothing until I've
+	// rebuilt the program some indeterminate number of times, and then the
+	// main toolbar vanishes again. This is some strange Qt weirdness. End users
+	// of the compiled code can't insert the line, rebuild, and remove it again,
+	// so it's left in.
+	ui.mainToolBar->show();
 }
 
 bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
@@ -260,12 +268,13 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 	if (qobject_cast<QSqlQueryModel*>(model)->rowCount() != 0
 		   && qobject_cast<QSqlQueryModel*>(model)->canFetchMore())
     {
-		cached = DataViewer::canFetchMore();
+		cached = DataViewer::canFetchMore() + "<br/>";
     }
     else
         cached = "";
 
-	setStatusText(tr("Query OK\nRow(s) returned: %1 %2").arg(model->rowCount()).arg(cached));
+	setStatusText(tr("Query OK<br/>Row(s) returned: %1 %2")
+				  .arg(model->rowCount()).arg(cached));
 
 	return true;
 }
@@ -323,12 +332,10 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 
 void DataViewer::setStatusText(const QString & text)
 {
-	ui.statusText->setPlainText(text);
-}
-
-void DataViewer::appendStatusText(const QString & text)
-{
-	ui.statusText->append(text);
+	ui.statusText->setHtml(text);
+	int lines = text.split("<br/>").count() + 1;
+	int mh = QFontMetrics(ui.statusText->currentFont()).lineSpacing() * lines;
+	ui.statusText->setFixedHeight(mh);
 }
 
 void DataViewer::showStatusText(bool show)
@@ -513,9 +520,9 @@ void DataViewer::openStandaloneWindow()
 
 	qm->attach();
 	w->setTableModel(qm);
-	w->ui.statusText->setText(tr("%1 snapshot for: %2")
-								.arg("<tt>"+QDateTime::currentDateTime().toString()+"</tt><br/>")
-								.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
+	w->setStatusText(tr("%1 snapshot for: %2")
+		.arg("<tt>"+QDateTime::currentDateTime().toString()+"</tt><br/>")
+		.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
 	w->ui.mainToolBar->hide();
 	w->ui.actionRipOut->setEnabled(false);
 	w->ui.actionClose->setEnabled(true);

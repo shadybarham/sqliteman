@@ -30,6 +30,12 @@
        <bool>false</bool>
       </property>
       <widget class="QSplitter" name="splitterBlob">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>10</verstretch>
+        </sizepolicy>
+       </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -105,6 +111,12 @@
         </widget>
        </widget>
        <widget class="QGroupBox" name="blobPreviewBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="title">
          <string>BLOB Preview</string>
         </property>
@@ -116,6 +128,12 @@
        </widget>
       </widget>
       <widget class="QTextEdit" name="statusText">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
