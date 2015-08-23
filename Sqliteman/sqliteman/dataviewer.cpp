@@ -80,9 +80,6 @@ DataViewer::DataViewer(QWidget * parent)
 	DataViewerTools::KeyPressEater *keyPressEater = new DataViewerTools::KeyPressEater(this);
 	ui.tableView->installEventFilter(keyPressEater);
 
-	QSettings settings("yarpen.cz", "sqliteman");
-	restoreState(settings.value("dataviewer/state").toByteArray());
-
 	connect(ui.actionNew_Row, SIGNAL(triggered()),
 			this, SLOT(addRow()));
 	connect(ui.actionRemove_Row, SIGNAL(triggered()),
@@ -125,8 +122,12 @@ DataViewer::DataViewer(QWidget * parent)
 
 DataViewer::~DataViewer()
 {
-	QSettings settings("yarpen.cz", "sqliteman");
-    settings.setValue("dataviewer/state", saveState());
+	if (!isTopLevel)
+	{
+		QSettings settings("yarpen.cz", "sqliteman");
+	    settings.setValue("dataviewer/height", QVariant(height()));
+	    settings.setValue("dataviewer/width", QVariant(width()));
+	}
 	freeResources(); // avoid memory leak of model
 }
 
@@ -497,6 +498,11 @@ void DataViewer::openStandaloneWindow()
 	SqlQueryModel *qm = new SqlQueryModel(w);
 	w->setAttribute(Qt::WA_DeleteOnClose);
 	w->isTopLevel = false;
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("dataviewer/height", QVariant(607)).toInt();
+	int ww = settings.value("dataviewer/width", QVariant(819)).toInt();
+	w->resize(ww, hh);
+	
 
 	//! TODO: change setWindowTitle() to the unified QString().arg() sequence aftre string unfreezing
 	if (tm)
