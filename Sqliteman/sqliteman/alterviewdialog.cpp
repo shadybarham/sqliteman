@@ -20,7 +20,6 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	: QDialog(parent),
 	update(false)
 {
-	creator = parent;
 	ui.setupUi(this);
 	ui.databaseCombo->addItem(schema);
 	ui.nameEdit->setText(name);
@@ -50,33 +49,35 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 
 void AlterViewDialog::createButton_clicked()
 {
-	if (creator && creator->checkForPending())
+	//FIXME this destroys any INSTEAD OF triggers on the view
+	update = true;
+	ui.resultEdit->clear();
+	QString sql(QString("DROP VIEW %1.%2")
+				.arg(Utils::quote(ui.databaseCombo->currentText()))
+				.arg(Utils::quote(ui.nameEdit->text())));
+	QSqlQuery dropQuery(sql, QSqlDatabase::database(SESSION_NAME));
+	if (dropQuery.lastError().isValid())
 	{
-		update = true;
-		ui.resultEdit->clear();
-		QString sql(QString("DROP VIEW %1.%2")
-					.arg(Utils::quote(ui.databaseCombo->currentText()))
-					.arg(Utils::quote(ui.nameEdit->text())));
-		QSqlQuery dropQuery(sql, QSqlDatabase::database(SESSION_NAME));
-		if (dropQuery.lastError().isValid())
-		{
-			ui.resultEdit->insertPlainText(tr("Error while altering view (drop phase): %1.\n\n%2").arg(dropQuery.lastError().text()).arg(sql));
-			ui.resultEdit->moveCursor(QTextCursor::Start);
-		}
-
-		sql = QString("CREATE VIEW %1.%2 AS\n%3;")
-		.arg(Utils::quote(ui.databaseCombo->currentText()))
-		.arg(Utils::quote(ui.nameEdit->text()))
-		.arg(ui.sqlEdit->text());
-		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-		
-		if(query.lastError().isValid())
-		{
-			ui.resultEdit->insertPlainText(tr("Error while altering view: %1.\n\n%2").arg(query.lastError().text()).arg(sql));
-			ui.resultEdit->insertPlainText("\n");
-			return;
-		}
-		ui.resultEdit->insertPlainText(tr("View altered successfully"));
-		ui.resultEdit->insertPlainText("\n");
+		ui.resultEdit->insertPlainText(
+			tr("Error while altering view (drop phase): %1.\n\n%2")
+			.arg(dropQuery.lastError().text()).arg(sql));
+		ui.resultEdit->moveCursor(QTextCursor::Start);
 	}
+
+	sql = QString("CREATE VIEW %1.%2 AS\n%3;")
+				  .arg(Utils::quote(ui.databaseCombo->currentText()))
+				  .arg(Utils::quote(ui.nameEdit->text()))
+				  .arg(ui.sqlEdit->text());
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+	
+	if(query.lastError().isValid())
+	{
+		ui.resultEdit->insertPlainText(
+			tr("Error while altering view: %1.\n\n%2")
+			.arg(query.lastError().text()).arg(sql));
+		ui.resultEdit->insertPlainText("\n");
+		return;
+	}
+	ui.resultEdit->insertPlainText(tr("View altered successfully"));
+	ui.resultEdit->insertPlainText("\n");
 }

@@ -3,9 +3,7 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	
-	FIXME OK after inserting blob redisplays multiline editor
-	      text view sometimes displays PNG instead of {blob}
+	FIXME Allow editing on views with INSTEAD OF triggers
 */
 
 #include <QMessageBox>
@@ -139,6 +137,8 @@ void DataViewer::setNotPending()
 
 bool DataViewer::checkForPending()
 {
+	// FIXME item view not updated on rollback
+	// FIXME try to preserve selected item
 	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (old && old->pendingTransaction())
 	{

@@ -97,7 +97,7 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 
 	statusBar();
 	m_sqliteVersionLabel = new QLabel(this);
-	m_activeTable = QString();
+	m_activeItem = 0;
 	statusBar()->addPermanentWidget(m_sqliteVersionLabel);
 
 	readSettings();
@@ -595,7 +595,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		schemaBrowser->tableTree->buildTree();
 		schemaBrowser->buildPragmasTree();
 		dataViewer->setTableModel(new QSqlQueryModel(), false);
-		m_activeTable = QString();
+		m_activeItem = 0;
 	
 		// Update the title
 		setWindowTitle(QString("%1 - %2").arg(fi.fileName()).arg(m_appName));
@@ -690,7 +690,7 @@ void LiteManWindow::execSql(QString query)
 	if (!checkForPending()) { return; }
 
 	dataViewer->freeResources(dataViewer->tableData());
-	m_activeTable = QString();
+	m_activeItem = 0;
 	sqlEditor->setStatusMessage();
 
 	QTime time;
@@ -757,7 +757,9 @@ void LiteManWindow::createTable()
 	dlg.exec();
 	if (dlg.update)
 	{
-		foreach (QTreeWidgetItem* item, schemaBrowser->tableTree->searchMask(schemaBrowser->tableTree->trTables))
+		foreach (QTreeWidgetItem* item,
+			schemaBrowser->tableTree->searchMask(
+				schemaBrowser->tableTree->trTables))
 		{
 			if (item->type() == TableTree::TablesItemType)
 				schemaBrowser->tableTree->buildTables(item, item->text(1));
@@ -772,17 +774,14 @@ void LiteManWindow::alterTable()
 	if(!item)
 		return;
 
-	bool isActive = m_activeTable == item->text(0);
-	AlterTableDialog dlg(this, item->text(0), item->text(1), isActive);
+	bool isActive = m_activeItem == item;
+	AlterTableDialog dlg(this, item, isActive);
 	dlg.exec();
-	switch (dlg.updateStage)
+	if (isActive && (dlg.updateStage == 2))
 	{
-		case 2:
-			if (isActive) { treeItemActivated(item, 0); }
-			//FALLTHRU
-		case 1:
-			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
-		// default (case 0) is to do nothing
+		//FIXME preserve Full/Item view and selected row
+		m_activeItem = 0; // we've changed it
+		treeItemActivated(item, 0);
 	}
 }
 
@@ -798,14 +797,20 @@ void LiteManWindow::renameTable()
 										 item->text(0), &ok);
 	if (ok && !text.isEmpty())
 	{
-		if (text == item->text(0))
-			return;
-		QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
-					  .arg(Utils::quote(item->text(1)))
-					  .arg(Utils::quote(item->text(0)))
-					  .arg(Utils::quote(text));
-		if (Database::execSql(sql))
-			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
+		if (text == item->text(0)) { return; }
+
+		// check needed because QSqlTableModel holds the table name
+		if ((m_activeItem != item) || (checkForPending()))
+		{
+			QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
+						  .arg(Utils::quote(item->text(1)))
+						  .arg(Utils::quote(item->text(0)))
+						  .arg(Utils::quote(text));
+			if (Database::execSql(sql))
+			{
+				item->setText(0, text);
+			}
+		}
 	}
 }
 
@@ -814,7 +819,7 @@ void LiteManWindow::populateTable()
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if(!item)
 		return;
-	bool isActive = m_activeTable == item->text(0);
+	bool isActive = m_activeItem == item;
 	if (isActive && !checkForPending()) { return; }
 	PopulatorDialog dlg(this, item->text(0), item->text(1));
 	dlg.exec();
@@ -829,27 +834,20 @@ void LiteManWindow::importTable()
 
 	if (item)
 	{
-		ImportTableDialog dlg(this, item->text(0), item->text(1), m_activeTable);
+		ImportTableDialog dlg(this, item->text(0), item->text(1), m_activeItem);
 		dlg.exec();
 		if (dlg.exec() == QDialog::Accepted)
 		{
-			treeItemActivated(item, 0); 
+			treeItemActivated(item, 0);
 		}
 	}
 	else
 	{
-		ImportTableDialog dlg(this, "", "main", m_activeTable);
+		ImportTableDialog dlg(this, "", "main", m_activeItem);
 		dlg.exec();
 		if (dlg.update)
 		{
-			// This is basically treeItemActivated, but we don't have an item.
-			SqlTableModel * model = new SqlTableModel(0,
-				QSqlDatabase::database(attachedDb["main"]));
-			model->setSchema("main");
-			model->setTable(m_activeTable);
-			model->select();
-			model->setEditStrategy(SqlTableModel::OnManualSubmit);
-			dataViewer->setTableModel(model, true);
+			treeItemActivated(m_activeItem, 0);
 		}
 	}
 }
@@ -861,21 +859,22 @@ void LiteManWindow::dropTable()
 	if(!item)
 		return;
 
-	bool isActive = m_activeTable == item->text(0);
-	// don't check for pending, we're dropping it anyway
-	if (isActive) { dataViewer->setNotPending(); }
+	bool isActive = m_activeItem == item;
+
 	int ret = QMessageBox::question(this, m_appName,
 					tr("Are you sure that you wish to drop the table \"%1\"?").arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
 
 	if(ret == QMessageBox::Yes)
 	{
+		// don't check for pending, we're dropping it anyway
+		if (isActive) { dataViewer->setNotPending(); }
 		if (Database::dropTable(item->text(0), item->text(1)))
 			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
 		if (isActive)
 		{
 			dataViewer->setTableModel(new QSqlQueryModel(), false);
-			m_activeTable = QString();
+			m_activeItem = 0;
 		}
 	}
 }
@@ -891,21 +890,37 @@ void LiteManWindow::createView()
 
 void LiteManWindow::alterView()
 {
+	//FIXME allow Alter View to change name like Alter Table
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	bool isActive = m_activeItem == item;
+	// Can't have pending update on a view, so no checkForPending() here
+	// This might change if we allow editing on views with triggers
 	AlterViewDialog dia(item->text(0), item->text(1), this);
 	dia.exec();
 	if (dia.update)
-		schemaBrowser->tableTree->buildViewTree(item->text(1), item->text(0));
+	{
+		QTreeWidgetItem * triggers = item->child(0);
+		if (triggers)
+		{
+			schemaBrowser->tableTree->buildTriggers(triggers, item->text(1),
+													item->text(0));
+		}
+		if (isActive)
+		{
+			m_activeItem = 0;
+			treeItemActivated(item, 0);
+		}
+	}
 }
 
 void LiteManWindow::dropView()
 {
-	//FIXME dropped view still displayed
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
 		return;
-
+	bool isActive = m_activeItem == item;
+	// Can't have pending update on a view, so no checkForPending() here
 	// Ask the user for confirmation
 	int ret = QMessageBox::question(this, m_appName,
 					tr("Are you sure that you wish to drop the view \"%1\"?").arg(item->text(0)),
@@ -914,7 +929,14 @@ void LiteManWindow::dropView()
 	if(ret == QMessageBox::Yes)
 	{
 		if (Database::dropView(item->text(0), item->text(1)))
+		{
 			schemaBrowser->tableTree->buildViews(item->parent(), item->text(1));
+			if (isActive)
+			{
+				dataViewer->setTableModel(new QSqlQueryModel(), false);
+				m_activeItem = 0;
+			}
+		}
 	}
 }
 
@@ -951,9 +973,7 @@ void LiteManWindow::dropIndex()
 void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 {
 	if (   (!item)
-		|| (   (m_activeTable == item->text(0))
-//			&& (m_activeSchema == item->text(1)) //will be needed for real schemas
-		)
+		|| (m_activeItem == item)
 		|| !checkForPending())
 		return;
 
@@ -969,7 +989,6 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 							.arg(item->text(0)),
 							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
-			m_activeTable = QString();
 		}
 		else
 		{
@@ -979,8 +998,8 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 			model->select();
 			model->setEditStrategy(SqlTableModel::OnManualSubmit);
 			dataViewer->setTableModel(model, true);
-			m_activeTable = item->text(0);
 		}
+		m_activeItem = item;
 	}
 }
 

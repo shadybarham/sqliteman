@@ -8,18 +8,17 @@ for which a new license (GPL+exception) is in place.
 #include <QCheckBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QTreeWidgetItem>
 
 #include "altertabledialog.h"
 #include "utils.h"
 
 
 AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
-								   const QString & tableName,
-								   const QString & schema,
+								   QTreeWidgetItem * item,
 								   const bool isActive)
 	: TableEditorDialog(parent),
-	m_table(tableName),
-	m_schema(schema),
+	m_item(item),
 	m_protectedRows(0),
 	m_dropColumns(0)
 {
@@ -27,9 +26,9 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	m_alteringActive = isActive;
 	updateStage = 0;
 
-	ui.nameEdit->setText(tableName);
+	ui.nameEdit->setText(m_item->text(0));
 // 	ui.nameEdit->setDisabled(true);
-	ui.databaseCombo->addItem(schema);
+	ui.databaseCombo->addItem(m_item->text(1));
 	ui.databaseCombo->setDisabled(true);
 	ui.tabWidget->removeTab(1);
 	ui.adviceLabel->hide();
@@ -52,14 +51,18 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 void AlterTableDialog::resetStructure()
 {
 	// obtain all indexed colums for DROP COLUMN checks
-	foreach(QString index, Database::getObjects("index", m_schema).values(m_table))
+	foreach(QString index,
+		Database::getObjects("index", m_item->text(1)).values(m_item->text(0)))
 	{
-		foreach(QString indexColumn, Database::indexFields(index, m_schema))
+		foreach(QString indexColumn,
+			Database::indexFields(index, m_item->text(1)))
+		{
 			m_columnIndexMap[indexColumn].append(index);
+		}
 	}
 
 	// Initialize fields
-	FieldList fields = Database::tableFields(m_table, m_schema);
+	FieldList fields = Database::tableFields(m_item->text(0), m_item->text(1));
 	ui.columnTable->clearContents();
 	ui.columnTable->setRowCount(fields.size());
 	for(int i = 0; i < fields.size(); i++)
@@ -110,9 +113,9 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
 	if(query.lastError().isValid())
 	{
-		ui.resultEdit->append(QString("%1 (%2) %3:").arg(message)
-													.arg(tr("failed"))
-													.arg(query.lastError().text()));
+		ui.resultEdit->append(QString("%1 (%2) %3:")
+							  .arg(message).arg(tr("failed"))
+							  .arg(query.lastError().text()));
 		ui.resultEdit->append(statement);
 		if (!tmpName.isNull())
 			ui.resultEdit->append(tr("Old table is stored as %1").arg(tmpName));
@@ -125,7 +128,10 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 QStringList AlterTableDialog::originalSource()
 {
 	QString ixsql("select sql from %1.sqlite_master where type in ('index', 'trigger') and tbl_name = '%2';");
-	QSqlQuery query(ixsql.arg(Utils::quote(m_schema)).arg(Utils::quote(m_table)), QSqlDatabase::database(SESSION_NAME));
+	QSqlQuery query(ixsql
+						.arg(Utils::quote(m_item->text(1)))
+						.arg(Utils::quote(m_item->text(0))),
+					QSqlDatabase::database(SESSION_NAME));
 	QStringList ret;
 
 	if (query.lastError().isValid())
@@ -143,17 +149,17 @@ bool AlterTableDialog::renameTable()
 	QString newTableName(ui.nameEdit->text().trimmed());
 	if ((!m_alteringActive) || (creator && creator->checkForPending()))
 	{
-		if (m_table == newTableName) { return true; }
+		if (m_item->text(0) == newTableName) { return true; }
 	
 		QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
-					  .arg(Utils::quote(m_schema))
-					  .arg(Utils::quote(m_table))
+					  .arg(Utils::quote(m_item->text(1)))
+					  .arg(Utils::quote(m_item->text(0)))
 					  .arg(Utils::quote(newTableName));
 		if (execSql(sql, tr("Renaming the table %1 to %2.")
-						 .arg(m_table).arg(newTableName)))
+						 .arg(m_item->text(0)).arg(newTableName)))
 		{
 			updateStage = 1;
-			m_table = newTableName;
+			m_item->setText(0, newTableName);
 			return true;
 		}
 	}
@@ -170,13 +176,14 @@ void AlterTableDialog::createButton_clicked()
 	// drop columns first
 // 	if (m_dropColumns > 0)
 	{
-        FieldList oldColumns = Database::tableFields(m_table, m_schema);
+        FieldList oldColumns =
+	        Database::tableFields(m_item->text(0), m_item->text(1));
 		QStringList existingObjects = Database::getObjects().keys();
 		// indexes and triggers on the original table
 		QStringList originalSrc = originalSource();
 
 		// generate unique temporary tablename
-		QString tmpName("_alter%1_" + m_table);
+		QString tmpName("_alter%1_" + m_item->text(0));
 		int tmpCount = 0;
 		while (existingObjects.contains(tmpName.arg(tmpCount), Qt::CaseInsensitive))
 			++tmpCount;
@@ -195,8 +202,8 @@ void AlterTableDialog::createButton_clicked()
 		}
 
 		if (!execSql(QString("ALTER TABLE %1.%2 RENAME TO %3;")
-					 .arg(Utils::quote(m_schema))
-					 .arg(Utils::quote(m_table))
+					 .arg(Utils::quote(m_item->text(1)))
+					 .arg(Utils::quote(m_item->text(0)))
 					 .arg(Utils::quote(tmpName)),
 					 tr("Rename original table to %1").arg(tmpName)))
 		{
@@ -205,8 +212,8 @@ void AlterTableDialog::createButton_clicked()
 		updateStage = 1;
 
 		QString sql = QString("CREATE TABLE %1.%2 (\n")
-					  .arg(Utils::quote(m_schema))
-					  .arg(Utils::quote(m_table));
+					  .arg(Utils::quote(m_item->text(1)))
+					  .arg(Utils::quote(m_item->text(0)));
 		QStringList tmpInsertColumns;
 		foreach (DatabaseTableField f, newColumns)
 		{
@@ -216,7 +223,7 @@ void AlterTableDialog::createButton_clicked()
 		sql = sql.remove(sql.size() - 2, 2); // cut the extra ", "
 		sql += "\n);\n";
 
-		if (!execSql(sql, tr("Creating new table: %1").arg(m_table)))
+		if (!execSql(sql, tr("Creating new table: %1").arg(m_item->text(0))))
 		{
 			return;
 		}
@@ -229,11 +236,11 @@ void AlterTableDialog::createButton_clicked()
 		}
 		QString insSql(QString(
 			"INSERT INTO %1.%2 (%3) SELECT %4 FROM %5.%6;")
-			.arg(Utils::quote(m_schema))
-			.arg(Utils::quote(m_table))
+			.arg(Utils::quote(m_item->text(1)))
+			.arg(Utils::quote(m_item->text(0)))
 			.arg(Utils::quote(tmpInsertColumns))
 			.arg(Utils::quote(tmpSelectColumns))
-			.arg(Utils::quote(m_schema))
+			.arg(Utils::quote(m_item->text(1)))
 			.arg(Utils::quote(tmpName)));
         //qDebug() << insSql;
 		if (!execSql(insSql, tr("Data Transfer"), tmpName))
@@ -244,7 +251,7 @@ void AlterTableDialog::createButton_clicked()
 		
 		// drop old table
 		if (!execSql(QString("DROP TABLE %1.%2;")
-					 .arg(Utils::quote(m_schema))
+					 .arg(Utils::quote(m_item->text(1)))
 					 .arg(Utils::quote(tmpName)),
 			 tr("Dropping original table %1").arg(tmpName),
 				tmpName))
@@ -288,7 +295,7 @@ bool AlterTableDialog::addColumns()
 		def = getDefaultClause(f.defval);
 
 		fullSql = sql.arg(Utils::quote(ui.databaseCombo->currentText()))
-					 .arg(Utils::quote(m_table))
+					 .arg(Utils::quote(m_item->text(0)))
 					 .arg(Utils::quote(f.name))
 					 .arg(f.type)
 					 .arg(nn)
@@ -299,7 +306,7 @@ bool AlterTableDialog::addColumns()
 		{
 			ui.resultEdit->setText(
 				tr("Error while altering table %1: %2.\n%3")
-										.arg(m_table)
+										.arg(m_item->text(0))
 										.arg(query.lastError().text())
 										.arg(fullSql));
 			return false;

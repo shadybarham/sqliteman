@@ -32,10 +32,6 @@ class AlterViewDialog : public QDialog
 	private:
 		Ui::CreateViewDialog ui;
 		
-		// We ought to be able use use parent() for this, but for some reason
-		// qobject_cast<LiteManWindow*>(parent()) doesn't work
-		LiteManWindow * creator;
-
 	private slots:
 		void createButton_clicked();
 };

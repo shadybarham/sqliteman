@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include "litemanwindow.h"
 #include "tableeditordialog.h"
 
+class QTreeWidgetItem;
 
 /*! \brief Handle alter table features.
 Sqlite3 has very limited ALTER TABLE feature set, so
@@ -30,8 +31,7 @@ class AlterTableDialog : public TableEditorDialog
 
 	public:
 		AlterTableDialog(LiteManWindow * parent = 0,
-						 const QString & tableName = 0,
-					     const QString & schema = 0,
+						 QTreeWidgetItem * item = 0,
 						 const bool isActive = false
 						);
 		~AlterTableDialog(){};
@@ -48,16 +48,13 @@ class AlterTableDialog : public TableEditorDialog
 		It's used in the simulated DROP COLUMN checking */
 		QMap<QString,QStringList> m_columnIndexMap;
 
-		//! \brief original name of the table. It's compared with new name for renaming procedure.
-		QString m_table;
-		QString m_schema;
-		//! \brief rowcount of the original table. User cannot remove these rows directly.
+		QTreeWidgetItem * m_item;
 		int m_protectedRows;
 
 		//! \brief Indicate how much protected colums are marked for DROPping.
 		int m_dropColumns;
 
-		//! \brief Fil the GUI with table structure.
+		//! \brief Fill the GUI with table structure.
 		void resetStructure();
 		//! \brief Setup the OK button if there is something changed
 		void checkChanges();

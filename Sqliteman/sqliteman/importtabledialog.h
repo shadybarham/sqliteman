@@ -11,6 +11,8 @@ for which a new license (GPL+exception) is in place.
 #include "litemanwindow.h"
 #include "ui_importtabledialog.h"
 
+class QTreeWidgetItem;
+
 
 /*! \brief Import data into table using various importer types.
 \note XML import requires Qt library at least in the 4.3.0 version.
@@ -24,14 +26,14 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 		ImportTableDialog(LiteManWindow * parent = 0,
 						  const QString & tableName = 0,
 						  const QString & schema = 0,
-						  const QString & activeTable = 0);
+						  QTreeWidgetItem * activeItem = 0);
 
 		bool update;
 	private:
 		//! Remember the originally requested name
 		QString m_tableName;
 		// and the originally active name (may be different)
-		QString m_activeTable;
+		QTreeWidgetItem * m_activeItem;
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work

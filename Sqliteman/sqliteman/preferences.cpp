@@ -22,7 +22,7 @@ Preferences::Preferences(QObject *parent)
 
 	QSettings s("yarpen.cz", "sqliteman");
 	m_checkQtVersion = s.value("checkQtVersion", true).toBool();
-	//
+	// FIXME should we have special label for empty blob
 	m_nullHighlight = s.value("prefs/nullCheckBox", true).toBool();
 	m_blobHighlight = s.value("prefs/blobCheckBox", true).toBool();
 	m_nullHighlightText = s.value("prefs/nullAliasEdit", "{null}").toString();

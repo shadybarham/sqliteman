@@ -19,6 +19,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QTreeWidgetItem>
 #include <QtDebug>
 
 #include "importtabledialog.h"
@@ -30,9 +31,9 @@ for which a new license (GPL+exception) is in place.
 ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 									 const QString & tableName,
 									 const QString & schema,
-									 const QString & activeTable)
+									 QTreeWidgetItem * activeItem)
 	: QDialog(parent),
-	m_tableName(tableName), m_activeTable(activeTable)
+	m_tableName(tableName), m_activeItem(activeItem)
 {
 	update = false;
 	creator = parent;
@@ -142,7 +143,7 @@ void ImportTableDialog::slotAccepted()
 				  binds.join(", "));
 
 	//FIXME if we can really have more than one schema, we need to check that too.
-	if (   (m_activeTable == tableComboBox->currentText())
+	if (   (m_activeItem->text(0) == tableComboBox->currentText())
 		&& ((!creator) || !(creator->checkForPending())))
 	{
 		return;
