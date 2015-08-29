@@ -20,7 +20,7 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 	  m_schema(schema),
 	  m_table(table)
 {
-	update = false;
+	updated = false;
 	setupUi(this);
 	columnTable->horizontalHeader()->setStretchLastSection(true);
 
@@ -91,9 +91,12 @@ void PopulatorDialog::checkActionTypes()
 
 qlonglong PopulatorDialog::tableRowCount()
 {
-	QString sql("select count(1) from %1.%2;");
-	QSqlQuery query(sql.arg(Utils::quote(m_schema)).arg(Utils::quote(m_table)),
-					QSqlDatabase::database(SESSION_NAME));
+	QString sql = QString("select count(1) from ")
+				  + Utils::quote(m_schema)
+				  + "."
+				  + Utils::quote(m_table)
+				  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	query.exec();
 	if (query.lastError().isValid())
 	{
@@ -114,38 +117,52 @@ QString PopulatorDialog::sqlColumns()
 		if (i.action != Populator::T_IGNORE)
 			s.append(i.name);
 	}
-		return Utils::quote(s);
-}
-
-QString PopulatorDialog::sqlBinds()
-{
-	QStringList s;
-	foreach (Populator::PopColumn i, m_columnList)
-	{
-		if (i.action != Populator::T_IGNORE)
-			s.append(i.name);
-	}
-		return Utils::quote(s);
+	return Utils::quote(s);
 }
 
 void PopulatorDialog::populateButton_clicked()
 {
-	qlonglong cntPre, cntPost;
-	textBrowser->clear();
+	// Avoid QVariantList extension because it doesn't work for column names
+	// containing special characters
 	m_columnList.clear();
-
 	for (int i = 0; i < columnTable->rowCount(); ++i)
 		m_columnList.append(qobject_cast<PopulatorColumnWidget*>(columnTable->cellWidget(i, 2))->column());
 
-	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
-	QString sql = "INSERT %1 INTO %2.%3 (%4) VALUES (:%5);";
-	query.prepare(sql.arg(constraintBox->isChecked() ? "OR IGNORE" : "")
-					 .arg(Utils::quote(m_schema))
-					 .arg(Utils::quote(m_table))
-					 .arg(sqlColumns())
-					 .arg(sqlBinds()));
-
-	cntPre = tableRowCount();
+	QList<QVariantList> values;
+	foreach (Populator::PopColumn i, m_columnList)
+	{
+		switch (i.action)
+		{
+			case Populator::T_AUTO:
+				values.append(autoValues(i));
+				break;
+			case Populator::T_AUTO_FROM:
+				values.append(autoFromValues(i));
+				break;
+			case Populator::T_NUMB:
+				values.append(numberValues(i));
+				break;
+			case Populator::T_TEXT:
+				values.append(textValues(i));
+				break;
+			case Populator::T_PREF:
+				values.append(textPrefixedValues(i));
+				break;
+			case Populator::T_STAT:
+				values.append(staticValues(i));
+				break;
+			case Populator::T_DT_NOW:
+			case Populator::T_DT_NOW_UNIX:
+			case Populator::T_DT_NOW_JULIAN:
+			case Populator::T_DT_RAND:
+			case Populator::T_DT_RAND_UNIX:
+			case Populator::T_DT_RAND_JULIAN:
+				values.append(dateValues(i));
+				break;
+			case Populator::T_IGNORE:
+				break;
+		};
+	}
 
 	if (!Database::execSql("BEGIN TRANSACTION;"))
 	{
@@ -154,52 +171,48 @@ void PopulatorDialog::populateButton_clicked()
 		return;
 	}
 
-	foreach (Populator::PopColumn i, m_columnList)
+	qlonglong cntPre, cntPost;
+	textBrowser->clear();
+
+	cntPre = tableRowCount();
+	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
+	for (int i = 0; i < spinBox->value(); ++i)
 	{
-		switch (i.action)
+		QStringList slr;
+		for (int j = 0; j < values.count(); ++j)
 		{
-			case Populator::T_AUTO:
-				query.addBindValue(autoValues(i));
-				break;
-			case Populator::T_AUTO_FROM:
-				query.addBindValue(autoFromValues(i));
-				break;
-			case Populator::T_NUMB:
-				query.addBindValue(numberValues(i));
-				break;
-			case Populator::T_TEXT:
-				query.addBindValue(textValues(i));
-				break;
-			case Populator::T_PREF:
-				query.addBindValue(textPrefixedValues(i));
-				break;
-			case Populator::T_STAT:
-				query.addBindValue(staticValues(i));
-				break;
-			case Populator::T_DT_NOW:
-			case Populator::T_DT_NOW_UNIX:
-			case Populator::T_DT_NOW_JULIAN:
-			case Populator::T_DT_RAND:
-			case Populator::T_DT_RAND_UNIX:
-			case Populator::T_DT_RAND_JULIAN:
-				query.addBindValue(dateValues(i));
-				break;
-			case Populator::T_IGNORE:
-				break;
-		};
+			slr.append(Utils::literal(values.at(j).at(i).toString()));
+		}
+		QString sql = QString("INSERT ")
+					  + (constraintBox->isChecked() ? "OR IGNORE" : "")
+					  + " INTO "
+					  + Utils::quote(m_schema)
+					  + "."
+					  + Utils::quote(m_table)
+					  + " ("
+					  + sqlColumns()
+					  + ") VALUES ("
+					  + slr.join(",")
+					  + ");";
+
+		query.prepare(sql);
+		if (!query.exec())
+		{
+			textBrowser->append(query.lastError().text());
+			if (!constraintBox->isChecked()) { break; }
+		}
+		else { updated = true; }
 	}
 
-	if (!query.execBatch())
-		textBrowser->append(query.lastError().text());
-	else
-		textBrowser->append(tr("Data inserted."));
-
 	if (!Database::execSql("COMMIT;"))
+	{
 		textBrowser->append(tr("Transaction commit failed."));
+		Database::execSql("ROLLBACK;");
+		updated = false;
+		return;
+	}
 
 	cntPost = tableRowCount();
-	textBrowser->append(tr("It's done. Check messages above."));
-	update = true;
 
 	if (cntPre != -1 && cntPost != -1)
 		textBrowser->append(tr("Row(s) inserted: %1").arg(cntPost-cntPre));
@@ -207,11 +220,14 @@ void PopulatorDialog::populateButton_clicked()
 
 QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 {
-	QString sql("select max(%1) from %2.%3;");
-	QSqlQuery query(sql.arg(Utils::quote(c.name))
-					   .arg(Utils::quote(m_schema))
-					   .arg(Utils::quote(m_table)),
-					QSqlDatabase::database(SESSION_NAME));
+	QString sql = QString("select max(")
+				  + Utils::quote(c.name)
+				  + ") from "
+				  + Utils::quote(m_schema)
+				  + "."
+				  + Utils::quote(m_table)
+				  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	query.exec();
 
 	if (query.lastError().isValid())
@@ -300,7 +316,7 @@ QVariantList PopulatorDialog::dateValues(Populator::PopColumn c)
 	uint now_tstamp = now.toTime_t();
 	// pseudo random generator init
 	qsrand(now_tstamp);
-	
+
 	for (int i = 0; i < spinBox->value(); ++i)
 	{
 		switch (c.action)
