@@ -25,13 +25,13 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 	public:
 		ImportTableDialog(LiteManWindow * parent = 0,
 						  const QString & tableName = 0,
-						  const QString & schema = 0,
-						  QTreeWidgetItem * activeItem = 0);
+						  const QString & schema = 0);
 
 		bool update;
 	private:
-		//! Remember the originally requested name
+		//! Remember the originally requested name and schema
 		QString m_tableName;
+		QString m_schema;
 		// and the originally active name (may be different)
 		QTreeWidgetItem * m_activeItem;
 

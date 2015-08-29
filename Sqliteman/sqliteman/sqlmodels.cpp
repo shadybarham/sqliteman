@@ -265,7 +265,12 @@ void SqlTableModel::setPendingTransaction(bool pending)
 	m_deleteCache.clear();
 }
 
-
+bool SqlTableModel::deleteRowFromTable(int row)
+{
+	bool result = QSqlTableModel::deleteRowFromTable(row);
+	if (result) { emit reallyDeleting(row); }
+	return result;
+}
 
 
 SqlQueryModel::SqlQueryModel( QObject * parent)

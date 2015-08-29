@@ -55,6 +55,10 @@ class DataViewer : public QMainWindow
 		/*! \brief Free locked resources */
 		void freeResources(QAbstractItemModel * old);
 
+		// reselect active row and full/item view after doing some changes
+		void saveSelection();
+		void reSelect();
+
 	public slots:
 		//! \brief Append the line to the "Script Result" tab.
 		void showSqlScriptResult(QString line);
@@ -64,7 +68,9 @@ class DataViewer : public QMainWindow
 	private:
 		Ui::DataViewer ui;
 		bool dataResized;
-		bool singleItemSelected;
+		int activeRow;
+		int savedActiveRow;
+		bool wasItemView;
 
         QAction * actOpenEditor;
         QAction * actInsertNull;
@@ -72,11 +78,12 @@ class DataViewer : public QMainWindow
 		void resizeViewToContents(QAbstractItemModel * model);
 		void resizeEvent(QResizeEvent * event);
 		//! \brief Show/hide action tools
-		void updateButtons();
+		void updateButtons(const QItemSelection & selected);
 
 	private slots:
 		void addRow();
 		void removeRow();
+		void deletingRow(int row); // when it actually gets deleted
 		void truncateTable();
 		void exportData();
 		void commit();
@@ -124,9 +131,6 @@ class DataViewer : public QMainWindow
         void actInsertNull_triggered();
 
 		void rowDoubleClicked(int);
-		void horizontalHeaderClicked(int);
-		void verticalHeaderClicked(int);
-		void tableItemClicked(QModelIndex);
 };
 
 

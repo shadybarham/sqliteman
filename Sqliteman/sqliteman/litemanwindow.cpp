@@ -437,8 +437,8 @@ void LiteManWindow::readSettings()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-	int hh = settings.value("litemanwindow/height", QVariant(607)).toInt();
-	int ww = settings.value("litemanwindow/width", QVariant(819)).toInt();
+	int hh = settings.value("litemanwindow/height", QVariant(600)).toInt();
+	int ww = settings.value("litemanwindow/width", QVariant(800)).toInt();
 	resize(ww, hh);
 	QByteArray splitterData = settings.value("window/splitter").toByteArray();
 
@@ -755,7 +755,7 @@ void LiteManWindow::createTable()
 {
 	CreateTableDialog dlg(this);
 	dlg.exec();
-	if (dlg.update)
+	if (dlg.updated)
 	{
 		foreach (QTreeWidgetItem* item,
 			schemaBrowser->tableTree->searchMask(
@@ -771,25 +771,24 @@ void LiteManWindow::alterTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
-	if(!item)
-		return;
+	if (!item) { return; }
 
 	bool isActive = m_activeItem == item;
+	dataViewer->saveSelection();
 	AlterTableDialog dlg(this, item, isActive);
 	dlg.exec();
 	if (isActive && (dlg.updateStage == 2))
 	{
-		//FIXME preserve Full/Item view and selected row
 		m_activeItem = 0; // we've changed it
 		treeItemActivated(item, 0);
+		dataViewer->reSelect();
 	}
 }
 
 void LiteManWindow::renameTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	if(!item)
-		return;
+	if (!item) { return; }
 
 	bool ok;
 	QString text = QInputDialog::getText(this, m_appName,
@@ -799,8 +798,10 @@ void LiteManWindow::renameTable()
 	{
 		if (text == item->text(0)) { return; }
 
+		bool isActive = m_activeItem == item;
+		dataViewer->saveSelection();
 		// check needed because QSqlTableModel holds the table name
-		if ((m_activeItem != item) || (checkForPending()))
+		if ((!isActive) || (checkForPending()))
 		{
 			QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
 						  .arg(Utils::quote(item->text(1)))
@@ -809,6 +810,12 @@ void LiteManWindow::renameTable()
 			if (Database::execSql(sql))
 			{
 				item->setText(0, text);
+				if (isActive)
+				{
+					m_activeItem = 0; // we've changed it
+					treeItemActivated(item, 0);
+					dataViewer->reSelect();
+				}
 			}
 		}
 	}
@@ -817,14 +824,17 @@ void LiteManWindow::renameTable()
 void LiteManWindow::populateTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	if(!item)
-		return;
+	if (!item) { return; }
+	
 	bool isActive = m_activeItem == item;
 	if (isActive && !checkForPending()) { return; }
 	PopulatorDialog dlg(this, item->text(0), item->text(1));
 	dlg.exec();
-	if (isActive && dlg.update) {
-		treeItemActivated(item, 0); 
+	if (isActive && dlg.updated) {
+		dataViewer->saveSelection();
+		m_activeItem = 0; // we've changed it
+		treeItemActivated(item, 0);
+		dataViewer->reSelect();
 	}
 }
 
@@ -832,23 +842,16 @@ void LiteManWindow::importTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
-	if (item)
+	bool isActive = m_activeItem == item;
+	if (item && isActive && !checkForPending()) { return; }
+	ImportTableDialog dlg(this, item ? item->text(0) : "",
+							    item ? item->text(1) : "main");
+	if (isActive && (dlg.exec() == QDialog::Accepted))
 	{
-		ImportTableDialog dlg(this, item->text(0), item->text(1), m_activeItem);
-		dlg.exec();
-		if (dlg.exec() == QDialog::Accepted)
-		{
-			treeItemActivated(item, 0);
-		}
-	}
-	else
-	{
-		ImportTableDialog dlg(this, "", "main", m_activeItem);
-		dlg.exec();
-		if (dlg.update)
-		{
-			treeItemActivated(m_activeItem, 0);
-		}
+		dataViewer->saveSelection();
+		m_activeItem = 0; // we've changed it
+		treeItemActivated(item, 0);
+		dataViewer->reSelect();
 	}
 }
 
@@ -907,8 +910,10 @@ void LiteManWindow::alterView()
 		}
 		if (isActive)
 		{
-			m_activeItem = 0;
+			dataViewer->saveSelection();
+			m_activeItem = 0; // we've changed it
 			treeItemActivated(item, 0);
+			dataViewer->reSelect();
 		}
 	}
 }
@@ -975,7 +980,9 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 	if (   (!item)
 		|| (m_activeItem == item)
 		|| !checkForPending())
+	{
 		return;
+	}
 
 	if (item->type() == TableTree::TableType || item->type() == TableTree::ViewType
 		|| item->type() == TableTree::SystemType)

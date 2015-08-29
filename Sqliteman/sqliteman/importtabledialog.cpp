@@ -30,10 +30,9 @@ for which a new license (GPL+exception) is in place.
 
 ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 									 const QString & tableName,
-									 const QString & schema,
-									 QTreeWidgetItem * activeItem)
+									 const QString & schema)
 	: QDialog(parent),
-	m_tableName(tableName), m_activeItem(activeItem)
+	m_tableName(tableName), m_schema(schema)
 {
 	update = false;
 	creator = parent;
@@ -44,13 +43,13 @@ ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 	int currIx = 0;
 	foreach (n, Database::getDatabases().keys())
 	{
-		if (n == schema)
+		if (n == m_schema)
 			currIx = i;
 		schemaComboBox->addItem(n);
 		++i;
 	}
 	schemaComboBox->setCurrentIndex(currIx);
-	setTablesForSchema(schema);
+	setTablesForSchema(m_schema);
 
 #if QT_VERSION < 0x040300
 	tabWidget->setTabEnabled(1, false);
@@ -142,8 +141,8 @@ void ImportTableDialog::slotAccepted()
 				  Utils::quote(tableComboBox->currentText()),
 				  binds.join(", "));
 
-	//FIXME if we can really have more than one schema, we need to check that too.
-	if (   (m_activeItem->text(0) == tableComboBox->currentText())
+	if (   (m_tableName == tableComboBox->currentText())
+		&& (m_schema == schemaComboBox->currentText())
 		&& ((!creator) || !(creator->checkForPending())))
 	{
 		return;

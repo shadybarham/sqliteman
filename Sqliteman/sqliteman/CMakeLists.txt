@@ -110,6 +110,7 @@ SET( SQLITEMAN_MOC
 #    sqliteprocess.h
     sqlitemview.h
     sqlmodels.h
+    sqltableview.h
     tableeditordialog.h
     tabletree.h
     vacuumdialog.h

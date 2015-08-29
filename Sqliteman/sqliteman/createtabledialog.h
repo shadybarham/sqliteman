@@ -23,7 +23,7 @@ class CreateTableDialog : public TableEditorDialog
 		CreateTableDialog(LiteManWindow * parent = 0);
 		~CreateTableDialog(){};
 
-		bool update;
+		bool updated;
 
 	private slots:
 		void createButton_clicked();

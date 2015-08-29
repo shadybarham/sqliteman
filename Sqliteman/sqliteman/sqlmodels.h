@@ -51,6 +51,12 @@ class SqlTableModel : public QSqlTableModel
 		// add a user
 		void attach() { m_useCount++; }
 
+	signals:
+		void reallyDeleting(int row);
+
+protected:
+		bool deleteRowFromTable(int row);
+
 	private:
 
 		enum IndexType {
@@ -78,7 +84,7 @@ class SqlTableModel : public QSqlTableModel
 		//! \brief Called when is new row created in the view (not in the model).
 		void doPrimeInsert(int, QSqlRecord &);
 
-public slots:
+	public slots:
 		bool select();
 };
 

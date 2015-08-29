@@ -3,6 +3,7 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME column names must be nonempty
 */
 
 #include <QCheckBox>
@@ -18,7 +19,7 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	: TableEditorDialog(parent)
 {
 	creator = parent;
-	update = false;
+	updated = false;
 	ui.removeButton->setEnabled(false); // Disable row removal
 	addField(); // A table should have at least one field
 	setWindowTitle(tr("Create Table"));
@@ -70,7 +71,7 @@ void CreateTableDialog::createButton_clicked()
 			ui.resultEdit->setText(tr("Error while creating table: %1.\n\n%2").arg(query.lastError().text()).arg(sql));
 			return;
 		}
-		update = true;
+		updated = true;
 		ui.resultEdit->setText(tr("Table created successfully"));
 	}
 }
