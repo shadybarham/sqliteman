@@ -196,17 +196,26 @@ QString("(?:") +
 	")+" +
 ")";
 
+// This matches a simple CREATE statement with no parentheses in expressions
+static const QString sqlSimpleCreate =
+QString("^\\s*CREATE\\s+TABLE\\s*") +
+sqlName +
+"(?:(?:\\s*\\.\\s*" + sqlName + ")?)" +
+"\\s*\\((" + 
+	sqlExp0 + "(?:" +
+		"(?:\\s*," + sqlExp0 + ")*" +
+	")" +
+")\\s*\\)" +
+"(?:(?:\\s*WITHOUT\\s+ROWID)?)\\s*$";
+
+
 // This matches a CREATE statement in the schema (no AS option)
 static const QString sqlCreate =
 QString("^\\s*CREATE")+
 "(?:" +
 	"(?:\\s*TEMP(?:ORARY)?)?" + 
 ")" + 
-"\\s*TABLE" +
-	"(?:" +
-		"(?:\\s*IF\\s*NOT\\s*EXISTS)?" + 
-	")" +
-"\\s*" + sqlName +
+"\\s*TABLE\\s*" + sqlName +
 "(?:(?:\\s*\\.\\s*" + sqlName + ")?)" +
 "\\s*\\((" + 
 	sqlExpression + "(?:" +

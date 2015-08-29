@@ -99,13 +99,16 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	// Position the Query on the first (only) result
 	createQuery.first();
 	// Grab the complete CREATE statement
-	//FIXME improve performance by trying simpler regex first
 	QString createStatement = createQuery.value(0).toString();
 	QString fieldList = createStatement;
-	fieldList.replace(QRegExp(sqlCreate, Qt::CaseInsensitive), "\\1");
+	fieldList.replace(QRegExp(sqlSimpleCreate, Qt::CaseInsensitive), "\\1");
 	if (fieldList == createStatement)
 	{
-		exception(tr("Cannot parse CREATE statement: %1").arg(createStatement));
+		fieldList.replace(QRegExp(sqlCreate, Qt::CaseInsensitive), "\\1");
+		if (fieldList == createStatement)
+		{
+			exception(tr("Cannot parse CREATE statement: %1").arg(createStatement));
+		}
 	}
 	// Make a list with all of the individual field statements
 	// Initialize ourselves a Field Map -- keys and vals are QStrings
