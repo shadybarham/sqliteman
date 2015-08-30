@@ -412,7 +412,9 @@ void DataViewer::removeRow()
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if(model)
 	{
-		model->removeRows(ui.tableView->currentIndex().row(), 1);
+		int row = ui.tableView->currentIndex().row();
+		model->removeRows(row, 1);
+		ui.tableView->hideRow(row);
 		updateButtons(QItemSelection());
 	}
 }
@@ -511,11 +513,19 @@ void DataViewer::rollback()
 	// forces to close the editor/delegate.
 	ui.tableView->selectRow(ui.tableView->currentIndex().row());
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
-	model->revertAll();
-	model->setPendingTransaction(false);
-	reSelect();
-	resizeViewToContents(model);
-	updateButtons(QItemSelection());
+	if (model) // paranoia
+	{
+		model->revertAll();
+		model->setPendingTransaction(false);
+		int n = model->rowCount();
+		for (int i = 0; i < n; ++i)
+		{
+			ui.tableView->showRow(i);
+		}
+		reSelect();
+		resizeViewToContents(model);
+		updateButtons(QItemSelection());
+	}
 }
 
 void DataViewer::copyHandler()
