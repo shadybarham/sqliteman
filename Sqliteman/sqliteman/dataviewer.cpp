@@ -4,6 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
+	FIXME HTML formatting for error messages
 */
 
 #include <QMessageBox>
@@ -584,10 +585,12 @@ void DataViewer::openStandaloneWindow()
 		w->setWindowTitle(tm->tableName() + " - "
 				+ QDateTime::currentDateTime().toString() + " - " 
 				+ tr("Data Snapshot"));
-		qm->setQuery(QString("select * from %1.%2;")
-					.arg(Utils::quote(tm->schema()))
-					.arg(Utils::quote(tm->tableName())),
-					QSqlDatabase::database(SESSION_NAME));
+		qm->setQuery(QString("select * from ")
+					 + Utils::quote(tm->schema())
+					 + "."
+					 + Utils::quote(tm->tableName())
+					 + ";",
+					 QSqlDatabase::database(SESSION_NAME));
 	}
 	else
 	{

@@ -7,6 +7,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME make cancel work properly
 	FIXME handle column names in first row
 	FIXME we seem to be importing twice
+	FIXME re-add Psion foramt
 */
 #include <QFileDialog>
 #include <QMessageBox>
@@ -131,15 +132,19 @@ void ImportTableDialog::slotAccepted()
 									 schemaComboBox->currentText()).count();
 	int row = 0;
 	int success = 0;
-	QString sql("insert into %1.%2 values (%3);");
-	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
-
 	QStringList binds;
-	for (int i = 0; i < cols; ++i)
-		binds << "?";
-	sql = sql.arg(Utils::quote(schemaComboBox->currentText()),
-				  Utils::quote(tableComboBox->currentText()),
-				  binds.join(", "));
+	for (int i = 0; i < cols; ++i) { binds << "?"; }
+	// FIXME goes wrong if a schema or table name contains a ?
+	// SQL provides no mechanism to escape a ? in an SQL statement
+	QString sql = QString("insert into ")
+				  + Utils::quote(schemaComboBox->currentText())
+				  + "."
+				  + Utils::quote(tableComboBox->currentText())
+				  + " values ("
+				  + binds.join(", ")
+				  + ");";
+		
+	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
 
 	if (   (m_tableName == tableComboBox->currentText())
 		&& (m_schema == schemaComboBox->currentText())

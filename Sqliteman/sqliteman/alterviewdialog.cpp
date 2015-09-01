@@ -26,19 +26,28 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	ui.databaseCombo->setDisabled(true);
 	ui.nameEdit->setDisabled(true);
 
-	QSqlQuery query(QString(
-					"select sql from %1.sqlite_master where name = %2;")
-					.arg(Utils::quote(schema)).arg(Utils::quote(name)),
-					 QSqlDatabase::database(SESSION_NAME));
+	QString sql = QString("select sql from ")
+				  + Utils::quote(schema)
+				  + ".sqlite_master where name = "
+				  + Utils::quote(name)
+				  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	while (query.next())
 	{
 		QString s(query.value(0).toString());
-// 		int pos = s.indexOf(QRegExp("(\\b|\\W)AS(\\b|\\W)",  Qt::CaseInsensitive));
+		//FIXME parse general CREATE VIEW statement
 		int pos = s.indexOf(QRegExp("\\bAS\\b",  Qt::CaseInsensitive));
 		if (pos == -1)
+		{
 			qDebug() << "regexp parse error. Never should be written out";
+			ui.createButton->setEnabled(false);
+		}
 		else
+		{
 			ui.sqlEdit->setText(s.right(s.length() - pos - 2).trimmed());
+			connect(ui.createButton, SIGNAL(clicked()),
+					this, SLOT(createButton_clicked()));
+		}
 	}
 
 	setWindowTitle(tr("Alter View"));
@@ -50,32 +59,54 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 void AlterViewDialog::createButton_clicked()
 {
 	//FIXME this destroys any INSTEAD OF triggers on the view
-	update = true;
+	//FIXME this destroys the old view before we can be sure that we can create
+	// the new one: however there doesn't seem to be any SQL syntax to avoid this, 
+	// but maybe we can fix it using a transaction
+	//FIXME show old select statement
+	//FIXME allow renaming view
 	ui.resultEdit->clear();
-	QString sql(QString("DROP VIEW %1.%2")
-				.arg(Utils::quote(ui.databaseCombo->currentText()))
-				.arg(Utils::quote(ui.nameEdit->text())));
+	QString sql = QString("DROP VIEW ")
+				  + Utils::quote(ui.databaseCombo->currentText())
+				  + "."
+				  + Utils::quote(ui.nameEdit->text())
+				  + ";";
 	QSqlQuery dropQuery(sql, QSqlDatabase::database(SESSION_NAME));
 	if (dropQuery.lastError().isValid())
 	{
-		ui.resultEdit->insertPlainText(
-			tr("Error while altering view (drop phase): %1.\n\n%2")
-			.arg(dropQuery.lastError().text()).arg(sql));
-		ui.resultEdit->moveCursor(QTextCursor::Start);
+		QString errtext = QString(tr("Cannot drop view "))
+						  + ui.databaseCombo->currentText()
+						  + tr(".")
+						  + ui.nameEdit->text()
+						  + ":\n"
+						  + dropQuery.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + sql;
+		ui.resultEdit->insertPlainText(errtext);
+		return;
 	}
+	update = true;
 
-	sql = QString("CREATE VIEW %1.%2 AS\n%3;")
-				  .arg(Utils::quote(ui.databaseCombo->currentText()))
-				  .arg(Utils::quote(ui.nameEdit->text()))
-				  .arg(ui.sqlEdit->text());
+	sql = QString("CREATE VIEW ")
+		  + Utils::quote(ui.databaseCombo->currentText())
+		  + "."
+		  + Utils::quote(ui.nameEdit->text())
+		  + " AS\n"
+		  + ui.sqlEdit->text()
+		  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
 	{
-		ui.resultEdit->insertPlainText(
-			tr("Error while altering view: %1.\n\n%2")
-			.arg(query.lastError().text()).arg(sql));
-		ui.resultEdit->insertPlainText("\n");
+		QString errtext = tr("Cannot create view ")
+						  + ui.databaseCombo->currentText()
+						  + tr(".")
+						  + ui.nameEdit->text()
+						  + ":\n"
+						  + dropQuery.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + sql;
+		ui.resultEdit->insertPlainText(errtext);
+		ui.resultEdit->moveCursor(QTextCursor::Start);
 		return;
 	}
 	ui.resultEdit->insertPlainText(tr("View altered successfully"));

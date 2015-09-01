@@ -74,6 +74,26 @@ void TableTree::buildDatabase(const QString & schema)
 	dbItem->setExpanded(true);
 }
 
+void TableTree::buildTableItem(QTreeWidgetItem * tableItem, bool rebuild)
+{
+	if (rebuild) { deleteChildren(tableItem); }
+
+	QString schema = tableItem->text(1);
+	QString table = tableItem->text(0);
+	// columns
+	QTreeWidgetItem *columnsItem = new QTreeWidgetItem(tableItem, ColumnItemType);
+	buildColumns(columnsItem, schema, table);
+	// indexes
+	QTreeWidgetItem *indexesItem = new QTreeWidgetItem(tableItem, IndexesItemType);
+	buildIndexes(indexesItem, schema, table);
+	// system indexes (unique)
+	QTreeWidgetItem *sysIndexesItem = new QTreeWidgetItem(tableItem, SysIndexesItemType);
+	buildSysIndexes(sysIndexesItem, schema, table);
+	// triggers
+	QTreeWidgetItem *triggersItem = new QTreeWidgetItem(tableItem, TriggersItemType);
+	buildTriggers(triggersItem, schema, table);
+}
+
 void TableTree::buildTables(QTreeWidgetItem * tablesItem, const QString & schema)
 {
 	deleteChildren(tablesItem);
@@ -87,18 +107,7 @@ void TableTree::buildTables(QTreeWidgetItem * tablesItem, const QString & schema
 		QTreeWidgetItem * tableItem = new QTreeWidgetItem(tablesItem, TableType);
 		tableItem->setText(0, table);
 		tableItem->setText(1, schema);
-		// columns
-		QTreeWidgetItem *columnsItem = new QTreeWidgetItem(tableItem, ColumnItemType);
-		buildColumns(columnsItem, schema, table);
-		// indexes
-		QTreeWidgetItem *indexesItem = new QTreeWidgetItem(tableItem, IndexesItemType);
-		buildIndexes(indexesItem, schema, table);
-		// system indexes (unique)
-		QTreeWidgetItem *sysIndexesItem = new QTreeWidgetItem(tableItem, SysIndexesItemType);
-		buildSysIndexes(sysIndexesItem, schema, table);
-		// triggers
-		QTreeWidgetItem *triggersItem = new QTreeWidgetItem(tableItem, TriggersItemType);
-		buildTriggers(triggersItem, schema, table);
+		buildTableItem(tableItem, false);
 	}
 }
 

@@ -15,7 +15,6 @@ for which a new license (GPL+exception) is in place.
 
 AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & schema, QWidget * parent)
 	: QDialog(parent),
-// 	update(false),
 	m_schema(schema),
 	m_name(name)
 {
@@ -23,13 +22,23 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	ui.createButton->setText(tr("&Alter"));
 	setWindowTitle("Alter Trigger");
 
-	QString sql(QString(
-		"select sql from %1.sqlite_master where name = %2;")
-		.arg(Utils::quote(schema))
-		.arg(Utils::quote(name)));
+	QString sql = QString("select sql from ")
+	              + Utils::quote(schema)
+				  + ".sqlite_master where name = "
+				  + Utils::quote(name)
+				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
-		ui.textEdit->setText(tr("Cannot get trigger from the database."));
+	{
+		QString errtext = tr("Cannot get trigger ")
+						  + name
+						  + ":\n"
+						  + query.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + sql;
+		ui.resultEdit->setText(errtext);
+		ui.createButton->setEnabled(false);
+	}
 	else
 	{
 		while (query.next())
@@ -37,31 +46,43 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 			ui.textEdit->setText(query.value(0).toString());
 			break;
 		}
+		connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
 	}
-
-	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
 }
 
 
 void AlterTriggerDialog::createButton_clicked()
 {
-	QSqlQuery drop(QString(
-				   "DROP TRIGGER %1.%2;")
-				   .arg(Utils::quote(m_schema))
-				   .arg(Utils::quote(m_name)),
-				   QSqlDatabase::database(SESSION_NAME));
+	QString sql = QString("DROP TRIGGER ")
+				  + Utils::quote(m_schema)
+				  + "."
+				  + Utils::quote(m_name)
+				  + ";";
+	QSqlQuery drop(sql, QSqlDatabase::database(SESSION_NAME));
 	if(drop.lastError().isValid())
 	{
-		ui.resultEdit->setText(tr("Cannot drop trigger: %1.\n\n%2").arg(drop.lastError().text()).arg(m_name));
+		QString errtext = tr("Cannot drop trigger ")
+						  + m_name
+						  + ":\n"
+						  + drop.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + sql;
+		ui.resultEdit->setText(errtext);
 		return;
 	}
 
-	QString sql(ui.textEdit->text());
+	sql = ui.textEdit->text();
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
 	{
-		ui.resultEdit->setText(tr("Error while creating trigger: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
+		QString errtext = tr("Error while creating trigger ")
+						  + m_name
+						  + ":\n"
+						  + query.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + sql;
+		ui.resultEdit->setText(errtext);
 		return;
 	}
 	ui.resultEdit->setText(tr("Trigger created successfully"));

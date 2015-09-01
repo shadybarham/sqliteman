@@ -83,12 +83,17 @@ void SchemaBrowser::setPragmaButton_clicked()
 	QString text(item->text().toLower());
 	QString value(pragmaTable->item(row, 1)->text());
 	// TODO: create a better way to get new value.
-	// TODO: Check sane values etc. It will need a some description of pragmas (XML?... now I wisth it could be written in python dicts...
+	// TODO: Check sane values etc. It will need a some description of pragmas (XML?... now I wish it could be written in python dicts...
 	bool ok;
 	QString newValue = QInputDialog::getText(this, "Set Pragma", text, QLineEdit::Normal, value, &ok);
 	if (ok && !text.isEmpty())
 	{
-		Database::execSql(QString("PRAGMA main.%1 = %2;").arg(text).arg(newValue));
+		Database::execSql(QString("PRAGMA main.")
+						  + text
+						  + " = "
+						  + newValue
+						  + ";");
+		// FIXME this doesn't update the displayed values correctly
 		buildPragmasTree();
 	}
 }

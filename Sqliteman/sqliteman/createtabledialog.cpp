@@ -36,9 +36,11 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 
 QString CreateTableDialog::getSQLfromGUI()
 {
-	QString sql(QString("CREATE TABLE %1.%2 (\n")
-						.arg(Utils::quote(ui.databaseCombo->currentText()))
-						.arg(Utils::quote(ui.nameEdit->text())));
+	QString sql = QString("CREATE TABLE ")
+				  + Utils::quote(ui.databaseCombo->currentText())
+				  + "."
+				  + Utils::quote(ui.nameEdit->text())
+				  + " (\n";
 	QString nn;
 	QString def;
 	DatabaseTableField f;
@@ -68,7 +70,10 @@ void CreateTableDialog::createButton_clicked()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Error while creating table: %1.\n\n%2").arg(query.lastError().text()).arg(sql));
+			ui.resultEdit->setText(tr("Cannot create table:\n")
+								   + query.lastError().text()
+								   + tr("\nusing sql statement:\n")
+								   + sql);
 			return;
 		}
 		updated = true;
@@ -80,10 +85,12 @@ void CreateTableDialog::tabWidget_currentChanged(int index)
 {
 	if (index == 1)
 	{
+		//FIXME only do this if editor window is dirty
+		// and use more sensible message
 		int com = QMessageBox::question(this, tr("Sqliteman"),
-						tr("The current content of the Advanced SQL editor will be lost."
-						   "Do you really want to recreate your SQL?"),
-						   QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+			tr("The current content of the Advanced SQL editor will be lost."
+			   "Do you really want to recreate your SQL?"),
+			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
 		if (com == QMessageBox::Yes)
 			ui.textEdit->setText(getSQLfromGUI());
 		else if (com == QMessageBox::Cancel)

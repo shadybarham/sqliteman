@@ -274,7 +274,8 @@ void SqlEditor::actionRun_as_Script_triggered()
 	int cpos, cline;
 	ui.sqlTextEdit->getCursorPosition(&cline, &cpos);
 
-	QProgressDialog * dialog = new QProgressDialog(tr("Executing all statements"),
+	QProgressDialog * dialog =
+		new QProgressDialog(tr("Executing all statements"),
 			tr("Cancel"), 0, ui.sqlTextEdit->lines(), this);
 	connect(dialog, SIGNAL(canceled()), this, SLOT(scriptCancelled()));
 
@@ -314,12 +315,14 @@ void SqlEditor::actionRun_as_Script_triggered()
             appendHistory(sql);
 			if (query.lastError().isValid())
 			{
-				emit showSqlScriptResult("-- " + tr("Error: %1.").arg(query.lastError().text()));
+				emit showSqlScriptResult(
+					"-- " + tr("Error: %1.").arg(query.lastError().text()));
 				int com = QMessageBox::question(this, tr("Run as Script"),
-						tr("This script contains the following error:\n"
-							"%1\n"
-							"At line: %2").arg(query.lastError().text()).arg(line),
-							QMessageBox::Ignore, QMessageBox::Abort);
+						tr("This script contains the following error:\n")
+						+ query.lastError().text()
+						+ tr("\nAt line: ")
+						+ line,
+						QMessageBox::Ignore, QMessageBox::Abort);
 				if (com == QMessageBox::Abort)
 				{
 					scriptCancelled();
@@ -376,13 +379,15 @@ void SqlEditor::open(const QString &  newFile)
 	QFile f(newFile);
 	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
-		QMessageBox::warning(this, tr("Open SQL Script"), tr("Cannot open file %1").arg(newFile));
+		QMessageBox::warning(this, tr("Open SQL Script"),
+							 tr("Cannot open file %1").arg(newFile));
 		return;
 	}
 
 	canceled = false;
 	int prgTmp = 0;
-	progress = new QProgressDialog(tr("Opening: %1").arg(newFile), tr("Abort"), 0, f.size(), this);
+	progress = new QProgressDialog(tr("Opening: %1").arg(newFile),
+								   tr("Abort"), 0, f.size(), this);
 	connect(progress, SIGNAL(canceled()), this, SLOT(cancel()));
 	progress->setWindowModality(Qt::WindowModal);
 	progress->setMinimumDuration(1000);
@@ -519,8 +524,8 @@ bool SqlEditor::saveOnExit()
 	}
 	
 	const int ret = QMessageBox::question(this, tr("Closing SQL Editor"),
-						tr("SQl script has been changed. Do you want to save its content?"),
-						QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
+		tr("SQl script has been changed. Do you want to save its content?"),
+		QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,QMessageBox::No);
 	
 	if (ret == QMessageBox::No) {
 			return true;
@@ -578,7 +583,8 @@ void SqlEditor::find(QString ttf, bool forward/*, bool backward*/)
     ui.sqlTextEdit->highlightAllOccurrences(ttf, ui.caseCheckBox->isChecked(),
                                              ui.wholeWordsCheckBox->isChecked());
 	QPalette p = ui.searchEdit->palette();
-	p.setColor(QPalette::Active, QPalette::Base, found ? Qt::white : QColor(255, 102, 102));
+	p.setColor(QPalette::Active, QPalette::Base,
+			   found ? Qt::white : QColor(255, 102, 102));
 	ui.searchEdit->setPalette(p);
 }
 
@@ -600,10 +606,9 @@ void SqlEditor::findPrevious()
 void SqlEditor::externalFileChange(const QString & path)
 {
    	int b = QMessageBox::information(this, tr("SQL editor"),
-									 tr("Your currently edited file has been changed outside " \
-									 "this application. Do you want to reload it?"),
-									 QMessageBox::Yes | QMessageBox::No,
-									 QMessageBox::Yes);
+		tr("Your currently edited file has been changed outside " \
+		   "this application. Do you want to reload it?"),
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
 	if (b != QMessageBox::Yes)
 		return;
 	open(path);

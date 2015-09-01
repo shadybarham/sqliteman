@@ -47,7 +47,8 @@ DbAttach Database::getDatabases()
 
 	if (query.lastError().isValid())
 	{
-		exception(tr("Cannot get databases list. %1").arg(query.lastError().text()));
+		exception(tr("Cannot get databases list. %1")
+				  .arg(query.lastError().text()));
 		return ret;
 	}
 	while(query.next())
@@ -55,29 +56,53 @@ DbAttach Database::getDatabases()
 	return ret;
 }
 
-bool Database::dropTable(const QString & table, const QString & schema)
-{
-	QString sql = QString("DROP TABLE %1.%2;")
-						  .arg(Utils::quote(schema))
-						  .arg(Utils::quote(table));
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	
-	if(query.lastError().isValid())
-	{
-		exception(tr("Error while dropping table %1: %2.").arg(table).arg(query.lastError().text()));
-		return false;
-	}
-	return true;
-}
-
+#if 0
+// This version isn't in use yet, but will be used when ALTER TABLE has
+// been rewritten
 FieldList Database::tableFields(const QString & table, const QString & schema)
 {
-// debug hack
-	QRegExp tre(sqlExpression, Qt::CaseInsensitive);
 	FieldList fields;
-	QString sql(QString("PRAGMA %1.TABLE_INFO(%2);")
-						.arg(Utils::quote(schema))
-						.arg(Utils::quote(table)));
+	QString sql = QString("PRAGMA ")
+				  + Utils::quote(schema)
+				  + ".TABLE_INFO("
+				  + Utils::quote(table)
+				  + ");";
+	QSqlQuery info(sql, QSqlDatabase::database(SESSION_NAME));
+	if (info.lastError().isValid())
+	{
+		exception(tr("Error while getting the fields of ")
+				  + table
+				  + ": "
+				  + info.lastError().text());
+		return fields;
+	}
+	info.first();
+
+	while (info.next())
+	{
+			DatabaseTableField field;
+			field.cid = info.value(0).toInt();
+			field.name = info.value(1).toString();
+			field.type = info.value(2).toString();
+			field.notnull = info.value(3).toBool();
+			field.defval = Utils::unQuote(info.value(4).toString());
+			field.pk = info.value(5).toBool();
+			field.comment = "";
+			fields.append(field);
+			info.next();
+		}
+	}
+	return fields;
+}
+#else // current version, slow
+FieldList Database::tableFields(const QString & table, const QString & schema)
+{
+	FieldList fields;
+	QString sql = QString("PRAGMA ")
+				  + Utils::quote(schema)
+				  + ".TABLE_INFO("
+				  + Utils::quote(table)
+				  + ");";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
@@ -86,15 +111,19 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	}
 
 	// Build a query string to SELECT the CREATE statement from sqlite_master
-	    QString createSQL(QString("SELECT sql FROM %2 WHERE lower(name)=%1;")
-						  .arg(Utils::quote(table))
-						  .arg(getMaster(schema)));
-//    QString createSQL(QString("SELECT sql FROM sqlite_master WHERE name=\"%1\";").arg(table));
+	QString createSQL = QString("SELECT sql FROM ")
+						+ getMaster(schema)
+						+ " WHERE lower(name) = "
+						+ Utils::quote(table).toLower()
+						+ ";";
 	// Run the query
 	QSqlQuery createQuery(createSQL, QSqlDatabase::database(SESSION_NAME));
 	// Make sure the query ran successfully
 	if(createQuery.lastError().isValid()) {
-		exception(tr("Error grabbing CREATE statement: %1: %2.").arg(table).arg(createQuery.lastError().text()));
+		exception(tr("Error grabbing CREATE statement: ")
+				  + table
+				  + ": "
+				  + createQuery.lastError().text());
 	}
 	// Position the Query on the first (only) result
 	createQuery.first();
@@ -121,6 +150,7 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 		QString newFieldList = fieldList;
 		fieldName.replace(matcher, "\\1");
 		fieldType.replace(matcher, "\\2\\3");
+		fieldType = Utils::unQuote(fieldType);
 		newFieldList.replace(matcher, "\\4");
 		if (newFieldList == fieldList)
 		{
@@ -148,14 +178,17 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 			field.type += " PRIMARY KEY";
 			// autoincrement keyword?
 			// adapted from http://stackoverflow.com/questions/16724409/how-to-programmatically-determine-whether-a-column-is-set-to-autoincrement-in-sq
-            QString autoincSql(QString(
-				"SELECT 1 FROM %1 WHERE lower(name) = "
-				"%2 AND sql LIKE '%5%3 %4 AUTOINCREMENT%';")
-				.arg(getMaster(schema))
-				.arg(Utils::quote(table))
-				.arg(Utils::quote(field.name))
-				.arg(field.type)
-				.arg("%")); // avoid %%
+            QString autoincSql = QString("SELECT 1 FROM ")
+            					 + getMaster(schema)
+            					 + " WHERE lower(name) = "
+            					 + Utils::quote(table).toLower()
+            					 + " AND sql LIKE "
+            					 + Utils::literal(QString("%")
+            					 				  + field.name
+            					 				  + " "
+            					 				  + field.type
+            					 				  + "AUTOINCREMENT%")
+            					 + ";";
 			QSqlQuery autoincQuery(autoincSql, QSqlDatabase::database(SESSION_NAME));
 			if (!autoincQuery.lastError().isValid() && autoincQuery.first())
 				field.type += " AUTOINCREMENT";
@@ -166,18 +199,32 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 
 	return fields;
 }
+#endif
+
+
+
+
+
+
+
+
 
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
-	QString sql(QString("PRAGMA \"%1\".INDEX_INFO(\"%2\");")
-				.arg(Utils::quote(schema))
-				.arg(Utils::quote(index)));
+	QString sql = QString("PRAGMA ")
+				  + Utils::quote(schema)
+				  + ".INDEX_INFO("
+				  + Utils::quote(index)
+				  + ");";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	QStringList fields;
 
 	if (query.lastError().isValid())
 	{
-        exception(tr("Error while getting the fields of %1: %2.").arg(index).arg(query.lastError().text()));
+        exception(tr("Error while getting the fields of ")
+        		  + index
+        		  + ": "
+        		  + query.lastError().text());
 		return fields;
 	}
 
@@ -193,19 +240,29 @@ DbObjects Database::getObjects(const QString type, const QString schema)
 
 	QString sql;
 	if (type.isNull())
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1;")
-					  .arg(getMaster(schema));
+	{
+        sql = QString("SELECT lower(name), lower(tbl_name) FROM ")
+			  + getMaster(schema)
+			  + ";";
+	}
 	else
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM %1 "
-					  "WHERE type = '%2' and name not like 'sqlite_%';")
-			  .arg(getMaster(schema)).arg(type);
+	{
+        sql = QString("SELECT lower(name), lower(tbl_name) FROM ")
+			  + getMaster(schema)
+			  + " WHERE lower(type) = "
+			  + Utils::literal(type).toLower()
+			  + " and name not like 'sqlite_%';";
+	}
 
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	while(query.next())
 		objs.insertMulti(query.value(1).toString(), query.value(0).toString());
 
 	if(query.lastError().isValid())
-		exception(tr("Error while the list of %1: %2.").arg(type).arg(query.lastError().text()));
+		exception(tr("Error getting the list of ")
+				  + type
+				  + ": "
+				  + query.lastError().text());
 
 	return objs;
 }
@@ -215,9 +272,11 @@ QStringList Database::getSysIndexes(const QString & table, const QString & schem
 	QStringList orig = Database::getObjects("index", schema).values(table);
 	// really all indexes
 	QStringList sysIx;
-	QSqlQuery query(QString("PRAGMA %1.index_list(%2);")
-					.arg(Utils::quote(schema)).arg(Utils::quote(table)),
-					QSqlDatabase::database(SESSION_NAME));
+	QSqlQuery query(QString("PRAGMA ")
+					+ Utils::quote(schema)
+					+ ".index_list("
+					+ Utils::quote(table)
+					+ ");", QSqlDatabase::database(SESSION_NAME));
 
 	QString curr;
 	while(query.next())
@@ -228,7 +287,8 @@ QStringList Database::getSysIndexes(const QString & table, const QString & schem
 	}
 
 	if(query.lastError().isValid())
-		exception(tr("Error while the list of the system catalogue: %2.").arg(query.lastError().text()));
+		exception(tr("Error getting the list of indexes: ")
+				  + query.lastError().text());
 
 	return sysIx;
 }
@@ -247,20 +307,26 @@ DbObjects Database::getSysObjects(const QString & schema)
 		objs.insertMulti(query.value(1).toString(), query.value(0).toString());
 
 	if(query.lastError().isValid())
-		exception(tr("Error while the list of the system catalogue: %2.").arg(query.lastError().text()));
+		exception(tr("Error getting the system catalogue: %1.").arg(query.lastError().text()));
 
 	return objs;
 }
 
 bool Database::dropView(const QString & view, const QString & schema)
 {
-	QString sql = QString("DROP VIEW %1.%2;")
-				 .arg(Utils::quote(schema)).arg(Utils::quote(view));
+	QString sql = QString("DROP VIEW ")
+				  + Utils::quote(schema)
+				  + "."
+				  + Utils::quote(view)
+				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
 	{
-		exception(tr("Error while dropping the view %1: %2.").arg(view).arg(query.lastError().text()));
+		exception(tr("Error while dropping the view ")
+				  + view
+				  + ": "
+				  + query.lastError().text());
 		return false;
 	}
 	return true;
@@ -268,13 +334,19 @@ bool Database::dropView(const QString & view, const QString & schema)
 
 bool Database::dropIndex(const QString & name, const QString & schema)
 {
-	QString sql = QString("DROP INDEX %1.%2")
-	.arg(Utils::quote(schema)).arg(Utils::quote(name));
+	QString sql = QString("DROP INDEX ")
+				  + Utils::quote(schema)
+				  + "."
+				  + Utils::quote(name)
+				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
 	{
-		exception(tr("Error while dropping the index %1: %2.").arg(name).arg(query.lastError().text()));
+		exception(tr("Error while dropping the index ")
+				  + name
+				  + ": "
+				  + query.lastError().text());
 		return false;
 	}
 	return true;
@@ -349,12 +421,19 @@ bool Database::dumpDatabase(const QString & fileName)
 QString Database::describeObject(const QString & name,
 								 const QString & schema)
 {
-    QString sql("select sql from %1 where lower(name) = %2;");
-	QSqlQuery query(sql.arg(getMaster(schema)).arg(Utils::quote(name)), QSqlDatabase::database(SESSION_NAME));
+    QString sql = QString("select sql from ")
+    			  + getMaster(schema)
+    			  + " where lower(name) = "
+    			  + Utils::quote(name).toLower()
+    			  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if (query.lastError().isValid())
 	{
-		exception(tr("Error while describe object %1: %2.").arg(name).arg(query.lastError().text()));
+		exception(tr("Error while describing object ")
+				  + name
+				  + ": "
+				  + query.lastError().text());
 		return "";
 	}
 	
@@ -366,13 +445,19 @@ QString Database::describeObject(const QString & name,
 
 bool Database::dropTrigger(const QString & name, const QString & schema)
 {
-	QString sql = QString("DROP TRIGGER %1.%2;")
-				  .arg(Utils::quote(schema)).arg(Utils::quote(name));
+	QString sql = QString("DROP TRIGGER ")
+				  + Utils::quote(schema)
+				  + "."
+				  + Utils::quote(name)
+				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if(query.lastError().isValid())
 	{
-		exception(tr("Error while dropping the trigger %1: %2.").arg(name).arg(query.lastError().text()));
+		exception(tr("Error while dropping the trigger ")
+				  + name
+				  + ": "
+				  + query.lastError().text());
 		return false;
 	}
 	return true;
@@ -460,7 +545,10 @@ QStringList Database::loadExtension(const QStringList & list)
 		rc = sqlite3_load_extension(handle, f.toUtf8().data(), zProc, &zErrMsg);
 		if (rc != SQLITE_OK)
 		{
-			exception(tr("Error loading exception\n%1\n%2").arg(f).arg(QString::fromLocal8Bit(zErrMsg)));
+			exception(tr("Error loading extension\n")
+					  + f
+					  + "\n"
+					  + QString::fromLocal8Bit(zErrMsg));
 			sqlite3_free(zErrMsg);
 		}
 		else
@@ -471,6 +559,12 @@ QStringList Database::loadExtension(const QStringList & list)
 
 QString Database::getMaster(const QString &schema)
 {
-    if (schema.compare(QString("temp"),Qt::CaseInsensitive)==0) return QString("sqlite_temp_master");
-	return QString("%1.sqlite_master").arg(Utils::quote(schema));
+    if (schema.compare(QString("temp"),Qt::CaseInsensitive)==0)
+	{
+		return QString("sqlite_temp_master");
+	}
+	else
+	{
+		return QString("%1.sqlite_master").arg(Utils::quote(schema));
+	}
 }

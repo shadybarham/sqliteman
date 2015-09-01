@@ -224,17 +224,16 @@ QString("^\\s*CREATE")+
 ")\\s*\\)" +
 "(?:(?:\\s*WITHOUT\\s+ROWID)?)\\s*$";
 
-// Rest of column list
+// Rest of column list, maybe empty
 static const QString sqlTail =
 QString("(?:\\s*")+
 	"(?:" +
 		"(?:" +
 			"(?:" +
 				",\\s*CONSTRAINT" + sqlExpression +
-			")*\\s*$" +
+			")*\\s*$" + // table constraints, also matches nothing
 		")|(?:,"+
-			"(?!\\s*CONSTRAINT)" +
-			"(" +
+			"(" + // capture any other column definitions
 				sqlExpression + "(?:" +
 					"(?:\\s*," + sqlExpression + ")*" +
 				")"+
@@ -243,17 +242,23 @@ QString("(?:\\s*")+
 	")" +
 ")";
 
-// These split a field name and a type 
+// These split a field name and a type
+
+// FIXME needs more work, but do we ever use the fact that it's an
+// INTEGER PRIMARY KEY AUTOINCREMENT? If not there's no need to go
+// to all this work to decode it....
 static const QString sqlField =
-QString("^\\s*(")+ sqlName + ")(?:" +
+QString("^\\s*(")+ sqlName + ")(?:" + // capture 1 field name
 	"(?:" +
 		"(?:" +
-			"()\\s*CONSTRAINT" + sqlExpression +
+			"\\s*CONSTRAINT" + sqlExpression +
 		")|(?:" +
-			"(?!\\s*CONSTRAINT)" +
 			"(?:" +
 				"(?:" +
-					"\\s*(" + sqlName + ")" +
+					"\\s*(INTEGER\\s*PRIMARY\\s*KEY\\s*AUTOINCREMENT)" +
+						// capture 2 field type
+				")|(?:" +
+					"\\s*(" + sqlName + ")" + // capture 3 field type
 					"(?:(?:" + sqlExpression + ")?)" +
 				")?" +
 			")" +

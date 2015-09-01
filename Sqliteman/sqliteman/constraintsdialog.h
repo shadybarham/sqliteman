@@ -32,7 +32,7 @@ class ConstraintsDialog : public QDialog
 		QString m_schema;
 		QString m_table;
 
-		QString createTrigger(const QString & sql);
+		QString execSql(const QString & statement, const QString & message);
 
     private slots:
 		/*! \brief Parse user's inputs and create a sql statements */

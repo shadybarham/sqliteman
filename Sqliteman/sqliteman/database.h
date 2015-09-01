@@ -105,14 +105,6 @@ class Database
 		static QString sessionName(const QString & schema);
 
 		/*!
-		@brief Drop a table from the database
-		@param table The name of the table to drop
-		\param schema a table own schema
-		\retval bool true on success, false on error. Error are reported in this method
-		             already. */
-		static bool dropTable(const QString & table, const QString & schema);
-
-		/*!
 		@brief Drop a trigger from the database
 		\param name The name of the trigger to drop
 		\param schema a table own schema

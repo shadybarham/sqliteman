@@ -27,27 +27,26 @@ CreateTriggerDialog::CreateTriggerDialog(const QString & name,
 	if (itemType == TableTree::TableType)
 	{
 		ui.textEdit->setText(
-						 QString("-- sqlite3 simple trigger template\n\
-CREATE TRIGGER [IF NOT EXISTS] %1.\"<trigger_name>\"\n\
-   [ BEFORE | AFTER ]\n\
-   DELETE | INSERT | UPDATE | UPDATE OF <column-list>\n\
-   ON %2\n\
-   [ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n\
-BEGIN\n\
-    <select * from foo;>\n\
-        END;").arg(Utils::quote(schema)).arg(Utils::quote(name)));
+			QString("-- sqlite3 simple trigger template\n"
+					"CREATE TRIGGER [IF NOT EXISTS] ")
+			+ Utils::quote(schema)
+			+ ".\"<trigger_name>\"\n[ BEFORE | AFTER ]\n"
+		    + "DELETE | INSERT | UPDATE | UPDATE OF <column-list>\n ON "
+			+ Utils::quote(name)
+			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
+			+ "BEGIN\n<statement-list>\nEND;");
 	}
 	else
 	{
 		ui.textEdit->setText(
-						 QString("-- sqlite3 simple trigger template\n\
-CREATE TRIGGER [IF NOT EXISTS] %1.\"<trigger_name>\"\n\
-INSTEAD OF [DELETE | INSERT | UPDATE | UPDATE OF <column-list>]\n\
-ON %2\n\
-[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n\
-BEGIN\n\
-<select * from foo;>\n\
-END;").arg(Utils::quote(schema)).arg(Utils::quote(name)));
+			QString("-- sqlite3 simple trigger template\n"
+					"CREATE TRIGGER [IF NOT EXISTS] ")
+			+ Utils::quote(schema)
+			+ ".\"<trigger_name>\"\nINSTEAD OF "
+			+ "[DELETE | INSERT | UPDATE | UPDATE OF <column-list>]\nON "
+			+ Utils::quote(name)
+			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
+			 + "BEGIN\n<statement-list>\nEND;");
 	}
 
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
@@ -64,7 +63,10 @@ void CreateTriggerDialog::createButton_clicked()
 		
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Error while creating trigger: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
+			ui.resultEdit->setText(tr("Cannot create trigger:\n")
+								   + query.lastError().text()
+								   + tr("\nusing sql statement:\n")
+								   + sql);
 			return;
 		}
 		ui.resultEdit->setText(tr("Trigger created successfully"));

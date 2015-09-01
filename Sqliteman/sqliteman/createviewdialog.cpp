@@ -38,16 +38,22 @@ void CreateViewDialog::createButton_clicked()
 {
 	if (creator && creator->checkForPending())
 	{
-		QString sql(QString("CREATE VIEW %1.%2 AS %3;")
-			.arg(Utils::quote(ui.databaseCombo->currentText()))
-			.arg(Utils::quote(ui.nameEdit->text()))
-			.arg(ui.sqlEdit->text()));
+		QString sql = QString("CREATE VIEW ")
+					  + Utils::quote(ui.databaseCombo->currentText())
+					  + "."
+					  + Utils::quote(ui.nameEdit->text())
+					  + " AS "
+					  + ui.sqlEdit->text()
+					  + ";";
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Error while creating view: %2.\n\n%3").arg(query.lastError().text()).arg(sql));
+			ui.resultEdit->setText(tr("Cannot create view:\n")
+								   + query.lastError().text()
+								   + tr("\nusing sql statement:\n")
+								   + sql);
 			return;
 		}
 		ui.resultEdit->setText(tr("View created successfully"));

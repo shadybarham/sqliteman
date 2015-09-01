@@ -113,30 +113,39 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
 	if(query.lastError().isValid())
 	{
-		ui.resultEdit->append(QString("%1 (%2) %3:")
-							  .arg(message).arg(tr("failed"))
-							  .arg(query.lastError().text()));
-		ui.resultEdit->append(statement);
+		QString errtext = message
+						  + ":\n"
+						  + query.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + statement;
+		ui.resultEdit->append(errtext);
 		if (!tmpName.isNull())
 			ui.resultEdit->append(tr("Old table is stored as %1").arg(tmpName));
 		return false;
 	}
-	ui.resultEdit->append(message);
 	return true;
 }
 
 QStringList AlterTableDialog::originalSource()
 {
-	QString ixsql("select sql from %1.sqlite_master where type in ('index', 'trigger') and tbl_name = '%2';");
-	QSqlQuery query(ixsql
-						.arg(Utils::quote(m_item->text(1)))
-						.arg(Utils::quote(m_item->text(0))),
-					QSqlDatabase::database(SESSION_NAME));
+	QString ixsql = QString("select sql from ")
+					+ Utils::quote(m_item->text(1))
+					+ ".sqlite_master where type in ('index', 'trigger') "
+					+ "and tbl_name = "
+					+ Utils::quote(m_item->text(0))
+					+ ";";
+	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
 	QStringList ret;
 
 	if (query.lastError().isValid())
 	{
-		ui.resultEdit->append(tr("Cannot get index list. %1").arg(query.lastError().text()));
+		QString errtext = tr("Cannot get index list for ")
+						  + m_item->text(0)
+						  + ":\n"
+						  + query.lastError().text()
+						  + tr("\nusing sql statement:\n")
+						  + ixsql;
+		ui.resultEdit->append(errtext);
 		return QStringList();
 	}
 	while(query.next())
@@ -151,12 +160,18 @@ bool AlterTableDialog::renameTable()
 	{
 		if (m_item->text(0) == newTableName) { return true; }
 	
-		QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
-					  .arg(Utils::quote(m_item->text(1)))
-					  .arg(Utils::quote(m_item->text(0)))
-					  .arg(Utils::quote(newTableName));
-		if (execSql(sql, tr("Renaming the table %1 to %2.")
-						 .arg(m_item->text(0)).arg(newTableName)))
+		QString sql = QString("ALTER TABLE ")
+					  + Utils::quote(m_item->text(1))
+					  + "."
+					  + Utils::quote(m_item->text(0))
+					  + " RENAME TO "
+					  + Utils::quote(newTableName)
+					  + ";";
+		QString message = tr("Cannot rename table ")
+						  + m_item->text(0)
+						  + tr(" to ")
+						  + newTableName;
+		if (execSql(sql, message))
 		{
 			updateStage = 1;
 			m_item->setText(0, newTableName);
@@ -201,19 +216,28 @@ void AlterTableDialog::createButton_clicked()
             }
 		}
 
-		if (!execSql(QString("ALTER TABLE %1.%2 RENAME TO %3;")
-					 .arg(Utils::quote(m_item->text(1)))
-					 .arg(Utils::quote(m_item->text(0)))
-					 .arg(Utils::quote(tmpName)),
-					 tr("Rename original table to %1").arg(tmpName)))
+		QString sql = QString("ALTER TABLE ")
+					  + Utils::quote(m_item->text(1))
+					  + "."
+					  + Utils::quote(m_item->text(0))
+					  + " RENAME TO "
+					  + Utils::quote(tmpName)
+					  + ";";
+		QString message = tr("Cannot rename table ")
+						  + m_item->text(0)
+						  + tr(" to ")
+						  + tmpName;
+		if (!execSql(sql, message))
 		{
 			return;
 		}
 		updateStage = 1;
 
-		QString sql = QString("CREATE TABLE %1.%2 (\n")
-					  .arg(Utils::quote(m_item->text(1)))
-					  .arg(Utils::quote(m_item->text(0)));
+		sql = QString("CREATE TABLE ")
+			  + Utils::quote(m_item->text(1))
+			  + "."
+			  + Utils::quote(m_item->text(0))
+			  + " (";
 		QStringList tmpInsertColumns;
 		foreach (DatabaseTableField f, newColumns)
 		{
@@ -223,43 +247,53 @@ void AlterTableDialog::createButton_clicked()
 		sql = sql.remove(sql.size() - 2, 2); // cut the extra ", "
 		sql += "\n);\n";
 
-		if (!execSql(sql, tr("Creating new table: %1").arg(m_item->text(0))))
+		message = tr("Cannot create table ")
+				  + m_item->text(0);
+		if (!execSql(sql, message))
 		{
 			return;
 		}
-
 
 		// insert old data
-		if (!execSql("BEGIN TRANSACTION;", tr("Begin Transaction"), tmpName))
+		if (!execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction"), tmpName))
 		{
 			return;
 		}
-		QString insSql(QString(
-			"INSERT INTO %1.%2 (%3) SELECT %4 FROM %5.%6;")
-			.arg(Utils::quote(m_item->text(1)))
-			.arg(Utils::quote(m_item->text(0)))
-			.arg(Utils::quote(tmpInsertColumns))
-			.arg(Utils::quote(tmpSelectColumns))
-			.arg(Utils::quote(m_item->text(1)))
-			.arg(Utils::quote(tmpName)));
-        //qDebug() << insSql;
-		if (!execSql(insSql, tr("Data Transfer"), tmpName))
+		sql = QString("INSERT INTO ")
+			  + Utils::quote(m_item->text(1))
+			  + "."
+			  + Utils::quote(m_item->text(0))
+			  + " ("
+			  + Utils::quote(tmpInsertColumns)
+			  + ") SELECT "
+			  + Utils::quote(tmpSelectColumns)
+			  + " FROM "
+			  + Utils::quote(m_item->text(1))
+			  + "."
+			  + Utils::quote(tmpName)
+			  + ";";
+		message = tr("Cannot insert data into ")
+				  + tmpName;
+		if (!execSql(sql, message))
 			return;
-		if (!execSql("COMMIT;", tr("Transaction Commit"), tmpName))
+		if (!execSql("COMMIT;", tr("Cannot commit"), tmpName))
 			return;
 		updateStage = 2;
 		
 		// drop old table
-		if (!execSql(QString("DROP TABLE %1.%2;")
-					 .arg(Utils::quote(m_item->text(1)))
-					 .arg(Utils::quote(tmpName)),
-			 tr("Dropping original table %1").arg(tmpName),
-				tmpName))
+		sql = QString("DROP TABLE ")
+			  + Utils::quote(m_item->text(1))
+			  + "."
+			  + Utils::quote(tmpName)
+			  + ";";
+		message = tr("Cannot drop table ")
+				  + tmpName;
+		if (!execSql(sql, message))
 			return;
 
 		// restoring original indexes
 		foreach (QString restoreSql, originalSrc)
-			execSql(restoreSql, tr("Recreating original index/trigger"));
+			execSql(restoreSql, tr("Cannot recreate original index/trigger"));
 	}
 
 	// handle add columns
@@ -276,9 +310,11 @@ bool AlterTableDialog::addColumns()
 {
 	// handle new columns
 	DatabaseTableField f;
-	QString sql("ALTER TABLE %1.%2 ADD COLUMN %3 %4 %5 %6;");
-	QString nn;
-	QString def;
+	QString sql = QString("ALTER TABLE ")
+				  + Utils::quote(ui.databaseCombo->currentText())
+				  + "."
+				  + Utils::quote(m_item->text(0))
+				  + " ADD COLUMN ";
 	QString fullSql;
 
 	// only if it's required to do
@@ -291,24 +327,25 @@ bool AlterTableDialog::addColumns()
 		if (f.cid == -1)
 			continue;
 
-		nn = f.notnull ? " NOT NULL" : "";
-		def = getDefaultClause(f.defval);
-
-		fullSql = sql.arg(Utils::quote(ui.databaseCombo->currentText()))
-					 .arg(Utils::quote(m_item->text(0)))
-					 .arg(Utils::quote(f.name))
-					 .arg(f.type)
-					 .arg(nn)
-					 .arg(def);
+		fullSql = sql
+				  + Utils::quote(f.name)
+				  + f.type
+				  + (f.notnull ? " NOT NULL" : "")
+				  + getDefaultClause(f.defval)
+				  + ";";
 
 		QSqlQuery query(fullSql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(
-				tr("Error while altering table %1: %2.\n%3")
-										.arg(m_item->text(0))
-										.arg(query.lastError().text())
-										.arg(fullSql));
+			QString errtext = tr("Cannot add column ")
+							  + f.name
+							  + tr(" to ")
+							  + m_item->text(0)
+							  + ":\n"
+							  + query.lastError().text()
+							  + tr("\nusing sql statement:\n")
+							  + fullSql;
+			ui.resultEdit->append(errtext);
 			return false;
 		}
 		updateStage = 2;

@@ -40,6 +40,7 @@ class TableTree : public QTreeWidget
 
 		void buildDatabase(QTreeWidgetItem * dbItem, const QString & schema);
 		void buildDatabase(const QString & schema);
+		void buildTableItem(QTreeWidgetItem * tableItem, bool rebuild);
 		void buildTables(QTreeWidgetItem * tablesItem, const QString & schema);
 		void buildIndexes(QTreeWidgetItem *indexesItem, const QString & schema, const QString & table);
 		void buildColumns(QTreeWidgetItem * columnsItem, const QString & schema, const QString & table);

@@ -32,7 +32,10 @@ QPixmap Utils::getPixmap(const QString & fileName)
 
 QString Utils::getTranslator(const QString & localeName)
 {
-	return QString("%1/sqliteman_%2.qm").arg(TRANSLATION_DIR).arg(localeName);
+	return QString(TRANSLATION_DIR)
+		   + "/sqliteman_"
+		   + localeName
+		   + ".qm";
 }
 
 bool Utils::updateObjectTree(const QString & sql)
@@ -40,9 +43,11 @@ bool Utils::updateObjectTree(const QString & sql)
 	if (sql.isNull())
 		return false;
 	QString tmp(sql.trimmed().toUpper());
-	if (tmp.left(4) == "DROP" || tmp.left(6) == "CREATE" || tmp.left(5) == "ALTER")
-		return true;
-	return false;
+	return (   tmp.startsWith("ALTER")
+			|| tmp.startsWith("ATTACH")
+			|| tmp.startsWith("CREATE")
+			|| tmp.startsWith("DETACH")
+			|| tmp.startsWith("DROP"));
 }
 
 QString Utils::quote(QString s)
@@ -52,7 +57,10 @@ QString Utils::quote(QString s)
 
 QString Utils::quote(QStringList l)
 {
-	foreach (QString s, l) { s.replace("\"", "\"\""); }
+	for (int i = 0; i < l.count(); ++i)
+	{
+		l.replace(i, l[i].replace("\"", "\"\""));
+	}
 	return "\"" + l.join("\", \"") + "\"";
 }
 
@@ -76,5 +84,10 @@ QString Utils::unQuote(QString s)
 
 QString Utils::like(QString s)
 {
-	return "'%" + s.replace("'", "''") + "%'";
+	return "'%"
+		   + s.replace("'", "''")
+			  .replace("_", "@_")
+			  .replace("%", "@%")
+			  .replace("@", "@@")
+		   + "%' ESCAPE '@'";
 }

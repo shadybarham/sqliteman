@@ -4,6 +4,9 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME temporary table fails to display
+	FIXME add function to evaluate an expression
+	FIXME QSQlTableModel can't read records from table with " or ? or %
+	 in its name
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -426,7 +429,11 @@ void LiteManWindow::rebuildRecentFileMenu()
 		// &10 collides with &1
 		if (i > 8)
 			accel = "";
-		QAction *a = new QAction(QString("%1%2 %3").arg(accel).arg(i+1).arg(recentDocs.at(i)), this);
+		QAction *a = new QAction(accel
+								 + QString('1' + i)
+								 + " "
+								 + recentDocs.at(i),
+								 this);
 		a->setData(QVariant(recentDocs.at(i)));
 		connect(a, SIGNAL(triggered()), this, SLOT(openRecent()));
 		recentFilesMenu->addAction(a);
@@ -478,7 +485,8 @@ void LiteManWindow::writeSettings()
 	settings.setValue("dataviewer/splitter", dataViewer->saveSplitter());
 	settings.setValue("recentDocs/files", recentDocs);
 	// last open database
-	settings.setValue("lastDatabase", QSqlDatabase::database(SESSION_NAME).databaseName());
+	settings.setValue("lastDatabase",
+					  QSqlDatabase::database(SESSION_NAME).databaseName());
 }
 
 void LiteManWindow::newDB()
@@ -534,10 +542,12 @@ void LiteManWindow::openDatabase(const QString & fileName)
 
 	db.setDatabaseName(fileName);
 
-	QString msg = tr("Unable to open or create file %1. It is probably not a database").arg(QFileInfo(fileName).fileName());
-	if(!db.open())
+	if (!db.open())
 	{
-		QMessageBox::warning(this, m_appName, msg);
+		dataViewer->setStatusText(tr("Cannot open or create ")
+								  + QFileInfo(fileName).fileName()
+								  + ":<br/>"
+								  + db.lastError().text());
 		return;
 	}
 	/* Qt database open() (exactly the sqlite API sqlite3_open16())
@@ -547,7 +557,12 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	QSqlQuery q("select 1 from sqlite_master where 1=2", db);
 	if (!q.exec())
 	{
-		QMessageBox::warning(this, m_appName, msg);
+		dataViewer->setStatusText(tr("Cannot access ")
+								  + QFileInfo(fileName).fileName()
+								  + ":<br/>"
+								  + db.lastError().text()
+								  + tr("<br/>It is probably not a database."));
+		db.close();
 		return;
 	}
 	else
@@ -599,7 +614,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		m_activeItem = 0;
 	
 		// Update the title
-		setWindowTitle(QString("%1 - %2").arg(fi.fileName()).arg(m_appName));
+		setWindowTitle(fi.fileName() + " - " + m_appName);
 	}
 
 	// Enable UI
@@ -630,11 +645,14 @@ void LiteManWindow::openRecent()
 void LiteManWindow::about()
 {
 	QMessageBox::about(this, tr("About"),
-					   tr("Sqliteman - SQLite databases made easy\n\n"
-						  "Version %1\n"
-						  "Parts (c) 2007 Petr Vanek\n"
-                          "Parts (c) 2015 Richard Parkins\n%2"
-					).arg(SQLITEMAN_VERSION).arg(buildtime));
+					   tr("Sqliteman - SQLite databases made easy\n\n")
+					   + tr("Version ")
+					   + SQLITEMAN_VERSION + "\n"
+					   + tr("Parts")
+					   + "(c) 2007 Petr Vanek\n"
+                       + tr("Parts")
+					   + "(c) 2015 Richard Parkins\n"
+					   + buildtime);
 }
 
 void LiteManWindow::aboutQt()
@@ -708,8 +726,14 @@ void LiteManWindow::execSql(QString query)
 	
 	// Check For Error in the SQL
 	if(model->lastError().isValid())
-		dataViewer->setStatusText(tr("Query Error: %1<br/><br/>%2")
-								  .arg(model->lastError().text()).arg(query));
+	{
+		dataViewer->setStatusText(tr("Query Error: ")
+								  + model->lastError().text()
+								  + "<br/>"
+								  + tr("using sql statement:")
+								  + "<br/>"
+								  + query);
+	}
 	else
 	{
 		QString cached;
@@ -717,19 +741,25 @@ void LiteManWindow::execSql(QString query)
 			cached = DataViewer::canFetchMore() + "<br/>";
 		else
 			cached = "";
-		dataViewer->setStatusText(
-			tr("Query OK:<br/>%3<br/>Row(s) returned: %1 %2")
-			.arg(model->rowCount()).arg(cached).arg(query));
+		dataViewer->setStatusText(tr("Query OK:")
+								  + "<br/>"
+								  + query
+								  + "<br/>"
+								  + tr("Row(s) returned: ")
+								  + QString("%1").arg(model->rowCount())
+								  + cached);
 		if (Utils::updateObjectTree(query))
+		{
 			schemaBrowser->tableTree->buildTree();
+		}
 	}
 }
 
 void LiteManWindow::exportSchema()
 {
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Export Schema"),
-                                                     QDir::currentPath(),
-                                                     tr("SQL File (*.sql)"));
+                                                    QDir::currentPath(),
+                                                    tr("SQL File (*.sql)"));
 
 	if (fileName.isNull())
 		return;
@@ -740,15 +770,16 @@ void LiteManWindow::exportSchema()
 void LiteManWindow::dumpDatabase()
 {
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Export Database"),
-                                                     QDir::currentPath(),
-                                                     tr("SQL File (*.sql)"));
+                                                    QDir::currentPath(),
+                                                    tr("SQL File (*.sql)"));
 
 	if (fileName.isNull())
 		return;
 
 	if (Database::dumpDatabase(fileName))
 	{
-		QMessageBox::information(this, m_appName, tr("Dump written into: %1").arg(fileName));
+		QMessageBox::information(this, m_appName,
+								 tr("Dump written into: %1").arg(fileName));
 	}
 }
 
@@ -778,16 +809,21 @@ void LiteManWindow::alterTable()
 	dataViewer->saveSelection();
 	AlterTableDialog dlg(this, item, isActive);
 	dlg.exec();
-	if (isActive && (dlg.updateStage == 2))
+	if (dlg.updateStage == 2)
 	{
-		m_activeItem = 0; // we've changed it
-		treeItemActivated(item, 0);
-		dataViewer->reSelect();
+		schemaBrowser->tableTree->buildTableItem(item, true);
+		if (isActive)
+		{
+			m_activeItem = 0; // we've changed it
+			treeItemActivated(item, 0);
+			dataViewer->reSelect();
+		}
 	}
 }
 
 void LiteManWindow::renameTable()
 {
+	//FIXME moan if table name not [a-zA-z0-9_$]
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
 
@@ -804,11 +840,26 @@ void LiteManWindow::renameTable()
 		// check needed because QSqlTableModel holds the table name
 		if ((!isActive) || (checkForPending()))
 		{
-			QString sql = QString("ALTER TABLE %1.%2 RENAME TO %3;")
-						  .arg(Utils::quote(item->text(1)))
-						  .arg(Utils::quote(item->text(0)))
-						  .arg(Utils::quote(text));
-			if (Database::execSql(sql))
+			QString sql = QString("ALTER TABLE")
+						  + Utils::quote(item->text(1))
+						  + "."
+						  + Utils::quote(item->text(0))
+						  + " RENAME TO "
+						  + Utils::quote(text)
+						  + ";";
+			QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+			if (query.lastError().isValid())
+			{
+				dataViewer->setStatusText(tr("Cannot rename table ")
+										  + item->text(1)
+										  + tr(".")
+										  + item->text(0)
+										  + ":<br/>"
+										  + query.lastError().text()
+										  + tr("<br/>using sql statement:<br/>")
+										  + sql);
+			}
+			else
 			{
 				item->setText(0, text);
 				if (isActive)
@@ -866,19 +917,40 @@ void LiteManWindow::dropTable()
 	bool isActive = m_activeItem == item;
 
 	int ret = QMessageBox::question(this, m_appName,
-					tr("Are you sure that you wish to drop the table \"%1\"?").arg(item->text(0)),
+					tr("Are you sure that you wish to drop the table \"%1\"?")
+					.arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
 
 	if(ret == QMessageBox::Yes)
 	{
 		// don't check for pending, we're dropping it anyway
-		if (isActive) { dataViewer->setNotPending(); }
-		if (Database::dropTable(item->text(0), item->text(1)))
-			schemaBrowser->tableTree->buildTables(item->parent(), item->text(1));
-		if (isActive)
+		QString sql = QString("DROP TABLE")
+					  + Utils::quote(item->text(1))
+					  + "."
+					  + Utils::quote(item->text(0))
+					  + ";";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
 		{
-			dataViewer->setTableModel(new QSqlQueryModel(), false);
-			m_activeItem = 0;
+			dataViewer->setStatusText(tr("Cannot drop table ")
+									  + item->text(1)
+									  + tr(".")
+									  + item->text(0)
+									  + ":<br/>"
+									  + query.lastError().text()
+									  + tr("<br/>using sql statement:<br/>")
+									  + sql);
+		}
+		else
+		{
+			schemaBrowser->tableTree->buildTables(item->parent(),
+												  item->text(1));
+			if (isActive)
+			{
+				dataViewer->setNotPending();
+				dataViewer->setTableModel(new QSqlQueryModel(), false);
+				m_activeItem = 0;
+			}
 		}
 	}
 }
@@ -929,12 +1001,30 @@ void LiteManWindow::dropView()
 	// Can't have pending update on a view, so no checkForPending() here
 	// Ask the user for confirmation
 	int ret = QMessageBox::question(this, m_appName,
-					tr("Are you sure that you wish to drop the view \"%1\"?").arg(item->text(0)),
+					tr("Are you sure that you wish to drop the view \"%1\"?")
+					.arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
 
 	if(ret == QMessageBox::Yes)
 	{
-		if (Database::dropView(item->text(0), item->text(1)))
+		QString sql = QString("DROP VIEW")
+					  + Utils::quote(item->text(1))
+					  + "."
+					  + Utils::quote(item->text(0))
+					  + ";";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
+		{
+			dataViewer->setStatusText(tr("Cannot drop view ")
+									  + item->text(1)
+									  + tr(".")
+									  + item->text(0)
+									  + ":<br/>"
+									  + query.lastError().text()
+									  + tr("<br/>using sql statement:<br/>")
+									  + sql);
+		}
+		else
 		{
 			schemaBrowser->tableTree->buildViews(item->parent(), item->text(1));
 			if (isActive)
@@ -965,14 +1055,34 @@ void LiteManWindow::dropIndex()
 
 	// Ask the user for confirmation
 	int ret = QMessageBox::question(this, m_appName,
-					tr("Are you sure that you wish to drop the index \"%1\"?").arg(item->text(0)),
+					tr("Are you sure that you wish to drop the index \"%1\"?")
+					.arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
 
 	if(ret == QMessageBox::Yes)
 	{
-		if (Database::dropIndex(item->text(0), item->text(1)))
-			schemaBrowser->tableTree->buildIndexes(item->parent(), item->text(1),
-												   item->parent()->parent()->text(0));
+		QString sql = QString("DROP INDEX")
+					  + Utils::quote(item->text(1))
+					  + "."
+					  + Utils::quote(item->text(0))
+					  + ";";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
+		{
+			dataViewer->setStatusText(tr("Cannot drop index ")
+									  + item->text(1)
+									  + tr(".")
+									  + item->text(0)
+									  + ":<br/>"
+									  + query.lastError().text()
+									  + tr("<br/>using sql statement:<br/>")
+									  + sql);
+		}
+		else
+		{
+			schemaBrowser->tableTree->buildIndexes(
+				item->parent(), item->text(1), item->parent()->parent()->text(0));
+		}
 	}
 }
 
@@ -992,9 +1102,10 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 		if (item->type() == TableTree::ViewType || item->type() == TableTree::SystemType)
 		{
 			SqlQueryModel * model = new SqlQueryModel(0);
-			model->setQuery(QString("select * from %1.%2")
-							.arg(item->text(1))
-							.arg(item->text(0)),
+			model->setQuery(QString("select * from ")
+							+ Utils::quote(item->text(1))
+							+ "."
+							+ Utils::quote(item->text(0)),
 							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
 		}
@@ -1124,38 +1235,93 @@ void LiteManWindow::attachDatabase()
 	bool ok;
 	QFileInfo f(fileName);
 	QString schema = QInputDialog::getText(this, tr("Attach Database"),
-										  tr("Enter a Schema Alias:"), QLineEdit::Normal,
-										  f.baseName(), &ok);
+										   tr("Enter a Schema Alias:"),
+										   QLineEdit::Normal,
+										   f.baseName(), &ok);
 	if (!ok || schema.isEmpty())
 		return;
-	if (!Database::execSql(QString("attach database '%1' as \"%2\";").arg(fileName).arg(schema)))
-		return;
-
-	attachedDb[schema] = Database::sessionName(schema);
-	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", attachedDb[schema]);
-	db.setDatabaseName(fileName);
-	if(!db.open())
+	QString sql = QString("ATTACH DATABASE ")
+				  + Utils::literal(fileName)
+				  + " as "
+				  + Utils::quote(schema)
+				  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+	if (query.lastError().isValid())
 	{
-		QString msg = tr("Unable to open or create file %1. It is probably not a database").arg(QFileInfo(fileName).fileName());
-		QMessageBox::warning(this, "", msg);
-		return;
+		dataViewer->setStatusText(tr("Cannot attach database ")
+								  + fileName
+								  + ":<br/>"
+								  + query.lastError().text()
+								  + tr("<br/>using sql statement:<br/>")
+								  + sql);
 	}
-
-	schemaBrowser->tableTree->buildDatabase(schema);
+	else
+	{
+		attachedDb[schema] = Database::sessionName(schema);
+		QSqlDatabase db =
+			QSqlDatabase::addDatabase("QSQLITE", attachedDb[schema]);
+		db.setDatabaseName(fileName);
+		if (!db.open())
+		{
+			dataViewer->setStatusText(tr("Cannot open or create ")
+									  + QFileInfo(fileName).fileName()
+									  + ":<br/>"
+									  + db.lastError().text());
+			QSqlQuery qundo(QString("DETACH DATABASE ")
+							+ Utils::quote(schema)
+							+ ";",
+							db);
+			attachedDb.remove(schema);
+		}
+		else
+		{
+			QSqlQuery q("select 1 from sqlite_master where 1=2", db);
+			if (!q.exec())
+			{
+				dataViewer->setStatusText(
+					tr("Cannot access ")
+					+ QFileInfo(fileName).fileName()
+					+ ":<br/>"
+					+ db.lastError().text()
+					+ tr("<br/>It is probably not a database."));
+				QSqlQuery qundo(QString("DETACH DATABASE ")
+								+ Utils::quote(schema)
+								+ ";",
+								db);
+				db.close();
+				attachedDb.remove(schema);
+			}
+			else
+			{
+				schemaBrowser->tableTree->buildDatabase(schema);
+			}
+		}
+	}
 }
 
 void LiteManWindow::detachDatabase()
 {
 	QString dbname(schemaBrowser->tableTree->currentItem()->text(0));
-	if (!Database::execSql(QString("detach database %1;")
-								   .arg(Utils::quote(dbname))))
-		return;
-
-	QSqlDatabase::database(attachedDb[dbname]).rollback();
-	QSqlDatabase::database(attachedDb[dbname]).close();
-	attachedDb.remove(dbname);
-
-	delete schemaBrowser->tableTree->currentItem();
+	QString sql = QString("DETACH DATABASE ")
+				  + Utils::quote(dbname)
+				  + ";";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+	if (query.lastError().isValid())
+	{
+		dataViewer->setStatusText(tr("Cannot detach database ")
+								  + dbname
+								  + ":<br/>"
+								  + query.lastError().text()
+								  + tr("<br/>using sql statement:<br/>")
+								  + sql);
+	}
+	else
+	{
+		QSqlDatabase::database(attachedDb[dbname]).rollback();
+		QSqlDatabase::database(attachedDb[dbname]).close();
+		attachedDb.remove(dbname);
+		delete schemaBrowser->tableTree->currentItem();
+	}
 }
 
 void LiteManWindow::loadExtension()
@@ -1210,13 +1376,35 @@ void LiteManWindow::dropTrigger()
 
 	// Ask the user for confirmation
 	int ret = QMessageBox::question(this, m_appName,
-					tr("Are you sure that you wish to drop the trigger \"%1\"?").arg(item->text(0)),
+					tr("Are you sure that you wish to drop the trigger \"%1\"?")
+					.arg(item->text(0)),
 					QMessageBox::Yes, QMessageBox::No);
 
 	if(ret == QMessageBox::Yes)
 	{
-		if (Database::dropTrigger(item->text(0), item->text(1)))
-			schemaBrowser->tableTree->buildTriggers(item->parent(), item->text(1), item->parent()->parent()->text(0));
+		QString sql = QString("DROP TRIGGER ")
+					  + Utils::quote(item->text(1))
+					  + "."
+					  + Utils::quote(item->text(0))
+					  + ";";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
+		{
+			dataViewer->setStatusText(tr("Cannot drop trigger ")
+									  + item->text(1)
+									  + tr(".")
+									  + item->text(0)
+									  + ":<br/>"
+									  + query.lastError().text()
+									  + tr("<br/>using sql statement:<br/>")
+									  + sql);
+		}
+		else
+		{
+			schemaBrowser->tableTree->buildTriggers(
+				item->parent(), item->text(1),
+				item->parent()->parent()->text(0));
+		}
 	}
 }
 
@@ -1233,12 +1421,26 @@ void LiteManWindow::constraintTriggers()
 void LiteManWindow::reindex()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	if(!item)
-		return;
-	QString sql(QString("REINDEX %1.%2;")
-						.arg(Utils::quote(item->text(1)))
-						.arg(Utils::quote(item->text(0))));
-	Database::execSql(sql);
+	if (item)
+	{
+		QString sql(QString("REINDEX ")
+					+ Utils::quote(item->text(1))
+					+ "."
+					+ Utils::quote(item->text(0))
+					+ ";");
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
+		{
+			dataViewer->setStatusText(tr("Cannot reindex ")
+									  + item->text(1)
+									  + tr(".")
+									  + item->text(0)
+									  + ":<br/>"
+									  + query.lastError().text()
+									  + tr("<br/>using sql statement:<br/>")
+									  + sql);
+		}
+	}
 }
 
 void LiteManWindow::preferences()

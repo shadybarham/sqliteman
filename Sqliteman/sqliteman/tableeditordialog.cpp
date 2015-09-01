@@ -88,9 +88,9 @@ void TableEditorDialog::tabWidget_currentChanged(int index)
 
 QString TableEditorDialog::getFullName(const QString & objName)
 {
-	return QString("%1.%2")
-				   .arg(Utils::quote(ui.databaseCombo->currentText()))
-				   .arg(Utils::quote(objName));
+	return Utils::quote(ui.databaseCombo->currentText())
+		   + "."
+		   + Utils::quote(objName);
 }
 
 DatabaseTableField TableEditorDialog::getColumn(int row)
@@ -115,7 +115,7 @@ DatabaseTableField TableEditorDialog::getColumn(int row)
 	//}
 	bool nn = qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(row, 2))->checkState() == Qt::Checked;
 
-	// For user convinence reasons, the type "INTEGER PRIMARY KEY" is presented to the user
+	// For user convenience reasons, the type "INTEGER PRIMARY KEY" is presented to the user
 	// as "Primary Key" alone. Therefor, untill there is a more robust solution (which will
 	// support translation of type names as well) the primary key type needs to be corrected
 	// at update time.
@@ -163,5 +163,6 @@ QString TableEditorDialog::getColumnClause(DatabaseTableField column)
 
 	QString nn(column.notnull ? " NOT NULL" : "");
 	QString def(getDefaultClause(column.defval));
-	return " " + Utils::quote(column.name) + " " + column.type + nn + def + ",\n";
+	return " " + Utils::quote(column.name)
+		       + " " + Utils::literal(column.type) + nn + def + ",\n";
 }
