@@ -823,18 +823,31 @@ void LiteManWindow::alterTable()
 
 void LiteManWindow::renameTable()
 {
-	//FIXME moan if table name not [a-zA-z0-9_$]
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
 
-	bool ok;
-	QString text = QInputDialog::getText(this, m_appName,
-										 tr("New table name:"), QLineEdit::Normal,
-										 item->text(0), &ok);
-	if (ok && !text.isEmpty())
+	QString text = item->text(0);
+	while (1)
 	{
+		bool ok = true;
+		text = QInputDialog::getText(this, m_appName,
+									 tr("New table name:"),
+									 QLineEdit::Normal, text, &ok);
+		if (text.isEmpty() || !ok) { return; }
+		
+		if (text.contains(QRegExp
+			("\\s|-|\\]|\\[|[`!\"%&*()+={}:;@'~#|\\\\<,>.?/^]")))
+		{
+			int ret = QMessageBox::question(this, m_appName,
+				tr("A table named ")
+				+ text
+				+ tr(" will not display correctly. "
+					 "Are you sure you want to rename it?\n")
+				+ tr("\nYes to rename, Cancel to try another name."),
+				QMessageBox::Yes, QMessageBox::Cancel);
+			if (ret == QMessageBox::Cancel) { continue; }
+		}
 		if (text == item->text(0)) { return; }
-
 		bool isActive = m_activeItem == item;
 		dataViewer->saveSelection();
 		// check needed because QSqlTableModel holds the table name
@@ -870,6 +883,7 @@ void LiteManWindow::renameTable()
 				}
 			}
 		}
+		return;
 	}
 }
 

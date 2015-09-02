@@ -3,12 +3,14 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME loses constraints
 */
 
 #include <QCheckBox>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QTreeWidgetItem>
+#include <QMessageBox>
 
 #include "altertabledialog.h"
 #include "utils.h"
@@ -153,30 +155,25 @@ QStringList AlterTableDialog::originalSource()
 	return ret;
 }
 
-bool AlterTableDialog::renameTable()
+bool AlterTableDialog::renameTable(QString newTableName)
 {
-	QString newTableName(ui.nameEdit->text().trimmed());
-	if ((!m_alteringActive) || (creator && creator->checkForPending()))
+	if (m_item->text(0) == newTableName) { return true; }
+	QString sql = QString("ALTER TABLE ")
+				  + Utils::quote(m_item->text(1))
+				  + "."
+				  + Utils::quote(m_item->text(0))
+				  + " RENAME TO "
+				  + Utils::quote(newTableName)
+				  + ";";
+	QString message = tr("Cannot rename table ")
+					  + m_item->text(0)
+					  + tr(" to ")
+					  + newTableName;
+	if (execSql(sql, message))
 	{
-		if (m_item->text(0) == newTableName) { return true; }
-	
-		QString sql = QString("ALTER TABLE ")
-					  + Utils::quote(m_item->text(1))
-					  + "."
-					  + Utils::quote(m_item->text(0))
-					  + " RENAME TO "
-					  + Utils::quote(newTableName)
-					  + ";";
-		QString message = tr("Cannot rename table ")
-						  + m_item->text(0)
-						  + tr(" to ")
-						  + newTableName;
-		if (execSql(sql, message))
-		{
-			updateStage = 1;
-			m_item->setText(0, newTableName);
-			return true;
-		}
+		updateStage = 1;
+		m_item->setText(0, newTableName);
+		return true;
 	}
 	return false;
 }
@@ -184,9 +181,25 @@ bool AlterTableDialog::renameTable()
 void AlterTableDialog::createButton_clicked()
 {
 	ui.resultEdit->clear();
-	// rename table if it's required
-	if (!renameTable())
+	if (m_alteringActive && !(creator && creator->checkForPending()))
+	{
 		return;
+	}
+	// rename table if it's required
+	QString newTableName(ui.nameEdit->text().trimmed());
+	if (newTableName.contains(QRegExp
+		("\\s|-|\\]|\\[|[`!\"%&*()+={}:;@'~#|\\\\<,>.?/^]")))
+	{
+		int ret = QMessageBox::question(this, "Sqliteman",
+			tr("A table named ")
+			+ newTableName
+			+ tr(" will not display correctly. "
+				 "Are you sure you want to rename it?\n")
+			+ tr("\nYes to rename, Cancel to try another name."),
+			QMessageBox::Yes, QMessageBox::Cancel);
+		if (ret == QMessageBox::Cancel) { return; }
+	}
+	if (!renameTable(newTableName)) { return; }
 
 	// drop columns first
 // 	if (m_dropColumns > 0)

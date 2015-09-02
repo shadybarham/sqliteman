@@ -133,8 +133,6 @@ void DataViewer::setNotPending()
 
 bool DataViewer::checkForPending()
 {
-	// FIXME item view not updated on rollback
-	// FIXME try to preserve selected item
 	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (old && old->pendingTransaction())
 	{

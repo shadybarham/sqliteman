@@ -134,8 +134,6 @@ void ImportTableDialog::slotAccepted()
 	int success = 0;
 	QStringList binds;
 	for (int i = 0; i < cols; ++i) { binds << "?"; }
-	// FIXME goes wrong if a schema or table name contains a ?
-	// SQL provides no mechanism to escape a ? in an SQL statement
 	QString sql = QString("insert into ")
 				  + Utils::quote(schemaComboBox->currentText())
 				  + "."

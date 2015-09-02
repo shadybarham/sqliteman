@@ -68,7 +68,7 @@ class AlterTableDialog : public TableEditorDialog
 		This is done if user edits table name widget.
 		\retval true on success.
 		*/
-		bool renameTable();
+		bool renameTable(QString newTableName);
 
 		/*! \brief Execute statement, handle its errors and outputs message to the GUI.
 		\param statement a SQL statement as QString
