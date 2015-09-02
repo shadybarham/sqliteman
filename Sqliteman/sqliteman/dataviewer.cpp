@@ -111,6 +111,7 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(tableView_dataResized(int, int, int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
 			this, SLOT(rowDoubleClicked(int)));
+
 	activeRow = -1;
 }
 
@@ -381,9 +382,19 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 void DataViewer::setStatusText(const QString & text)
 {
 	ui.statusText->setHtml(text);
-	int lines = text.split("<br/>").count() + 1;
-	int mh = QFontMetrics(ui.statusText->currentFont()).lineSpacing() * lines;
-	ui.statusText->setFixedHeight(mh);
+	int lh = QFontMetrics(ui.statusText->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.statusText->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.statusText->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.statusText->setFixedHeight(lh * lines);
+	}
 }
 
 void DataViewer::showStatusText(bool show)
@@ -425,7 +436,7 @@ void DataViewer::deletingRow(int row)
 
 void DataViewer::truncateTable()
 {
-	//FIXME do this faster with DELTET FROM sql
+	//FIXME do this faster with DELETE FROM sql
 	int ret = QMessageBox::question(this, tr("Sqliteman"),
 					tr("Are you sure you want to remove all content from this table?"),
 					QMessageBox::Yes, QMessageBox::No);
@@ -601,15 +612,15 @@ void DataViewer::openStandaloneWindow()
 
 	qm->attach();
 	w->setTableModel(qm);
-	w->setStatusText(tr("%1 snapshot for: %2")
-		.arg("<tt>"+QDateTime::currentDateTime().toString()+"</tt><br/>")
-		.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
 	w->ui.mainToolBar->hide();
 	w->ui.actionRipOut->setEnabled(false);
 	w->ui.actionClose->setEnabled(true);
 	w->ui.actionClose->setVisible(true);
 	w->ui.tabWidget->removeTab(2);
 	w->show();
+	w->setStatusText(tr("%1 snapshot for: %2")
+		.arg("<tt>"+QDateTime::currentDateTime().toString()+"</tt><br/>")
+		.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
 }
 
 void DataViewer::handleBlobPreview(bool state)
