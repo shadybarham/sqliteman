@@ -21,8 +21,10 @@ TermEditor::TermEditor(const FieldList & fieldList, QWidget * parent)
 		fields->addItem(fieldList[i].name);
 
 	relations = new QComboBox();
-	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain") << tr("Equals") << tr("Not equals")
-					<< tr("Bigger than") << tr("Smaller than"));
+	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
+									  << tr("Equals") << tr("Not equals")
+									  << tr("Bigger than") << tr("Smaller than")
+									  << tr("is null") << tr("is not null"));
 
 	value = new QLineEdit();
 
@@ -179,6 +181,14 @@ QString QueryEditorDialog::statement()
 
 					case 5:		// Smaller than
 						sql += (" < " + Utils::literal(term->selectedValue()));
+						break;
+
+					case 6:		// is null
+						sql += (" ISNULL ");
+						break;
+
+					case 7:		// is not null
+						sql += (" NOTNULL ");
 						break;
 				}
 			}
