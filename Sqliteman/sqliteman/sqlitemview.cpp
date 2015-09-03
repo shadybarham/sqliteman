@@ -3,12 +3,14 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME don't allow item view to show deleted item
 */
 #include <QDataWidgetMapper>
 #include <QGridLayout>
 #include <QSqlRecord>
 #include <QTextEdit>
 #include <QSqlQueryModel>
+#include <QTableView>
 
 #include "sqlitemview.h"
 
@@ -74,11 +76,21 @@ QAbstractItemModel * SqlItemView::model()
 void SqlItemView::updateButtons(int row)
 {
 	int rowcount = m_model->rowCount();
-	positionLabel->setText(tr("%1 of %2").arg(m_row + 1).arg(rowcount));
-	previousButton->setEnabled(row > 0);
-	firstButton->setEnabled(row > 0);
-	nextButton->setEnabled(row < rowcount - 1);
-	lastButton->setEnabled(row < rowcount - 1);
+	int notDeleted = 0;
+	int adjRow = row;
+	for (int i = 0; i < rowcount; ++i)
+	{
+		if (m_table->isRowHidden(i))
+		{
+			if (i < row) { --adjRow; }
+		}
+		else { ++notDeleted; }
+	}
+	positionLabel->setText(tr("%1 of %2").arg(adjRow + 1).arg(notDeleted));
+	previousButton->setEnabled(findDown(row) != row);
+	firstButton->setEnabled(findUp(-1) != row);
+	nextButton->setEnabled(findUp(row) != row);
+	lastButton->setEnabled(findDown(rowcount) != row);
 }
 
 void SqlItemView::setCurrentIndex(int row, int column)
@@ -111,30 +123,50 @@ int SqlItemView::currentColumn()
 	return m_column;
 }
 
+int SqlItemView::findUp(int row)
+{
+	int r = row;
+	while (++r < m_model->rowCount())
+	{
+		if (m_table->isRowHidden(r)) { continue; }
+		else { return r; }
+	}
+	return row;
+}
+
+int SqlItemView::findDown(int row)
+{
+	int r = row;
+	while (--r >= 0)
+	{
+		if (m_table->isRowHidden(r)) { continue; }
+		else { return r; }
+	}
+	return row;
+}
+
 void SqlItemView::toFirst()
 {
-	setCurrentIndex(0, m_column);
+	int row = findUp(-1);
+	if (row != m_row) { setCurrentIndex(row, m_column); }
 }
 
 void SqlItemView::toPrevious()
 {
-	if (m_row > 0)
-	{
-		setCurrentIndex(m_row - 1, m_column);
-	}
+	int row = findDown(m_row);
+	if (row != m_row) { setCurrentIndex(row, m_column); }
 }
 
 void SqlItemView::toNext()
 {
-	if (m_row < m_model->rowCount())
-	{
-		setCurrentIndex(m_row + 1, m_column);
-	}
+	int row = findUp(m_row);
+	if (row != m_row) { setCurrentIndex(row, m_column); }
 }
 
 void SqlItemView::toLast()
 {
-	setCurrentIndex(m_model->rowCount() - 1, m_column);
+	int row = findDown(m_model->rowCount());
+	if (row != m_row) { setCurrentIndex(row, m_column); }
 }
 
 void SqlItemView::aApp_focusChanged(QWidget* old, QWidget* now)

@@ -14,6 +14,7 @@ class QDataWidgetMapper;
 class QAbstractItemModel;
 class QLineEdit;
 class QGridLayout;
+class QTableView;
 
 
 /*! \brief Display one record in one form view.
@@ -33,6 +34,9 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		again depending on the new model QSqlRecord structure. */
 		void setModel(QAbstractItemModel * model);
 		QAbstractItemModel * model();
+
+		// needed to avoid deleted rows
+		void setTable(QTableView * table) { m_table = table; };
 
 		/*! \brief Set the current index for "item view".
 		\param row is the row number starting from 0.
@@ -54,9 +58,12 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		int m_row;
 		int m_count;
 		QAbstractItemModel * m_model;
+		QTableView * m_table;
 
 		QGridLayout * m_gridLayout;
 
+		int findUp(int row);
+		int findDown(int row);
 	private slots:
 		void toFirst();
 		void toPrevious();

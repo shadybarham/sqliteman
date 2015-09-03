@@ -5,6 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME HTML formatting for error messages
+	FIXME can see "not a blob" after commit
 */
 
 #include <QMessageBox>
@@ -289,6 +290,7 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 				this, SLOT(deletingRow(int)));
 	}
 	ui.itemView->setModel(model);
+	ui.itemView->setTable(ui.tableView);
 	ui.tabWidget->setCurrentIndex(0);
 	resizeViewToContents(model);
 	updateButtons(QItemSelection());
@@ -450,8 +452,8 @@ void DataViewer::truncateTable()
 	// prevent cached data when truncating the table
 	if (model->pendingTransaction())
 		rollback();
-	while (model->canFetchMore())
-		model->fetchMore();
+	while (model->canFetchMore()) { model->fetchMore(); }
+	for (int i = 0; i < model->rowCount(); ++i) { ui.tableView->hideRow(i); }
 	model->removeRows(0, model->rowCount());
 	updateButtons(QItemSelection());
 }
