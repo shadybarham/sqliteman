@@ -199,8 +199,6 @@ void LiteManWindow::initUI()
 			schemaBrowser->tableTree, SLOT(buildViewTree(QString,QString)));
 	connect(sqlEditor, SIGNAL(buildTree()),
 			schemaBrowser->tableTree, SLOT(buildTree()));
-	connect(sqlEditor, SIGNAL(buildTree()),
-			this, SLOT(refreshTable()));
 	connect(sqlEditor, SIGNAL(refreshTable()),
 			this, SLOT(refreshTable()));
 }

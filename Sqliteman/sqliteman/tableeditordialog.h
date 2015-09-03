@@ -52,6 +52,9 @@ class TableEditorDialog : public QDialog
 		virtual void createButton_clicked();
 		virtual void tabWidget_currentChanged(int index);
 
+private slots:
+		void tableCellChanged(int row, int column);
+
 };
 
 #endif

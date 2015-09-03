@@ -334,7 +334,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 			{
 				if (Utils::updateObjectTree(query.lastQuery()))
 					emit buildTree();
-				else if (Utils::updateTables(query.lastQuery()))
+				if (Utils::updateTables(query.lastQuery()))
 					emit refreshTable();
 				emit showSqlScriptResult("-- " + tr("No error"));
 			}

@@ -55,7 +55,10 @@ bool Utils::updateTables(const QString & sql)
 	if (sql.isNull())
 		return false;
 	QString tmp(sql.trimmed().toUpper());
-	return (   tmp.startsWith("DELETE")
+	return (   tmp.startsWith("ALTER")
+			|| tmp.startsWith("DELETE")
+			|| tmp.startsWith("DETACH")
+			|| tmp.startsWith("DROP")
 			|| tmp.startsWith("INSERT")
 			|| tmp.startsWith("REPLACE")
 			|| tmp.startsWith("UPDATE"));

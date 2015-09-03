@@ -34,6 +34,8 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 	connect(ui.removeButton, SIGNAL(clicked()), this, SLOT(removeField()));
 	connect(ui.tabWidget, SIGNAL(currentChanged(int)), this, SLOT(tabWidget_currentChanged(int)));
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+	connect(ui.columnTable, SIGNAL(cellChanged(int, int)),
+			this, SLOT(tableCellChanged(int, int)));
 }
 
 TableEditorDialog::~TableEditorDialog()
@@ -62,13 +64,20 @@ void TableEditorDialog::addField()
 	ui.columnTable->setCellWidget(rc, 1, box);
 	box->addItems(types);
 	ui.columnTable->setCellWidget(rc, 2, new QCheckBox(this));
+	nameEdit_textChanged(ui.nameEdit->text());
 }
 
 void TableEditorDialog::removeField()
 {
 	ui.columnTable->removeRow(ui.columnTable->currentRow());
 	if (ui.columnTable->rowCount() == 0)
+	{
 		addField();
+	}
+	else
+	{
+		nameEdit_textChanged(ui.nameEdit->text());
+	}
 }
 
 void TableEditorDialog::fieldSelected()
@@ -76,9 +85,27 @@ void TableEditorDialog::fieldSelected()
 	ui.removeButton->setEnabled(ui.columnTable->selectedRanges().count() != 0);
 }
 
+void TableEditorDialog::tableCellChanged(int row, int column)
+{
+	if (column == 0)
+	{
+		nameEdit_textChanged(ui.nameEdit->text());
+	}
+}
+
 void TableEditorDialog::nameEdit_textChanged(const QString& text)
 {
-	ui.createButton->setDisabled(text.simplified().isEmpty());
+	bool bad = text.simplified().isEmpty();
+	for(int i = 0; i < ui.columnTable->rowCount(); i++)
+	{
+		QTableWidgetItem * nameItem = ui.columnTable->item(i, 0);
+		if (   (nameItem == 0)
+			|| (nameItem->text().isEmpty()))
+		{
+			bad = true;
+		}
+	}
+	ui.createButton->setDisabled(bad);
 }
 
 void TableEditorDialog::tabWidget_currentChanged(int index)
