@@ -53,7 +53,9 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 		col.userValue = "";
 
 		QTableWidgetItem * nameItem = new QTableWidgetItem(col.name);
+		nameItem->setFlags(Qt::NoItemFlags);
 		QTableWidgetItem * typeItem = new QTableWidgetItem(col.type);
+		typeItem->setFlags(Qt::NoItemFlags);
 		columnTable->setItem(i, 0, nameItem);
 		columnTable->setItem(i, 1, typeItem);
 		PopulatorColumnWidget *p = new PopulatorColumnWidget(col, columnTable);
