@@ -23,7 +23,7 @@ class VacuumDialog : public QDialog
 
 	public:
 		VacuumDialog(LiteManWindow * parent = 0);
-		~VacuumDialog(){};
+		~VacuumDialog();
 
 	private:
 		Ui::VacuumDialog ui;

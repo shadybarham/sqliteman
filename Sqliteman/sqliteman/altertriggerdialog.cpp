@@ -7,6 +7,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 
 #include "altertriggerdialog.h"
 #include "database.h"
@@ -19,6 +20,10 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	m_name(name)
 {
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("altertrigger/height", QVariant(500)).toInt();
+	int ww = settings.value("altertrigger/width", QVariant(600)).toInt();
+	resize(ww, hh);
 	ui.createButton->setText(tr("&Alter"));
 	setWindowTitle("Alter Trigger");
 
@@ -50,6 +55,12 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	}
 }
 
+AlterTriggerDialog::~AlterTriggerDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("altertrigger/height", QVariant(height()));
+    settings.setValue("altertrigger/width", QVariant(width()));
+}
 
 void AlterTriggerDialog::createButton_clicked()
 {

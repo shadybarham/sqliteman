@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 */
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QSettings>
 
 #if QT_VERSION >= 0x040300
 #include <QXmlStreamReader>
@@ -38,6 +39,10 @@ ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 	update = false;
 	creator = parent;
 	setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("importtable/height", QVariant(500)).toInt();
+	int ww = settings.value("importtable/width", QVariant(600)).toInt();
+	resize(ww, hh);
 
 	QString n;
 	int i = 0;
@@ -79,6 +84,13 @@ ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 			this, SLOT(skipHeaderCheck_toggled(bool)));
 
 	skipHeaderCheck_toggled(false);
+}
+
+ImportTableDialog::~ImportTableDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("importtable/height", QVariant(height()));
+    settings.setValue("importtable/width", QVariant(width()));
 }
 
 void ImportTableDialog::fileButton_clicked()

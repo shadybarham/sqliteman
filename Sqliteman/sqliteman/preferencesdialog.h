@@ -68,7 +68,7 @@ class PreferencesDialog : public QDialog, public Ui::PreferencesDialog
 
 	public:
 		PreferencesDialog(QWidget * parent = 0);
-		~PreferencesDialog(){};
+		~PreferencesDialog();
 
 		bool saveSettings();
 

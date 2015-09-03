@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 
 #include "createviewdialog.h"
 #include "database.h"
@@ -19,6 +20,11 @@ CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema,
 {
 	creator = parent;
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("createview/height", QVariant(500)).toInt();
+	int ww = settings.value("createview/width", QVariant(600)).toInt();
+	resize(ww, hh);
+
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
 
 	ui.createButton->setDisabled(true);
@@ -26,6 +32,13 @@ CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema,
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
 	connect(ui.nameEdit, SIGNAL(textChanged(const QString&)),
 			this, SLOT(nameEdit_textChanged(const QString&)));
+}
+
+CreateViewDialog::~CreateViewDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("createview/height", QVariant(height()));
+    settings.setValue("createview/width", QVariant(width()));
 }
 
 void CreateViewDialog::nameEdit_textChanged(const QString& text)

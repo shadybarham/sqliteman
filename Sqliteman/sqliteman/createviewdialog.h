@@ -24,7 +24,7 @@ class CreateViewDialog : public QDialog
 	public:
 		CreateViewDialog(const QString & name, const QString & schema,
 						 LiteManWindow * parent = 0);
-		~CreateViewDialog(){};
+		~CreateViewDialog();
 
 		bool update;
 		void setText(const QString & text) { ui.sqlEdit->setText(text); };

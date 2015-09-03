@@ -29,7 +29,7 @@ class CreateIndexDialog : public QDialog
 		*/
 		CreateIndexDialog(const QString & tabName, const QString & schema,
 						  LiteManWindow * parent = 0);
-		~CreateIndexDialog(){};
+		~CreateIndexDialog();
 
 		bool update;
 

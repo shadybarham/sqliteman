@@ -26,6 +26,7 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 		ImportTableDialog(LiteManWindow * parent = 0,
 						  const QString & tableName = 0,
 						  const QString & schema = 0);
+		~ImportTableDialog();
 
 		bool update;
 	private:

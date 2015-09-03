@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QComboBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 
 #include "createindexdialog.h"
 #include "database.h"
@@ -48,12 +49,21 @@ CreateIndexDialog::CreateIndexDialog(const QString & tabName,
 		asc->setEnabled(false);
 		ui.tableColumns->setCellWidget(i, 2, asc);
 	}
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("createindex/height", QVariant(500)).toInt();
+	resize(width(), hh);
 
 	connect(ui.tableColumns, SIGNAL(itemChanged(QTableWidgetItem*)),
 			this, SLOT(tableColumns_itemChanged(QTableWidgetItem*)));
 	connect(ui.indexNameEdit, SIGNAL(textChanged(const QString&)),
 			this, SLOT(indexNameEdit_textChanged(const QString&)));
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+}
+
+CreateIndexDialog::~CreateIndexDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("createindex/height", QVariant(height()));
 }
 
 void CreateIndexDialog::createButton_clicked()

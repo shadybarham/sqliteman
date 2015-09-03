@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 
 #include "createtriggerdialog.h"
 #include "litemanwindow.h"
@@ -23,6 +24,10 @@ CreateTriggerDialog::CreateTriggerDialog(const QString & name,
 	update(false)
 {
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("createtrigger/height", QVariant(500)).toInt();
+	int ww = settings.value("createtrigger/width", QVariant(600)).toInt();
+	resize(ww, hh);
 
 	if (itemType == TableTree::TableType)
 	{
@@ -52,6 +57,12 @@ CreateTriggerDialog::CreateTriggerDialog(const QString & name,
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
 }
 
+CreateTriggerDialog::~CreateTriggerDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("createtrigger/height", QVariant(height()));
+    settings.setValue("createtrigger/width", QVariant(width()));
+}
 
 void CreateTriggerDialog::createButton_clicked()
 {

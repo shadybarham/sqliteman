@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 
 #include "constraintsdialog.h"
 #include "database.h"
@@ -20,6 +21,10 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 {
 	update = false;
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("constraints/height", QVariant(500)).toInt();
+	int ww = settings.value("constraints/width", QVariant(600)).toInt();
+	resize(ww, hh);
 
 	// trigger name templates
 	ui.insertName->setText(QString("tr_cons_%1_ins").arg(tabName));
@@ -122,6 +127,13 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 	ui.deleteEdit->setText(deletes.join("\n"));
 
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+}
+
+ConstraintsDialog::~ConstraintsDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("constraints/height", QVariant(height()));
+    settings.setValue("constraints/width", QVariant(width()));
 }
 
 void ConstraintsDialog::createButton_clicked()

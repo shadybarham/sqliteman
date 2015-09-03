@@ -28,7 +28,7 @@ class DataExportDialog : public QDialog
 		Q_OBJECT
 	public:
 		DataExportDialog(DataViewer * parent = 0, const QString & tableName = 0);
-		~DataExportDialog(){};
+		~DataExportDialog();
 
 		bool doExport();
 

@@ -23,7 +23,7 @@ class CreateTriggerDialog : public QDialog
 	public:
 		CreateTriggerDialog(const QString & name, const QString & schema,
 							/*QTreeWidgetItem::ItemType*/ int itemType, QWidget * parent = 0);
-		~CreateTriggerDialog(){};
+		~CreateTriggerDialog();
 
 		bool update;
 

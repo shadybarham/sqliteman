@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSettings>
 #include <QtDebug>
 
 #include "alterviewdialog.h"
@@ -21,6 +22,10 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	update(false)
 {
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("alterview/height", QVariant(500)).toInt();
+	int ww = settings.value("alterview/width", QVariant(600)).toInt();
+	resize(ww, hh);
 	ui.databaseCombo->addItem(schema);
 	ui.nameEdit->setText(name);
 	ui.databaseCombo->setDisabled(true);
@@ -54,6 +59,13 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	ui.createButton->setText("&Alter");
 
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+}
+
+AlterViewDialog::~AlterViewDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("alterview/height", QVariant(height()));
+    settings.setValue("alterview/width", QVariant(width()));
 }
 
 void AlterViewDialog::createButton_clicked()

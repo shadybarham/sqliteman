@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QHeaderView>
 #include <QDateTime>
 #include <QMessageBox>
+#include <QSettings>
 #include <math.h>
 
 #include "populatordialog.h"
@@ -22,6 +23,10 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 {
 	updated = false;
 	setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("populator/height", QVariant(500)).toInt();
+	int ww = settings.value("populator/width", QVariant(600)).toInt();
+	resize(ww, hh);
 	columnTable->horizontalHeader()->setStretchLastSection(true);
 
 	FieldList fields = Database::tableFields(m_table, m_schema);
@@ -64,6 +69,13 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 			this, SLOT(populateButton_clicked()));
 	connect(spinBox, SIGNAL(valueChanged(int)),
 			this, SLOT(spinBox_valueChanged(int)));
+}
+
+PopulatorDialog::~PopulatorDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("populator/height", QVariant(height()));
+    settings.setValue("populator/width", QVariant(width()));
 }
 
 void PopulatorDialog::spinBox_valueChanged(int)

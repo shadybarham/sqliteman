@@ -23,7 +23,7 @@ class AnalyzeDialog : public QDialog
 
 	public:
 		AnalyzeDialog(QWidget * parent = 0);
-		~AnalyzeDialog(){};
+		~AnalyzeDialog();
 
 	private:
 		Ui::AnalyzeDialog ui;

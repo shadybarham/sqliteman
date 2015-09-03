@@ -24,7 +24,7 @@ class AlterViewDialog : public QDialog
 	public:
 		AlterViewDialog(const QString & name,
 						const QString & schema, LiteManWindow * parent = 0);
-		~AlterViewDialog(){};
+		~AlterViewDialog();
 
 		bool update;
 		void setText(const QString & text) { ui.sqlEdit->setText(text); };

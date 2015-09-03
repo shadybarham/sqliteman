@@ -23,7 +23,7 @@ class ConstraintsDialog : public QDialog
 
 	public:
 		ConstraintsDialog(const QString & tabName, const QString & schema, QWidget * parent = 0);
-		~ConstraintsDialog(){};
+		~ConstraintsDialog();
 
 		bool update;
 

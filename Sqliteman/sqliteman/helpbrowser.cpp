@@ -44,7 +44,9 @@ HelpBrowser::HelpBrowser(const QString & lang, QWidget * parent)
 
 	// settings
 	QSettings settings("yarpen.cz", "sqliteman");
-	restoreGeometry(settings.value("help/geometry").toByteArray());
+	int hh = settings.value("help/height", QVariant(500)).toInt();
+	int ww = settings.value("help/width", QVariant(600)).toInt();
+	resize(ww, hh);
 	ui.splitter->restoreState(settings.value("help/splitter").toByteArray());
 
 	ui.actionBack->setEnabled(false);
@@ -63,7 +65,8 @@ void HelpBrowser::closeEvent(QCloseEvent *e)
 {
 	QSettings settings("yarpen.cz", "sqliteman");
 
-	settings.setValue("help/geometry", saveGeometry());
+    settings.setValue("help/height", QVariant(height()));
+    settings.setValue("help/width", QVariant(width()));
 	settings.setValue("help/splitter", ui.splitter->saveState());
 
 	QMainWindow::closeEvent(e);

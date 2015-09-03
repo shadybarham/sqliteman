@@ -17,6 +17,7 @@ for which a new license (GPL+exception) is in place.
 #include <QCompleter>
 #include <QDirModel>
 #include <QSqlQueryModel>
+#include <QSettings>
 
 #include "dataviewer.h"
 #include "dataexportdialog.h"
@@ -39,6 +40,10 @@ DataExportDialog::DataExportDialog(DataViewer * parent, const QString & tableNam
 	cancelled = false;
 
 	ui.setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("dataexport/height", QVariant(500)).toInt();
+	int ww = settings.value("dataexport/width", QVariant(600)).toInt();
+	resize(ww, hh);
 	formats[tr("Comma Separated Values (CSV)")] = "csv";
 	formats[tr("HTML")] = "html";
 	formats[tr("MS Excel XML (XLS)")] = "xls";
@@ -81,6 +86,13 @@ DataExportDialog::DataExportDialog(DataViewer * parent, const QString & tableNam
 			this, SLOT(searchButton_clicked()));
 	connect(ui.buttonBox, SIGNAL(accepted()),
 			this, SLOT(slotAccepted()));
+}
+
+DataExportDialog::~DataExportDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("dataexport/height", QVariant(height()));
+    settings.setValue("dataexport/width", QVariant(width()));
 }
 
 void DataExportDialog::slotAccepted()

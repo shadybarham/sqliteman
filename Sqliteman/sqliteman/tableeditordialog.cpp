@@ -18,7 +18,9 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 	ui.setupUi(this);
 	
 	QSettings settings("yarpen.cz", "sqliteman");
-	restoreGeometry(settings.value("tableeditor/geometry").toByteArray());
+	int hh = settings.value("tableeditor/height", QVariant(600)).toInt();
+	int ww = settings.value("tableeditor/width", QVariant(800)).toInt();
+	resize(ww, hh);
 	ui.tableEditorSplitter->restoreState(settings.value("tableeditor/splitter").toByteArray());
 	
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
@@ -37,7 +39,8 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 TableEditorDialog::~TableEditorDialog()
 {
 	QSettings settings("yarpen.cz", "sqliteman");
-	settings.setValue("tableeditor/geometry", saveGeometry());
+    settings.setValue("tableeditor/height", QVariant(height()));
+    settings.setValue("tableeditor/width", QVariant(width()));
 	settings.setValue("tableeditor/splitter", ui.tableEditorSplitter->saveState());
 }
 

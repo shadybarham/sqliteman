@@ -127,6 +127,10 @@ PreferencesDialog::PreferencesDialog(QWidget * parent)
 	: QDialog(parent)
 {
 	setupUi(this);
+	QSettings settings("yarpen.cz", "sqliteman");
+	int hh = settings.value("prefsdialog/height", QVariant(500)).toInt();
+	int ww = settings.value("prefsdialog/width", QVariant(600)).toInt();
+	resize(ww, hh);
 
 	m_prefsData = new PrefsDataDisplayWidget(this);
 	m_prefsLNF = new PrefsLNFWidget(this);
@@ -235,6 +239,13 @@ PreferencesDialog::PreferencesDialog(QWidget * parent)
 
 	m_prefsExtension->allowExtensionsBox->setChecked(prefs->allowExtensionLoading());
 	m_prefsExtension->setExtensions(prefs->extensionList());
+}
+
+PreferencesDialog::~PreferencesDialog()
+{
+	QSettings settings("yarpen.cz", "sqliteman");
+    settings.setValue("prefsdialog/height", QVariant(height()));
+    settings.setValue("prefsdialog/width", QVariant(width()));
 }
 
 bool PreferencesDialog::saveSettings()

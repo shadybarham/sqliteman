@@ -6,98 +6,131 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>390</width>
-    <height>136</height>
+    <width>530</width>
+    <height>91</height>
    </rect>
   </property>
-  <layout class="QGridLayout">
-   <property name="margin">
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetMinimumSize</enum>
+   </property>
+   <property name="leftMargin">
     <number>0</number>
    </property>
-   <property name="spacing">
+   <property name="topMargin">
     <number>0</number>
    </property>
-   <item row="0" column="0">
-    <layout class="QHBoxLayout">
-     <property name="spacing">
-      <number>4</number>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QComboBox" name="actionCombo">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>2</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="margin">
-      <number>0</number>
+     <property name="minimumSize">
+      <size>
+       <width>150</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="sizeAdjustPolicy">
+      <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
      </property>
      <item>
-      <widget class="QComboBox" name="actionCombo">
-       <item>
-        <property name="text">
-         <string>Autonumber</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Autonumber From:</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Random Number</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Random Text</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Prefixed Text:</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Static Value:</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date as Text - Now</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date Unix Epoch (integer) - Now</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date Julian (real) - Now</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date as Text - Random</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date Unix Epoch (integer) - Random</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Date Julian (real) - Random</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Ignore Column</string>
-        </property>
-       </item>
-      </widget>
+      <property name="text">
+       <string>Autonumber</string>
+      </property>
      </item>
      <item>
-      <widget class="QLineEdit" name="specEdit"/>
+      <property name="text">
+       <string>Autonumber From:</string>
+      </property>
      </item>
-    </layout>
+     <item>
+      <property name="text">
+       <string>Random Number</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Random Text</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Prefixed Text:</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Static Value:</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date as Text - Now</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date Unix Epoch (integer) - Now</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date Julian (real) - Now</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date as Text - Random</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date Unix Epoch (integer) - Random</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Date Julian (real) - Random</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Ignore Column</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="specEdit">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>1</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>50</width>
+       <height>0</height>
+      </size>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

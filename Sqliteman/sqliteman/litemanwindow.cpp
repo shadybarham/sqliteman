@@ -5,8 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME temporary table fails to display
 	FIXME add function to evaluate an expression
-	FIXME QSQlTableModel can't read records from table with " or ? or %
-	 in its name
+
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -906,6 +905,7 @@ void LiteManWindow::populateTable()
 
 void LiteManWindow::importTable()
 {
+	//FIXME no popup seen if ~isActive
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	bool isActive = m_activeItem == item;

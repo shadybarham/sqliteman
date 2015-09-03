@@ -1,71 +1,93 @@
-<ui version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>PreferencesDialog</class>
- <widget class="QDialog" name="PreferencesDialog" >
-  <property name="geometry" >
+ <widget class="QDialog" name="PreferencesDialog">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>454</height>
+    <height>300</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
    <string>Preferences</string>
   </property>
-  <layout class="QGridLayout" >
-   <property name="margin" >
+  <layout class="QGridLayout">
+   <property name="leftMargin">
     <number>9</number>
    </property>
-   <property name="spacing" >
+   <property name="topMargin">
+    <number>9</number>
+   </property>
+   <property name="rightMargin">
+    <number>9</number>
+   </property>
+   <property name="bottomMargin">
+    <number>9</number>
+   </property>
+   <property name="spacing">
     <number>6</number>
    </property>
-   <item row="0" column="0" >
-    <widget class="QListWidget" name="listWidget" >
-     <property name="minimumSize" >
+   <item row="0" column="0">
+    <widget class="QListWidget" name="listWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>1</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
       <size>
        <width>148</width>
        <height>0</height>
       </size>
      </property>
-     <property name="maximumSize" >
-      <size>
-       <width>148</width>
-       <height>16777215</height>
-      </size>
+     <property name="dragDropMode">
+      <enum>QAbstractItemView::DragDrop</enum>
      </property>
-     <property name="dragDropMode" >
-      <enum>QAbstractItemView::NoDragDrop</enum>
-     </property>
-     <property name="iconSize" >
+     <property name="iconSize">
       <size>
        <width>32</width>
        <height>32</height>
       </size>
      </property>
-     <property name="spacing" >
+     <property name="spacing">
       <number>12</number>
      </property>
-     <property name="viewMode" >
+     <property name="viewMode">
       <enum>QListView::IconMode</enum>
      </property>
     </widget>
    </item>
-   <item row="0" column="1" >
-    <widget class="QStackedWidget" name="stackedWidget" >
-     <property name="frameShape" >
+   <item row="0" column="1">
+    <widget class="QStackedWidget" name="stackedWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>2</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="frameShape">
       <enum>QFrame::Box</enum>
      </property>
-     <property name="frameShadow" >
+     <property name="frameShadow">
       <enum>QFrame::Sunken</enum>
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2" >
-    <widget class="QDialogButtonBox" name="buttonBox" >
-     <property name="orientation" >
+   <item row="1" column="0" colspan="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <property name="standardButtons" >
+     <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::RestoreDefaults|QDialogButtonBox::Save</set>
      </property>
     </widget>
@@ -80,11 +102,11 @@
    <receiver>PreferencesDialog</receiver>
    <slot>accept()</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>257</x>
      <y>429</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>157</x>
      <y>274</y>
     </hint>
@@ -96,11 +118,11 @@
    <receiver>PreferencesDialog</receiver>
    <slot>reject()</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>325</x>
      <y>429</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
     </hint>

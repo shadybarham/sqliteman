@@ -3,6 +3,7 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME shouldn't be able to edit column name or type
 */
 
 #include "populatorcolumnwidget.h"
@@ -16,6 +17,7 @@ PopulatorColumnWidget::PopulatorColumnWidget(Populator::PopColumn column,
 	setupUi(this);
 
 	m_column.action = defaultSuggestion();
+//	actionCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	actionCombo->setCurrentIndex(m_column.action);
 	actionCombo_currentIndexChanged(actionCombo->currentIndex());
 
@@ -57,10 +59,18 @@ void PopulatorColumnWidget::actionCombo_currentIndexChanged(int ix)
 		default:
 			break;
 	};
+	int spacing = QFontMetrics(actionCombo->font()).lineSpacing();
+	actionCombo->setMinimumWidth(spacing * 9);
 	if (enable)
+	{
 		specEdit->show();
+		actionCombo->setMaximumWidth(spacing * 16);
+	}
 	else
+	{
 		specEdit->hide();
+		actionCombo->setMaximumWidth(1677215);
+	}
 
 	m_column.action = ix;
 
