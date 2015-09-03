@@ -438,7 +438,6 @@ void DataViewer::deletingRow(int row)
 
 void DataViewer::truncateTable()
 {
-	//FIXME do this faster with DELETE FROM sql
 	int ret = QMessageBox::question(this, tr("Sqliteman"),
 					tr("Are you sure you want to remove all content from this table?"),
 					QMessageBox::Yes, QMessageBox::No);
@@ -449,13 +448,34 @@ void DataViewer::truncateTable()
 	if (!model)
 		return;
 
-	// prevent cached data when truncating the table
-	if (model->pendingTransaction())
-		rollback();
-	while (model->canFetchMore()) { model->fetchMore(); }
-	for (int i = 0; i < model->rowCount(); ++i) { ui.tableView->hideRow(i); }
-	model->removeRows(0, model->rowCount());
-	updateButtons(QItemSelection());
+	QSqlQuery q(QString("DELETE FROM ")
+				+ Utils::quote(model->schema())
+				+ "."
+				+ Utils::quote(model->tableName())
+				+ ";",
+				QSqlDatabase::database(SESSION_NAME));
+	if (q.lastError().isValid())
+	{
+		setStatusText(tr("Cannot truncate table ")
+					  + model->schema()
+					  + tr(".")
+					  + model->tableName()
+					  + ":<br/>"
+					  + q.lastError().text()
+					  + tr("<br/>using sql statement:<br/>")
+					  + q.lastQuery());
+	}
+	else
+	{
+		model->setPendingTransaction(false);
+		SqlTableModel * mdl = new SqlTableModel(0,
+			QSqlDatabase::database(SESSION_NAME));
+		mdl->setSchema(model->schema());
+		mdl->setTable(model->tableName());
+		mdl->select();
+		mdl->setEditStrategy(SqlTableModel::OnManualSubmit);
+		setTableModel(mdl, true);
+	}
 }
 
 void DataViewer::exportData()
