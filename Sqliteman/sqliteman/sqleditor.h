@@ -58,6 +58,8 @@ class SqlEditor : public QMainWindow
 		void buildTree();
 		/*! \brief Rebuild part of the tree */
 		void rebuildViewTree(QString schema, QString name);
+		/* may have changed the current table */
+		void refreshTable();
 
 	private:
 		Ui::SqlEditor ui;

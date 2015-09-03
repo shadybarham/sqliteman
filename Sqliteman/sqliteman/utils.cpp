@@ -50,6 +50,17 @@ bool Utils::updateObjectTree(const QString & sql)
 			|| tmp.startsWith("DROP"));
 }
 
+bool Utils::updateTables(const QString & sql)
+{
+	if (sql.isNull())
+		return false;
+	QString tmp(sql.trimmed().toUpper());
+	return (   tmp.startsWith("DELETE")
+			|| tmp.startsWith("INSERT")
+			|| tmp.startsWith("REPLACE")
+			|| tmp.startsWith("UPDATE"));
+}
+
 QString Utils::quote(QString s)
 {
 	return "\"" + s.replace("\"", "\"\"") + "\"";

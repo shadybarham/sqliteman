@@ -199,6 +199,10 @@ void LiteManWindow::initUI()
 			schemaBrowser->tableTree, SLOT(buildViewTree(QString,QString)));
 	connect(sqlEditor, SIGNAL(buildTree()),
 			schemaBrowser->tableTree, SLOT(buildTree()));
+	connect(sqlEditor, SIGNAL(buildTree()),
+			this, SLOT(refreshTable()));
+	connect(sqlEditor, SIGNAL(refreshTable()),
+			this, SLOT(refreshTable()));
 }
 
 void LiteManWindow::initActions()
@@ -1475,6 +1479,15 @@ void LiteManWindow::reindex()
 									  + sql);
 		}
 	}
+}
+
+void LiteManWindow::refreshTable()
+{
+	/* SQL code in the SQL editor may have modified or even removed the current
+	 * table.
+	 */
+	dataViewer->setTableModel(new QSqlQueryModel(), false);
+	m_activeItem = 0;
 }
 
 void LiteManWindow::preferences()

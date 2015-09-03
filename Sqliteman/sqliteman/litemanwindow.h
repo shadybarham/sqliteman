@@ -152,6 +152,8 @@ class LiteManWindow : public QMainWindow
 
 		void describeObject();
 
+		void refreshTable();
+
 	private:
 		QStringList recentDocs;
 

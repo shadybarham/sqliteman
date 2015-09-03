@@ -19,8 +19,11 @@ QPixmap getPixmap(const QString & fileName);
 
 QString getTranslator(const QString & localeName);
 
-//! \brief Check if the object tre should be refileld depending on sql statement
+//! \brief Check if the object tree should be refilled depending on sql statement
 bool updateObjectTree(const QString & sql);
+
+//! \brief Check if the current table may have changed depending on sql statement
+bool updateTables(const QString & sql);
 
 //! \brief Quote identifier for generated SQL statement
 QString quote(QString s);
