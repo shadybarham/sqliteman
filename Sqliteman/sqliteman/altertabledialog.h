@@ -76,7 +76,7 @@ class AlterTableDialog : public TableEditorDialog
 		\param tmpName an addon text for log in the case of error
 		\retval bool true on SQL succes
 		*/
-		bool execSql(const QString & statement, const QString & message, const QString & tmpName=0);
+		bool execSql(const QString & statement, const QString & message);
 
 		//! \brief Returns a list of DDL statements to recreate reqired obejcts after all.
 		QStringList originalSource();

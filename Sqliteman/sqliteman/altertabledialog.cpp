@@ -110,7 +110,7 @@ void AlterTableDialog::dropItem_stateChanged(int state)
 	checkChanges();
 }
 
-bool AlterTableDialog::execSql(const QString & statement, const QString & message, const QString & tmpName)
+bool AlterTableDialog::execSql(const QString & statement, const QString & message)
 {
 	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
 	if(query.lastError().isValid())
@@ -121,8 +121,6 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 						  + tr("\nusing sql statement:\n")
 						  + statement;
 		ui.resultEdit->append(errtext);
-		if (!tmpName.isNull())
-			ui.resultEdit->append(tr("Old table is stored as %1").arg(tmpName));
 		return false;
 	}
 	return true;
@@ -199,6 +197,10 @@ void AlterTableDialog::createButton_clicked()
 			QMessageBox::Yes, QMessageBox::Cancel);
 		if (ret == QMessageBox::Cancel) { return; }
 	}
+	if (!execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction")))
+	{
+		return;
+	}
 	if (!renameTable(newTableName)) { return; }
 
 	// drop columns first
@@ -242,6 +244,7 @@ void AlterTableDialog::createButton_clicked()
 						  + tmpName;
 		if (!execSql(sql, message))
 		{
+			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
 			return;
 		}
 		updateStage = 1;
@@ -264,14 +267,11 @@ void AlterTableDialog::createButton_clicked()
 				  + m_item->text(0);
 		if (!execSql(sql, message))
 		{
+			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
 			return;
 		}
 
 		// insert old data
-		if (!execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction"), tmpName))
-		{
-			return;
-		}
 		sql = QString("INSERT INTO ")
 			  + Utils::quote(m_item->text(1))
 			  + "."
@@ -288,9 +288,10 @@ void AlterTableDialog::createButton_clicked()
 		message = tr("Cannot insert data into ")
 				  + tmpName;
 		if (!execSql(sql, message))
+		{
+			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
 			return;
-		if (!execSql("COMMIT;", tr("Cannot commit"), tmpName))
-			return;
+		}
 		updateStage = 2;
 		
 		// drop old table
@@ -302,16 +303,36 @@ void AlterTableDialog::createButton_clicked()
 		message = tr("Cannot drop table ")
 				  + tmpName;
 		if (!execSql(sql, message))
+		{
+			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
 			return;
+		}
 
 		// restoring original indexes
 		foreach (QString restoreSql, originalSrc)
-			execSql(restoreSql, tr("Cannot recreate original index/trigger"));
+		{
+			if (!execSql(restoreSql,
+				tr("Cannot recreate original index/trigger")))
+			{
+				execSql("ROLLBACK TRANSACTION;",
+						tr("Cannot roll back after error"));
+				return;
+			}
+		}
 	}
 
 	// handle add columns
-	addColumns();
+	if (!addColumns())
+	{
+		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+		return;
+	}
 
+	if (!execSql("COMMIT;", tr("Cannot commit")))
+	{
+		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back either"));
+		return;
+	}
 	if (updateStage > 0)
 	{
 		resetStructure();
