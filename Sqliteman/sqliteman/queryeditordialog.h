@@ -10,6 +10,8 @@ for which a new license (GPL+exception) is in place.
 
 #include <QStringListModel>
 
+class QTreeWidgetItem;
+
 #include "database.h"
 #include "ui_queryeditordialog.h"
 
@@ -71,6 +73,7 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		 * @param parent The parent widget for the dialog.
 		 */
 		QueryEditorDialog(QWidget * parent = 0);
+		QueryEditorDialog(QTreeWidgetItem * item, QWidget * parent = 0);
 		~QueryEditorDialog();
 		//! \brief generates a valid SQL statement using the values in the dialog
 		QString statement();
@@ -79,6 +82,7 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		QString m_schema;
 		QueryStringModel * columnModel;
 		QueryStringModel * selectModel;
+		void CommonSetup();
 		
 	private slots:
 		void tableSelected(const QString & table);

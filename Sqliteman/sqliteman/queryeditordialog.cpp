@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QComboBox>
 #include <QLineEdit>
 #include <QSettings>
+#include <QTreeWidgetItem>
 
 #include "queryeditordialog.h"
 #include "utils.h"
@@ -72,16 +73,13 @@ void QueryStringModel::append(const QString & value)
 	setStringList(l);
 }
 
-
-QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
+void QueryEditorDialog::CommonSetup()
 {
 	setupUi(this);
 	QSettings settings("yarpen.cz", "sqliteman");
 	int hh = settings.value("queryeditor/height", QVariant(500)).toInt();
 	int ww = settings.value("queryeditor/width", QVariant(600)).toInt();
 	resize(ww, hh);
-
-	m_schema = "main"; // FIXME: real schema
 
 	columnModel = new QueryStringModel(this);
 	selectModel = new QueryStringModel(this);
@@ -103,6 +101,14 @@ QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
 	connect(removeAllButton, SIGNAL(clicked()), this, SLOT(removeAllSelect()));
 	connect(removeButton, SIGNAL(clicked()), this, SLOT(removeSelect()));
+}
+
+
+QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
+{
+	CommonSetup();
+
+	m_schema = "main";
 
 	QStringList tables = Database::getObjects("table").keys();
 	tableList->addItems(tables);
@@ -110,6 +116,18 @@ QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 	// If a database has at least one table. auto select it
 	if(tables.size() > 0)
 		tableSelected(tables[0]); 
+}
+
+QueryEditorDialog::QueryEditorDialog(QTreeWidgetItem * item, QWidget * parent)
+	: QDialog(parent)
+{
+	CommonSetup();
+
+	m_schema = item->text(1);
+
+	tableList->addItem(item->text(0));
+	tableList->setEnabled(false);
+	tableSelected(item->text(0)); 
 }
 
 QueryEditorDialog::~QueryEditorDialog()

@@ -105,6 +105,7 @@ class LiteManWindow : public QMainWindow
 		void preferences();
 
 		void buildQuery();
+		void contextBuildQuery();
 		void execSql(QString query);
 		void exportSchema();
 		void dumpDatabase();
@@ -216,6 +217,7 @@ class LiteManWindow : public QMainWindow
 		QAction * objectBrowserAct;
 		QAction * dataViewerAct;
 		QAction * buildQueryAct;
+		QAction * contextBuildQueryAct;
 		QAction * exportSchemaAct;
 		QAction * dumpDatabaseAct;
 

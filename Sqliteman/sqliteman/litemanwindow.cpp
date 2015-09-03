@@ -253,6 +253,10 @@ void LiteManWindow::initActions()
 	buildQueryAct->setShortcut(tr("Ctrl+R"));
 	connect(buildQueryAct, SIGNAL(triggered()), this, SLOT(buildQuery()));
 
+	contextBuildQueryAct = new QAction(tr("&Build Query..."), this);
+	connect(contextBuildQueryAct, SIGNAL(triggered()),
+			this, SLOT(contextBuildQuery()));
+
 	exportSchemaAct = new QAction(tr("&Export Schema..."), this);
 	connect(exportSchemaAct, SIGNAL(triggered()), this, SLOT(exportSchema()));
 
@@ -670,7 +674,22 @@ void LiteManWindow::buildQuery()
 {
 	QueryEditorDialog dlg(this);
 
-// 	dlg.resize(500, 400);
+	int ret = dlg.exec();
+
+	if(ret == QDialog::Accepted)
+	{
+		/*runQuery*/
+		execSql(dlg.statement());
+	}
+}
+
+void LiteManWindow::contextBuildQuery()
+{
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	if (!item) { return; }
+	
+	QueryEditorDialog dlg(item, this);
+
 	int ret = dlg.exec();
 
 	if(ret == QDialog::Accepted)
@@ -1157,6 +1176,7 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 			contextMenu->addAction(alterTableAct);
 			contextMenu->addAction(renameTableAct);
 			contextMenu->addAction(dropTableAct);
+			contextMenu->addAction(contextBuildQueryAct);
 			contextMenu->addAction(reindexAct);
 			contextMenu->addSeparator();
 			contextMenu->addAction(importTableAct);
