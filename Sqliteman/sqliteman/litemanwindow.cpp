@@ -521,14 +521,23 @@ void LiteManWindow::open(const QString & file)
 								QDir::currentPath(),
 								tr("SQLite database (*)"));
 
-	if(fileName.isNull())
-		return;
-	openDatabase(fileName);
+	if(fileName.isNull()) { return; }
+	if (QFile::exists(fileName))
+	{
+		openDatabase(fileName);
+	}
+	else
+	{
+		dataViewer->setStatusText(
+			tr("Cannot open ")
+			+ fileName
+			+ ":<br/><span style=\"color:#FF0000\">"
+			+ tr ("file does not exist"));
+	}
 }
 
 void LiteManWindow::openDatabase(const QString & fileName)
 {
-	//FIXME generate error message if file does not exist
 	if (!checkForPending()) { return; }
 	
 	bool isOpened = false;
@@ -1264,6 +1273,16 @@ void LiteManWindow::attachDatabase()
 	fileName = QFileDialog::getOpenFileName(this, tr("Attach Database"), QDir::currentPath(), tr("SQLite database (*)"));
 	if (fileName.isEmpty())
 		return;
+	if (!QFile::exists(fileName))
+	{
+		int ret = QMessageBox::question(this, m_appName,
+			fileName
+			+ tr(" does not exist\n")
+			+ tr("Yes to create it, Cancel to skip this operation."),
+			QMessageBox::Yes, QMessageBox::Cancel);
+		if (ret == QMessageBox::Cancel) { return; }
+	}
+
 	bool ok;
 	QFileInfo f(fileName);
 	QString schema = QInputDialog::getText(this, tr("Attach Database"),
