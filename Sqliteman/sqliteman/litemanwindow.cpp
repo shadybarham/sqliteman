@@ -529,6 +529,7 @@ void LiteManWindow::open(const QString & file)
 
 void LiteManWindow::openDatabase(const QString & fileName)
 {
+	//FIXME generate error message if file does not exist
 	if (!checkForPending()) { return; }
 	
 	bool isOpened = false;
@@ -551,7 +552,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	{
 		dataViewer->setStatusText(tr("Cannot open or create ")
 								  + QFileInfo(fileName).fileName()
-								  + ":<br/>"
+								  + ":<br/><span style=\"color:#FF0000\">"
 								  + db.lastError().text());
 		return;
 	}
@@ -564,9 +565,10 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	{
 		dataViewer->setStatusText(tr("Cannot access ")
 								  + QFileInfo(fileName).fileName()
-								  + ":<br/>"
+								  + ":<br/><span style=\"color:#FF0000\">"
 								  + db.lastError().text()
-								  + tr("<br/>It is probably not a database."));
+								  + "<br/></span>"
+								  + tr("It is probably not a database."));
 		db.close();
 		return;
 	}
@@ -747,12 +749,13 @@ void LiteManWindow::execSql(QString query)
 	// Check For Error in the SQL
 	if(model->lastError().isValid())
 	{
-		dataViewer->setStatusText(tr("Query Error: ")
-								  + model->lastError().text()
-								  + "<br/>"
-								  + tr("using sql statement:")
-								  + "<br/>"
-								  + query);
+		dataViewer->setStatusText(
+			tr("Query Error: <span style=\"color:#FF0000\">")
+			+ model->lastError().text()
+			+ "<br/></span>"
+			+ tr("using sql statement:")
+			+ "<br/><tt>"
+			+ query);
 	}
 	else
 	{
@@ -872,14 +875,13 @@ void LiteManWindow::renameTable()
 			QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 			if (query.lastError().isValid())
 			{
-				dataViewer->setStatusText(tr("Cannot rename table ")
-										  + item->text(1)
-										  + tr(".")
-										  + item->text(0)
-										  + ":<br/>"
-										  + query.lastError().text()
-										  + tr("<br/>using sql statement:<br/>")
-										  + sql);
+				dataViewer->setStatusText(
+					tr("Cannot rename table ")
+					+ item->text(1) + tr(".") + item->text(0)
+					+ ":<br/><span style=\"color:#FF0000\">"
+					+ query.lastError().text()
+					+ "<br/></span>" + tr("using sql statement:")
+					+ "<br/><tt>" + sql);
 			}
 			else
 			{
@@ -956,14 +958,13 @@ void LiteManWindow::dropTable()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
 		{
-			dataViewer->setStatusText(tr("Cannot drop table ")
-									  + item->text(1)
-									  + tr(".")
-									  + item->text(0)
-									  + ":<br/>"
-									  + query.lastError().text()
-									  + tr("<br/>using sql statement:<br/>")
-									  + sql);
+			dataViewer->setStatusText(
+				tr("Cannot drop table ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
 		}
 		else
 		{
@@ -1039,14 +1040,13 @@ void LiteManWindow::dropView()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
 		{
-			dataViewer->setStatusText(tr("Cannot drop view ")
-									  + item->text(1)
-									  + tr(".")
-									  + item->text(0)
-									  + ":<br/>"
-									  + query.lastError().text()
-									  + tr("<br/>using sql statement:<br/>")
-									  + sql);
+			dataViewer->setStatusText(
+				tr("Cannot drop view ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
 		}
 		else
 		{
@@ -1093,14 +1093,13 @@ void LiteManWindow::dropIndex()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
 		{
-			dataViewer->setStatusText(tr("Cannot drop index ")
-									  + item->text(1)
-									  + tr(".")
-									  + item->text(0)
-									  + ":<br/>"
-									  + query.lastError().text()
-									  + tr("<br/>using sql statement:<br/>")
-									  + sql);
+			dataViewer->setStatusText(
+				tr("Cannot drop index ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
 		}
 		else
 		{
@@ -1273,12 +1272,14 @@ void LiteManWindow::attachDatabase()
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
-		dataViewer->setStatusText(tr("Cannot attach database ")
-								  + fileName
-								  + ":<br/>"
-								  + query.lastError().text()
-								  + tr("<br/>using sql statement:<br/>")
-								  + sql);
+		dataViewer->setStatusText(
+			tr("Cannot attach database ")
+			+ fileName
+			+ ":<br/><span style=\"color:#FF0000\">"
+			+ query.lastError().text()
+			+ "<br/></span>"
+			+ tr("using sql statement:")
+			+ "<br/><tt>" + sql);
 	}
 	else
 	{
@@ -1288,10 +1289,11 @@ void LiteManWindow::attachDatabase()
 		db.setDatabaseName(fileName);
 		if (!db.open())
 		{
-			dataViewer->setStatusText(tr("Cannot open or create ")
-									  + QFileInfo(fileName).fileName()
-									  + ":<br/>"
-									  + db.lastError().text());
+			dataViewer->setStatusText(
+				tr("Cannot open or create ")
+				+ QFileInfo(fileName).fileName()
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ db.lastError().text());
 			QSqlQuery qundo(QString("DETACH DATABASE ")
 							+ Utils::quote(schema)
 							+ ";",
@@ -1306,9 +1308,10 @@ void LiteManWindow::attachDatabase()
 				dataViewer->setStatusText(
 					tr("Cannot access ")
 					+ QFileInfo(fileName).fileName()
-					+ ":<br/>"
+					+ ":<br/><span style=\"color:#FF0000\">"
 					+ db.lastError().text()
-					+ tr("<br/>It is probably not a database."));
+					+ "<br/></span>"
+					+ tr("It is probably not a database."));
 				QSqlQuery qundo(QString("DETACH DATABASE ")
 								+ Utils::quote(schema)
 								+ ";",
@@ -1333,12 +1336,14 @@ void LiteManWindow::detachDatabase()
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
-		dataViewer->setStatusText(tr("Cannot detach database ")
-								  + dbname
-								  + ":<br/>"
-								  + query.lastError().text()
-								  + tr("<br/>using sql statement:<br/>")
-								  + sql);
+		dataViewer->setStatusText(
+			tr("Cannot detach database ")
+			+ dbname
+			+ ":<br/><span style=\"color:#FF0000\">"
+			+ query.lastError().text()
+			+ "<br/></span>"
+			+ tr("using sql statement:")
+			+ "<br/><tt>" + sql);
 	}
 	else
 	{
@@ -1415,14 +1420,13 @@ void LiteManWindow::dropTrigger()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
 		{
-			dataViewer->setStatusText(tr("Cannot drop trigger ")
-									  + item->text(1)
-									  + tr(".")
-									  + item->text(0)
-									  + ":<br/>"
-									  + query.lastError().text()
-									  + tr("<br/>using sql statement:<br/>")
-									  + sql);
+			dataViewer->setStatusText(
+				tr("Cannot drop trigger ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
 		}
 		else
 		{
@@ -1456,14 +1460,13 @@ void LiteManWindow::reindex()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
 		{
-			dataViewer->setStatusText(tr("Cannot reindex ")
-									  + item->text(1)
-									  + tr(".")
-									  + item->text(0)
-									  + ":<br/>"
-									  + query.lastError().text()
-									  + tr("<br/>using sql statement:<br/>")
-									  + sql);
+			dataViewer->setStatusText(
+				tr("Cannot reindex ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\"color:#FF0000\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
 		}
 	}
 }

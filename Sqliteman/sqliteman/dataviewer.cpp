@@ -294,15 +294,6 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 		connect(stm, SIGNAL(reallyDeleting(int)),
 				this, SLOT(deletingRow(int)));
 	}
-	else
-	{
-		SqlQueryModel * sqm = qobject_cast<SqlQueryModel*>(model);
-		if (sqm)
-		{
-			connect(sqm, SIGNAL(reallyDeleting(int)),
-					this, SLOT(deletingRow(int)));
-		}
-	}
 	ui.itemView->setModel(model);
 	ui.itemView->setTable(ui.tableView);
 	ui.tabWidget->setCurrentIndex(0);
@@ -465,10 +456,10 @@ void DataViewer::truncateTable()
 					  + model->schema()
 					  + tr(".")
 					  + model->tableName()
-					  + ":<br/>"
+					  + ":<br/><span style=\"color:#FF0000\">"
 					  + q.lastError().text()
-					  + tr("<br/>using sql statement:<br/>")
-					  + q.lastQuery());
+					  + "<br/></span>" + tr("using sql statement:")
+					  + "<br/><tt>" + q.lastQuery());
 	}
 	else
 	{
