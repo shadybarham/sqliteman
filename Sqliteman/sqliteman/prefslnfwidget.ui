@@ -185,25 +185,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="readRowsSpinBox">
-       <property name="toolTip">
-        <string>Count of the items in the Recent menu</string>
-       </property>
-       <property name="specialValueText">
-        <string>All</string>
-       </property>
-       <property name="minimum">
-        <number>0</number>
-       </property>
-       <property name="maximum">
-        <number>1024</number>
-       </property>
-       <property name="singleStep">
-        <number>256</number>
-       </property>
-       <property name="value">
-        <number>256</number>
-       </property>
+      <widget class="QComboBox" name="rowsToRead">
       </widget>
      </item>
     </layout>

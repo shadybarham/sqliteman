@@ -756,18 +756,7 @@ void LiteManWindow::execSql(QString query)
 	}
 	else
 	{
-		QString cached;
-		if ((model->rowCount() != 0) && (model->canFetchMore()))
-			cached = DataViewer::canFetchMore() + "<br/>";
-		else
-			cached = "";
-		dataViewer->setStatusText(tr("Query OK:")
-								  + "<br/>"
-								  + query
-								  + "<br/>"
-								  + tr("Row(s) returned: ")
-								  + QString("%1").arg(model->rowCount())
-								  + cached);
+		dataViewer->rowCountChanged();
 		if (Utils::updateObjectTree(query))
 		{
 			schemaBrowser->tableTree->buildTree();

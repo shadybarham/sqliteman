@@ -18,6 +18,7 @@ for which a new license (GPL+exception) is in place.
 #include <QResizeEvent>
 #include <QSettings>
 #include <QInputDialog>
+#include <QScrollBar>
 #include <QtDebug> //qDebug
 
 #include "dataviewer.h"
@@ -36,6 +37,8 @@ DataViewer::DataViewer(QWidget * parent)
 	  dataResized(true)
 {
 	ui.setupUi(this);
+	canFetchMore= tr("(More rows can be fetched. "
+		"Scroll the resultset for more rows and/or read the documentation.)");
 
 #ifdef Q_WS_MAC
     ui.mainToolBar->setIconSize(QSize(16, 16));
@@ -112,6 +115,8 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(tableView_dataResized(int, int, int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
 			this, SLOT(rowDoubleClicked(int)));
+	connect(ui.tableView->verticalScrollBar(), SIGNAL(valueChanged(int)),
+					this, SLOT(rowCountChanged()));
 
 	activeRow = -1;
 }
@@ -289,23 +294,22 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 		connect(stm, SIGNAL(reallyDeleting(int)),
 				this, SLOT(deletingRow(int)));
 	}
+	else
+	{
+		SqlQueryModel * sqm = qobject_cast<SqlQueryModel*>(model);
+		if (sqm)
+		{
+			connect(sqm, SIGNAL(reallyDeleting(int)),
+					this, SLOT(deletingRow(int)));
+		}
+	}
 	ui.itemView->setModel(model);
 	ui.itemView->setTable(ui.tableView);
 	ui.tabWidget->setCurrentIndex(0);
 	resizeViewToContents(model);
 	updateButtons(QItemSelection());
 	
-	QString cached;
-	if (qobject_cast<QSqlQueryModel*>(model)->rowCount() != 0
-		   && qobject_cast<QSqlQueryModel*>(model)->canFetchMore())
-    {
-		cached = DataViewer::canFetchMore() + "<br/>";
-    }
-    else
-        cached = "";
-
-	setStatusText(tr("Query OK<br/>Row(s) returned: %1 %2")
-				  .arg(model->rowCount()).arg(cached));
+	rowCountChanged();
 
 	return true;
 }
@@ -371,7 +375,7 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 	for (int i = 0; i < model->columnCount(); ++i)
 		total += ui.tableView->columnWidth(i);
 
-	if (total < ui.tableView->viewport()->width()) 
+	if (total < ui.tableView->viewport()->width())
 	{
 		int extra = (ui.tableView->viewport()->width() - total)
 			/ model->columnCount();
@@ -397,6 +401,7 @@ void DataViewer::setStatusText(const QString & text)
 		int lines = text.split("<br/>").count() + 1;
 		ui.statusText->setFixedHeight(lh * lines);
 	}
+	showStatusText(true);
 }
 
 void DataViewer::showStatusText(bool show)
@@ -730,11 +735,6 @@ void DataViewer::sqlScriptStart()
 	ui.scriptEdit->clear();
 }
 
-const QString DataViewer::canFetchMore()
-{
-	return tr("(More rows can be fetched. Scroll the resultset for more rows and/or read the documentation.)");
-}
-
 void DataViewer::gotoLine()
 {
 	bool ok;
@@ -781,7 +781,26 @@ void DataViewer::rowDoubleClicked(int)
 {
 	ui.tabWidget->setCurrentIndex(1);
 }
-		
+
+void DataViewer::rowCountChanged()
+{
+	QString cached;
+	QSqlQueryModel * model = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
+	if ((model != 0) && (model->columnCount() > 0))
+	{
+		if(   (model->rowCount() != 0)
+		   && model->canFetchMore())
+	    {
+			cached = canFetchMore + "<br/>";
+	    }
+	    else { cached = ""; }
+
+		setStatusText(tr("Query OK<br/>Row(s) returned: %1 %2")
+					  .arg(model->rowCount()).arg(cached));
+	}
+	else { showStatusText(false); }
+}
+
 /* Tools *************************************************** */
 
 bool DataViewerTools::KeyPressEater::eventFilter(QObject *obj, QEvent *event)

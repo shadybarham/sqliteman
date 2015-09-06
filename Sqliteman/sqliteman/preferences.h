@@ -56,9 +56,10 @@ class Preferences : public QObject
 		bool openLastSqlFile() { return m_openLastSqlFile; };
 		void setOpenLastDB(bool v) { m_openLastDB = v; };
 		void setOpenLastSqlFile(bool v) { m_openLastSqlFile = v; };
-		int readRowsCount() { return m_readRowsCount; };
-		void setReadRowsCount(int v) { m_readRowsCount = v; };
 		QString lastDB() { return m_lastDB; };
+		
+		int rowsToRead() { return m_readRows; };
+		void setRowsToRead(int index) { m_readRows = index; };
 
 		int GUItranslator() { return m_GUItranslator; };
 		void setGUItranslator(int v) { m_GUItranslator = v; };
@@ -164,7 +165,7 @@ class Preferences : public QObject
 		int m_recentlyUsedCount;
 		bool m_openLastDB;
 		bool m_openLastSqlFile;
-		int m_readRowsCount;
+		int m_readRows;
 		QString m_lastDB;
 		int m_GUItranslator;
 		int m_GUIstyle;

@@ -49,7 +49,7 @@ class DataViewer : public QMainWindow
 		QByteArray saveSplitter() { return ui.splitter->saveState(); };
 		void restoreSplitter(QByteArray state) { ui.splitter->restoreState(state); };
 
-		static const QString canFetchMore();
+		QString canFetchMore;
 		bool isTopLevel;
 
 		/*! \brief Free locked resources */
@@ -64,6 +64,7 @@ class DataViewer : public QMainWindow
 		void showSqlScriptResult(QString line);
 		//! \brief Clean the "Script Result" report
 		void sqlScriptStart();
+		void rowCountChanged();
 
 	private:
 		Ui::DataViewer ui;

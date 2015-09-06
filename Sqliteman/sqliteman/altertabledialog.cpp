@@ -52,7 +52,7 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 
 void AlterTableDialog::resetStructure()
 {
-	// obtain all indexed colums for DROP COLUMN checks
+	// obtain all indexed columns for DROP COLUMN checks
 	foreach(QString index,
 		Database::getObjects("index", m_item->text(1)).values(m_item->text(0)))
 	{

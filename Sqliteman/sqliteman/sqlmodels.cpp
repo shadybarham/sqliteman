@@ -24,7 +24,15 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 {
 	m_deleteCache.clear();
 	Preferences * prefs = Preferences::instance();
-	m_readRowsCount = prefs->readRowsCount();
+	switch (prefs->rowsToRead())
+	{
+		case 0: m_readRowsCount = 256; break;
+		case 1: m_readRowsCount = 512; break;
+		case 2: m_readRowsCount = 1024; break;
+		case 3: m_readRowsCount = 2048; break;
+		case 4: m_readRowsCount = 4096; break;
+		default: m_readRowsCount = 0; break;
+	}
 
 	connect(this, SIGNAL(primeInsert(int, QSqlRecord &)),
 			this, SLOT(doPrimeInsert(int, QSqlRecord &)));
@@ -278,7 +286,15 @@ SqlQueryModel::SqlQueryModel( QObject * parent)
 	m_useCount(1)
 {
 	Preferences * prefs = Preferences::instance();
-	m_readRowsCount = prefs->readRowsCount();
+	switch (prefs->rowsToRead())
+	{
+		case 0: m_readRowsCount = 256; break;
+		case 1: m_readRowsCount = 512; break;
+		case 2: m_readRowsCount = 1024; break;
+		case 3: m_readRowsCount = 2048; break;
+		case 4: m_readRowsCount = 4096; break;
+		default: m_readRowsCount = 0; break;
+	}
 }
 
 QVariant SqlQueryModel::data(const QModelIndex & item, int role) const
