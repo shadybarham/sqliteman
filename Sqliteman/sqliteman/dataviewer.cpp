@@ -395,6 +395,15 @@ void DataViewer::setStatusText(const QString & text)
 	showStatusText(true);
 }
 
+void DataViewer::removeErrorMessage()
+{
+	QString s = ui.statusText->toHtml();
+	if (s.contains("<span style=\" color:#ff0000;\">"))
+	{
+		ui.statusText->setPlainText("");
+	}
+}
+
 void DataViewer::showStatusText(bool show)
 {
 	(show) ? ui.statusText->show() : ui.statusText->hide();
@@ -404,6 +413,7 @@ void DataViewer::addRow()
 {
 	// FIXME adding a row and leaving it all nulls causes commit failure
 	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
+	removeErrorMessage();
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
 	{
@@ -417,6 +427,7 @@ void DataViewer::addRow()
 
 void DataViewer::removeRow()
 {
+	removeErrorMessage();
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if(model)
 	{
@@ -434,6 +445,7 @@ void DataViewer::deletingRow(int row)
 
 void DataViewer::truncateTable()
 {
+	removeErrorMessage();
 	int ret = QMessageBox::question(this, tr("Sqliteman"),
 					tr("Are you sure you want to remove all content from this table?"),
 					QMessageBox::Yes, QMessageBox::No);
@@ -456,7 +468,7 @@ void DataViewer::truncateTable()
 					  + model->schema()
 					  + tr(".")
 					  + model->tableName()
-					  + ":<br/><span style=\"color:#FF0000\">"
+					  + ":<br/><span style=\" color:#ff0000;\">"
 					  + q.lastError().text()
 					  + "<br/></span>" + tr("using sql statement:")
 					  + "<br/><tt>" + q.lastQuery());
@@ -476,6 +488,7 @@ void DataViewer::truncateTable()
 
 void DataViewer::exportData()
 {
+	removeErrorMessage();
 	QString tmpTableName("<any_table>");
 	SqlTableModel * m = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (m)
@@ -506,6 +519,7 @@ QStringList DataViewer::tableHeader()
 
 void DataViewer::commit()
 {
+	removeErrorMessage();
 	saveSelection();
 	// HACK: some Qt4 versions crash on commit/rollback when there
 	// is a new - currently edited - row in a transaction. This
@@ -534,6 +548,7 @@ void DataViewer::commit()
 
 void DataViewer::rollback()
 {
+	removeErrorMessage();
 	saveSelection();
 	// HACK: some Qt4 versions crash on commit/rollback when there
 	// is a new - currently edited - row in a transaction. This
@@ -557,6 +572,7 @@ void DataViewer::rollback()
 
 void DataViewer::copyHandler()
 {
+	removeErrorMessage();
 	QItemSelectionModel *selectionModel = ui.tableView->selectionModel();
 	QModelIndexList selectedIndexes = selectionModel->selectedIndexes();
 	QModelIndex index;
@@ -588,6 +604,7 @@ void DataViewer::copyHandler()
 
 void DataViewer::openStandaloneWindow()
 {
+	removeErrorMessage();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
 
 #ifdef WIN32
@@ -655,6 +672,7 @@ void DataViewer::handleBlobPreview(bool state)
 
 void DataViewer::tableView_selectionChanged(const QItemSelection & selected, const QItemSelection &)
 {
+	removeErrorMessage();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
     bool enable = (tm != 0);
     actInsertNull->setEnabled(enable);
@@ -678,6 +696,7 @@ void DataViewer::tableView_selectionChanged(const QItemSelection & selected, con
 
 void DataViewer::tabWidget_currentChanged(int ix)
 {
+	removeErrorMessage();
 	if (ix == 0)
 	{
 		// be carefull with this. See itemView_indexChanged() docs.
@@ -701,6 +720,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 
 void DataViewer::itemView_indexChanged()
 {
+	removeErrorMessage();
 	ui.tableView->setCurrentIndex(
 		ui.tableView->model()->index(ui.itemView->currentRow(),
 								     ui.itemView->currentColumn())
@@ -709,11 +729,14 @@ void DataViewer::itemView_indexChanged()
 
 void DataViewer::tableView_dataChanged()
 {
+	removeErrorMessage();
 	updateButtons(QItemSelection());
 }
 
 void DataViewer::showSqlScriptResult(QString line)
 {
+	removeErrorMessage();
+	if (line.isEmpty()) { return; }
 	ui.scriptEdit->append(line);
 	ui.scriptEdit->append("\n");
 	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
@@ -728,6 +751,7 @@ void DataViewer::sqlScriptStart()
 
 void DataViewer::gotoLine()
 {
+	removeErrorMessage();
 	bool ok;
 	int row = QInputDialog::getInt(this, tr("Goto Line"), tr("Goto Line:"),
 								   ui.tableView->currentIndex().row(), // value
@@ -760,21 +784,25 @@ void DataViewer::gotoLine()
 
 void DataViewer::actOpenEditor_triggered()
 {
+	removeErrorMessage();
     ui.tableView->edit(ui.tableView->currentIndex());
 }
 
 void DataViewer::actInsertNull_triggered()
 {
+	removeErrorMessage();
     ui.tableView->model()->setData(ui.tableView->currentIndex(), QString(), Qt::EditRole); 
 }
 
 void DataViewer::rowDoubleClicked(int)
 {
+	removeErrorMessage();
 	ui.tabWidget->setCurrentIndex(1);
 }
 
 void DataViewer::rowCountChanged()
 {
+	removeErrorMessage();
 	QString cached;
 	QSqlQueryModel * model = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
 	if ((model != 0) && (model->columnCount() > 0))

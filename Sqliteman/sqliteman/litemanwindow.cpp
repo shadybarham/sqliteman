@@ -531,7 +531,7 @@ void LiteManWindow::open(const QString & file)
 		dataViewer->setStatusText(
 			tr("Cannot open ")
 			+ fileName
-			+ ":<br/><span style=\"color:#FF0000\">"
+			+ ":<br/><span style=\" color:#ff0000;\">"
 			+ tr ("file does not exist"));
 	}
 }
@@ -560,7 +560,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	{
 		dataViewer->setStatusText(tr("Cannot open or create ")
 								  + QFileInfo(fileName).fileName()
-								  + ":<br/><span style=\"color:#FF0000\">"
+								  + ":<br/><span style=\" color:#ff0000;\">"
 								  + db.lastError().text());
 		return;
 	}
@@ -573,7 +573,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	{
 		dataViewer->setStatusText(tr("Cannot access ")
 								  + QFileInfo(fileName).fileName()
-								  + ":<br/><span style=\"color:#FF0000\">"
+								  + ":<br/><span style=\" color:#ff0000;\">"
 								  + db.lastError().text()
 								  + "<br/></span>"
 								  + tr("It is probably not a database."));
@@ -583,6 +583,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	else
 	{
 		isOpened = true;
+		dataViewer->removeErrorMessage();
 
 		// check for sqlite library version
 		QString ver;
@@ -659,6 +660,8 @@ void LiteManWindow::openRecent()
 
 void LiteManWindow::about()
 {
+
+	dataViewer->removeErrorMessage();
 	QMessageBox::about(this, tr("About"),
 					   tr("Sqliteman - SQLite databases made easy\n\n")
 					   + tr("Version ")
@@ -672,11 +675,13 @@ void LiteManWindow::about()
 
 void LiteManWindow::aboutQt()
 {
+	dataViewer->removeErrorMessage();
 	QMessageBox::aboutQt(this, m_appName);
 }
 
 void LiteManWindow::help()
 {
+	dataViewer->removeErrorMessage();
 	if (!helpBrowser)
 		helpBrowser = new HelpBrowser(m_lang, this);
 	helpBrowser->show();
@@ -684,6 +689,7 @@ void LiteManWindow::help()
 
 void LiteManWindow::buildQuery()
 {
+	dataViewer->removeErrorMessage();
 	QueryEditorDialog dlg(this);
 
 	int ret = dlg.exec();
@@ -697,6 +703,7 @@ void LiteManWindow::buildQuery()
 
 void LiteManWindow::contextBuildQuery()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
 	
@@ -736,6 +743,7 @@ void LiteManWindow::execSql(QString query)
 		QMessageBox::warning(this, tr("No SQL statement"), tr("You are trying to run an undefined SQL query. Hint: select your query in the editor"));
 		return;
 	}
+	dataViewer->setStatusText("");
 	if (!checkForPending()) { return; }
 
 	dataViewer->freeResources(dataViewer->tableData());
@@ -758,7 +766,7 @@ void LiteManWindow::execSql(QString query)
 	if(model->lastError().isValid())
 	{
 		dataViewer->setStatusText(
-			tr("Query Error: <span style=\"color:#FF0000\">")
+			tr("Query Error: <span style=\" color:#ff0000;\">")
 			+ model->lastError().text()
 			+ "<br/></span>"
 			+ tr("using sql statement:")
@@ -777,6 +785,7 @@ void LiteManWindow::execSql(QString query)
 
 void LiteManWindow::exportSchema()
 {
+	dataViewer->removeErrorMessage();
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Export Schema"),
                                                     QDir::currentPath(),
                                                     tr("SQL File (*.sql)"));
@@ -789,6 +798,7 @@ void LiteManWindow::exportSchema()
 
 void LiteManWindow::dumpDatabase()
 {
+	dataViewer->removeErrorMessage();
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Export Database"),
                                                     QDir::currentPath(),
                                                     tr("SQL File (*.sql)"));
@@ -805,6 +815,7 @@ void LiteManWindow::dumpDatabase()
 
 void LiteManWindow::createTable()
 {
+	dataViewer->removeErrorMessage();
 	CreateTableDialog dlg(this);
 	dlg.exec();
 	if (dlg.updated)
@@ -821,6 +832,7 @@ void LiteManWindow::createTable()
 
 void LiteManWindow::alterTable()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if (!item) { return; }
@@ -843,6 +855,7 @@ void LiteManWindow::alterTable()
 
 void LiteManWindow::renameTable()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
 
@@ -873,7 +886,7 @@ void LiteManWindow::renameTable()
 		// check needed because QSqlTableModel holds the table name
 		if ((!isActive) || (checkForPending()))
 		{
-			QString sql = QString("ALTER TABLE")
+			QString sql = QString("ALTER TABLE ")
 						  + Utils::quote(item->text(1))
 						  + "."
 						  + Utils::quote(item->text(0))
@@ -886,7 +899,7 @@ void LiteManWindow::renameTable()
 				dataViewer->setStatusText(
 					tr("Cannot rename table ")
 					+ item->text(1) + tr(".") + item->text(0)
-					+ ":<br/><span style=\"color:#FF0000\">"
+					+ ":<br/><span style=\" color:#ff0000;\">"
 					+ query.lastError().text()
 					+ "<br/></span>" + tr("using sql statement:")
 					+ "<br/><tt>" + sql);
@@ -908,6 +921,7 @@ void LiteManWindow::renameTable()
 
 void LiteManWindow::populateTable()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
 	
@@ -926,6 +940,7 @@ void LiteManWindow::populateTable()
 void LiteManWindow::importTable()
 {
 	//FIXME no popup seen if ~isActive
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	bool isActive = m_activeItem == item;
@@ -943,6 +958,7 @@ void LiteManWindow::importTable()
 
 void LiteManWindow::dropTable()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
@@ -969,7 +985,7 @@ void LiteManWindow::dropTable()
 			dataViewer->setStatusText(
 				tr("Cannot drop table ")
 				+ item->text(1) + tr(".") + item->text(0)
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ query.lastError().text()
 				+ "<br/></span>" + tr("using sql statement:")
 				+ "<br/><tt>" + sql);
@@ -990,6 +1006,7 @@ void LiteManWindow::dropTable()
 
 void LiteManWindow::createView()
 {
+	dataViewer->removeErrorMessage();
 	CreateViewDialog dia("", "", this);
 
 	dia.exec();
@@ -1000,6 +1017,7 @@ void LiteManWindow::createView()
 void LiteManWindow::alterView()
 {
 	//FIXME allow Alter View to change name like Alter Table
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	bool isActive = m_activeItem == item;
 	// Can't have pending update on a view, so no checkForPending() here
@@ -1026,6 +1044,7 @@ void LiteManWindow::alterView()
 
 void LiteManWindow::dropView()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
@@ -1051,7 +1070,7 @@ void LiteManWindow::dropView()
 			dataViewer->setStatusText(
 				tr("Cannot drop view ")
 				+ item->text(1) + tr(".") + item->text(0)
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ query.lastError().text()
 				+ "<br/></span>" + tr("using sql statement:")
 				+ "<br/><tt>" + sql);
@@ -1070,6 +1089,7 @@ void LiteManWindow::dropView()
 
 void LiteManWindow::createIndex()
 {
+	dataViewer->removeErrorMessage();
 	QString table(schemaBrowser->tableTree->currentItem()->parent()->text(0));
 	QString schema(schemaBrowser->tableTree->currentItem()->parent()->text(1));
 	CreateIndexDialog dia(table, schema, this);
@@ -1080,6 +1100,7 @@ void LiteManWindow::createIndex()
 
 void LiteManWindow::dropIndex()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
@@ -1104,7 +1125,7 @@ void LiteManWindow::dropIndex()
 			dataViewer->setStatusText(
 				tr("Cannot drop index ")
 				+ item->text(1) + tr(".") + item->text(0)
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ query.lastError().text()
 				+ "<br/></span>" + tr("using sql statement:")
 				+ "<br/><tt>" + sql);
@@ -1119,6 +1140,7 @@ void LiteManWindow::dropIndex()
 
 void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 {
+	dataViewer->removeErrorMessage();
 	if (   (!item)
 		|| (m_activeItem == item)
 		|| !checkForPending())
@@ -1164,6 +1186,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 
 void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* /*prev*/)
 {
+	dataViewer->removeErrorMessage();
 	contextMenu->clear();
 	if (!cur)
 		return;
@@ -1236,6 +1259,7 @@ void LiteManWindow::treeContextMenuOpened(const QPoint & pos)
 
 void LiteManWindow::describeObject()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	/*runQuery*/
 // 	execSql(QString("select sql as \"%1\" from \"%2\".sqlite_master where name = '%3';")
@@ -1250,6 +1274,7 @@ void LiteManWindow::describeObject()
 
 void LiteManWindow::analyzeDialog()
 {
+	dataViewer->removeErrorMessage();
 	AnalyzeDialog *dia = new AnalyzeDialog(this);
 	dia->exec();
 	delete dia;
@@ -1262,6 +1287,7 @@ void LiteManWindow::analyzeDialog()
 
 void LiteManWindow::vacuumDialog()
 {
+	dataViewer->removeErrorMessage();
 	VacuumDialog *dia = new VacuumDialog(this);
 	dia->exec();
 	delete dia;
@@ -1269,6 +1295,7 @@ void LiteManWindow::vacuumDialog()
 
 void LiteManWindow::attachDatabase()
 {
+	dataViewer->removeErrorMessage();
 	QString fileName;
 	fileName = QFileDialog::getOpenFileName(this, tr("Attach Database"), QDir::currentPath(), tr("SQLite database (*)"));
 	if (fileName.isEmpty())
@@ -1302,7 +1329,7 @@ void LiteManWindow::attachDatabase()
 		dataViewer->setStatusText(
 			tr("Cannot attach database ")
 			+ fileName
-			+ ":<br/><span style=\"color:#FF0000\">"
+			+ ":<br/><span style=\" color:#ff0000;\">"
 			+ query.lastError().text()
 			+ "<br/></span>"
 			+ tr("using sql statement:")
@@ -1319,7 +1346,7 @@ void LiteManWindow::attachDatabase()
 			dataViewer->setStatusText(
 				tr("Cannot open or create ")
 				+ QFileInfo(fileName).fileName()
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ db.lastError().text());
 			QSqlQuery qundo(QString("DETACH DATABASE ")
 							+ Utils::quote(schema)
@@ -1335,7 +1362,7 @@ void LiteManWindow::attachDatabase()
 				dataViewer->setStatusText(
 					tr("Cannot access ")
 					+ QFileInfo(fileName).fileName()
-					+ ":<br/><span style=\"color:#FF0000\">"
+					+ ":<br/><span style=\" color:#ff0000;\">"
 					+ db.lastError().text()
 					+ "<br/></span>"
 					+ tr("It is probably not a database."));
@@ -1356,6 +1383,7 @@ void LiteManWindow::attachDatabase()
 
 void LiteManWindow::detachDatabase()
 {
+	dataViewer->removeErrorMessage();
 	QString dbname(schemaBrowser->tableTree->currentItem()->text(0));
 	QString sql = QString("DETACH DATABASE ")
 				  + Utils::quote(dbname)
@@ -1366,7 +1394,7 @@ void LiteManWindow::detachDatabase()
 		dataViewer->setStatusText(
 			tr("Cannot detach database ")
 			+ dbname
-			+ ":<br/><span style=\"color:#FF0000\">"
+			+ ":<br/><span style=\" color:#ff0000;\">"
 			+ query.lastError().text()
 			+ "<br/></span>"
 			+ tr("using sql statement:")
@@ -1383,6 +1411,7 @@ void LiteManWindow::detachDatabase()
 
 void LiteManWindow::loadExtension()
 {
+	dataViewer->removeErrorMessage();
 	QString mask(tr("Sqlite3 extensions "));
 #ifdef Q_WS_WIN
 	mask += "(*.dll)";
@@ -1403,6 +1432,7 @@ void LiteManWindow::loadExtension()
 
 void LiteManWindow::createTrigger()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	QString table(item->parent()->text(0));
 	QString schema(item->parent()->text(1));
@@ -1416,6 +1446,7 @@ void LiteManWindow::createTrigger()
 
 void LiteManWindow::alterTrigger()
 {
+	dataViewer->removeErrorMessage();
 	QString table(schemaBrowser->tableTree->currentItem()->text(0));
 	QString schema(schemaBrowser->tableTree->currentItem()->text(1));
 	AlterTriggerDialog *dia = new AlterTriggerDialog(table, schema, this);
@@ -1426,6 +1457,7 @@ void LiteManWindow::alterTrigger()
 
 void LiteManWindow::dropTrigger()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
 	if(!item)
@@ -1450,7 +1482,7 @@ void LiteManWindow::dropTrigger()
 			dataViewer->setStatusText(
 				tr("Cannot drop trigger ")
 				+ item->text(1) + tr(".") + item->text(0)
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ query.lastError().text()
 				+ "<br/></span>" + tr("using sql statement:")
 				+ "<br/><tt>" + sql);
@@ -1466,6 +1498,7 @@ void LiteManWindow::dropTrigger()
 
 void LiteManWindow::constraintTriggers()
 {
+	dataViewer->removeErrorMessage();
 	QString table(schemaBrowser->tableTree->currentItem()->parent()->text(0));
 	QString schema(schemaBrowser->tableTree->currentItem()->parent()->text(1));
 	ConstraintsDialog dia(table, schema, this);
@@ -1476,6 +1509,7 @@ void LiteManWindow::constraintTriggers()
 
 void LiteManWindow::reindex()
 {
+	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (item)
 	{
@@ -1490,7 +1524,7 @@ void LiteManWindow::reindex()
 			dataViewer->setStatusText(
 				tr("Cannot reindex ")
 				+ item->text(1) + tr(".") + item->text(0)
-				+ ":<br/><span style=\"color:#FF0000\">"
+				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ query.lastError().text()
 				+ "<br/></span>" + tr("using sql statement:")
 				+ "<br/><tt>" + sql);
@@ -1509,6 +1543,7 @@ void LiteManWindow::refreshTable()
 
 void LiteManWindow::preferences()
 {
+	dataViewer->removeErrorMessage();
 	PreferencesDialog prefs(this);
 	if (prefs.exec())
 		if (prefs.saveSettings())

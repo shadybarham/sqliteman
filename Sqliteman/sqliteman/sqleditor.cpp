@@ -351,6 +351,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 
 void SqlEditor::actionCreateView_triggered()
 {
+	emit showSqlScriptResult("");
 	CreateViewDialog dia("", "", creator);
 
 	dia.setText(query());
@@ -366,6 +367,7 @@ void SqlEditor::showEvent(QShowEvent * event)
 
 void SqlEditor::action_Open_triggered()
 {
+	emit showSqlScriptResult("");
 	if (!changedConfirm())
 		return;
 
@@ -449,11 +451,13 @@ void SqlEditor::appendHistory(const QString & sql)
 
 void SqlEditor::actionShow_History_triggered()
 {
-    ui.historyTreeWidget->setVisible(ui.actionShow_History->isChecked());
+	emit showSqlScriptResult("");
+	ui.historyTreeWidget->setVisible(ui.actionShow_History->isChecked());
 }
 
 void SqlEditor::action_Save_triggered()
 {
+	emit showSqlScriptResult("");
 	if (m_fileName.isNull())
 	{
 		actionSave_As_triggered();
@@ -464,6 +468,7 @@ void SqlEditor::action_Save_triggered()
 
 void SqlEditor::action_New_triggered()
 {
+	emit showSqlScriptResult("");
 	if (!changedConfirm())
 		return;
 	m_fileName = QString();
@@ -473,6 +478,7 @@ void SqlEditor::action_New_triggered()
 
 void SqlEditor::actionSave_As_triggered()
 {
+	emit showSqlScriptResult("");
 	QString newFile = QFileDialog::getSaveFileName(this, tr("Save SQL Script"),
 			QDir::currentPath(), tr("SQL file (*.sql);;All Files (*)"));
 	if (newFile.isNull())
@@ -553,6 +559,7 @@ void SqlEditor::sqlTextEdit_cursorPositionChanged(int line, int pos)
 
 void SqlEditor::documentChanged(bool state)
 {
+	emit showSqlScriptResult("");
 	changedLabel->setText(state ? "*" : " ");
 }
 
@@ -563,6 +570,7 @@ void SqlEditor::setFileName(const QString & fname)
 
 void SqlEditor::actionSearch_triggered()
 {
+	emit showSqlScriptResult("");
 	ui.searchFrame->setVisible(ui.actionSearch->isChecked());
 	if (!ui.searchFrame->isVisible())
 	{
