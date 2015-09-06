@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME temporary table fails to display
 	FIXME add function to evaluate an expression
 
 */
@@ -1131,6 +1130,15 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 							+ Utils::quote(item->text(0)),
 							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
+		}
+		else if (item->text(1).compare("temp") == 0)
+		{
+			SqlTableModel * model = new SqlTableModel(0, QSqlDatabase::database(SESSION_NAME));
+			model->setSchema(item->text(1));
+			model->setTable(item->text(0));
+			model->select();
+			model->setEditStrategy(SqlTableModel::OnManualSubmit);
+			dataViewer->setTableModel(model, true);
 		}
 		else
 		{
