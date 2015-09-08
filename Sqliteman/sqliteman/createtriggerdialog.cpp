@@ -74,10 +74,11 @@ void CreateTriggerDialog::createButton_clicked()
 		
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Cannot create trigger:\n")
+			ui.resultEdit->setHtml(tr("Cannot create trigger")
+								   + ":<br/><span style=\" color:#ff0000;\">"
 								   + query.lastError().text()
-								   + tr("\nusing sql statement:\n")
-								   + sql);
+								   + "<br/></span>" + tr("using sql statement:")
+								   + "<br/><tt>" + sql);
 			return;
 		}
 		ui.resultEdit->setText(tr("Trigger created successfully"));

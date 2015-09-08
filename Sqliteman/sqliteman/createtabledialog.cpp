@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME column names must be nonempty
 */
 
 #include <QCheckBox>
@@ -26,7 +25,8 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 
 	ui.createButton->setDisabled(true);
 
-	ui.textEdit->setText("CREATE TABLE [IF NOT EXISTS] <database-name.table-name>\n\
+	ui.textEdit->setText(
+		"CREATE TABLE [IF NOT EXISTS] <database-name.table-name>\n\
 (\n\
     <column-name> <type> <constraint...>,\n\
     ...\n\
@@ -70,14 +70,15 @@ void CreateTableDialog::createButton_clicked()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Cannot create table:\n")
+			ui.resultEdit->setHtml(tr("Cannot create table")
+								   + ":<br/><span style=\" color:#ff0000;\">"
 								   + query.lastError().text()
-								   + tr("\nusing sql statement:\n")
-								   + sql);
+								   + "<br/></span>" + tr("using sql statement:")
+								   + "<br/><tt>" + sql);
 			return;
 		}
 		updated = true;
-		ui.resultEdit->setText(tr("Table created successfully"));
+		ui.resultEdit->setHtml(tr("Table created successfully"));
 	}
 }
 

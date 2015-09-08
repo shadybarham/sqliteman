@@ -98,12 +98,12 @@ void CreateIndexDialog::createButton_clicked()
 		QSqlQuery q(sql, QSqlDatabase::database(SESSION_NAME));
 		if(q.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Error while creating index ")
+			ui.resultEdit->setHtml(tr("Error while creating index ")
 								   + ui.indexNameEdit->text()
-								   + ":\n"
+								   + ":<br/><span style=\" color:#ff0000;\">"
 								   + q.lastError().text()
-								   + tr("\nusing sql statement:\n")
-								   + sql);
+								   + "<br/></span>" + tr("using sql statement:")
+								   + "<br/><tt>" + sql);
 			return;
 		}
 		ui.resultEdit->setText(tr("Index created successfully."));

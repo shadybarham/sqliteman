@@ -116,10 +116,10 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 	if(query.lastError().isValid())
 	{
 		QString errtext = message
-						  + ":\n"
+						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + query.lastError().text()
-						  + tr("\nusing sql statement:\n")
-						  + statement;
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + statement;
 		ui.resultEdit->append(errtext);
 		return false;
 	}
@@ -141,10 +141,10 @@ QStringList AlterTableDialog::originalSource()
 	{
 		QString errtext = tr("Cannot get index list for ")
 						  + m_item->text(0)
-						  + ":\n"
+						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + query.lastError().text()
-						  + tr("\nusing sql statement:\n")
-						  + ixsql;
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + ixsql;
 		ui.resultEdit->append(errtext);
 		return QStringList();
 	}
@@ -178,7 +178,7 @@ bool AlterTableDialog::renameTable(QString newTableName)
 
 void AlterTableDialog::createButton_clicked()
 {
-	ui.resultEdit->clear();
+	ui.resultEdit->setHtml("");
 	if (m_alteringActive && !(creator && creator->checkForPending()))
 	{
 		return;
@@ -201,7 +201,10 @@ void AlterTableDialog::createButton_clicked()
 	{
 		return;
 	}
-	if (!renameTable(newTableName)) { return; }
+	if (!renameTable(newTableName)) {
+		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+		return;
+	}
 
 	// drop columns first
 // 	if (m_dropColumns > 0)
@@ -375,10 +378,10 @@ bool AlterTableDialog::addColumns()
 							  + f.name
 							  + tr(" to ")
 							  + m_item->text(0)
-							  + ":\n"
+							  + ":<br/><span style=\" color:#ff0000;\">"
 							  + query.lastError().text()
-							  + tr("\nusing sql statement:\n")
-							  + fullSql;
+							  + "<br/></span>" + tr("using sql statement:")
+							  + "<br/><tt>" + fullSql;
 			ui.resultEdit->append(errtext);
 			return false;
 		}

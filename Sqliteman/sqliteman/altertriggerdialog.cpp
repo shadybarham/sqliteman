@@ -37,11 +37,11 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	{
 		QString errtext = tr("Cannot get trigger ")
 						  + name
-						  + ":\n"
+						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + query.lastError().text()
-						  + tr("\nusing sql statement:\n")
-						  + sql;
-		ui.resultEdit->setText(errtext);
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + sql;
+		ui.resultEdit->setHtml(errtext);
 		ui.createButton->setEnabled(false);
 	}
 	else
@@ -74,11 +74,11 @@ void AlterTriggerDialog::createButton_clicked()
 	{
 		QString errtext = tr("Cannot drop trigger ")
 						  + m_name
-						  + ":\n"
+						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + drop.lastError().text()
-						  + tr("\nusing sql statement:\n")
-						  + sql;
-		ui.resultEdit->setText(errtext);
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + sql;
+		ui.resultEdit->setHtml(errtext);
 		return;
 	}
 
@@ -89,11 +89,11 @@ void AlterTriggerDialog::createButton_clicked()
 	{
 		QString errtext = tr("Error while creating trigger ")
 						  + m_name
-						  + ":\n"
+						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + query.lastError().text()
-						  + tr("\nusing sql statement:\n")
-						  + sql;
-		ui.resultEdit->setText(errtext);
+						  + "<br/></span>" + tr("using sql statement:")
+					  + "<br/><tt>" + sql;
+		ui.resultEdit->setHtml(errtext);
 		return;
 	}
 	ui.resultEdit->setText(tr("Trigger created successfully"));

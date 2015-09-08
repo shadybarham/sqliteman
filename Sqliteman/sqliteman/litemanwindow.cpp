@@ -4,6 +4,8 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
+	FIXME should we allow attaching a database which is already open?
+	      it can cause confusion
 
 */
 #include <QTreeWidget>
@@ -939,7 +941,6 @@ void LiteManWindow::populateTable()
 
 void LiteManWindow::importTable()
 {
-	//FIXME no popup seen if ~isActive
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 
@@ -947,12 +948,15 @@ void LiteManWindow::importTable()
 	if (item && isActive && !checkForPending()) { return; }
 	ImportTableDialog dlg(this, item ? item->text(0) : "",
 							    item ? item->text(1) : "main");
-	if (isActive && (dlg.exec() == QDialog::Accepted))
+	if (dlg.exec() == QDialog::Accepted)
 	{
 		dataViewer->saveSelection();
-		m_activeItem = 0; // we've changed it
-		treeItemActivated(item, 0);
-		dataViewer->reSelect();
+		if (isActive)
+		{
+			m_activeItem = 0; // we've changed it
+			treeItemActivated(item, 0);
+			dataViewer->reSelect();
+		}
 	}
 }
 

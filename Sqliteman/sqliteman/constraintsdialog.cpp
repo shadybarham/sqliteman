@@ -138,8 +138,8 @@ ConstraintsDialog::~ConstraintsDialog()
 
 void ConstraintsDialog::createButton_clicked()
 {
-	QString status("INSERT trigger\n");
-	status += execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction:\n"));
+	QString status("INSERT trigger<br/>");
+	status += execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction"));
 	if (ui.insertEdit->text().length() != 0)
 	{
 		status += execSql(QString("CREATE TRIGGER ")
@@ -152,14 +152,14 @@ void ConstraintsDialog::createButton_clicked()
 						  + "-- created by Sqliteman tool\n\n"
 						  + ui.insertEdit->text()
 						  + "END;",
-						  tr("Cannot create trigger:\n"));
+						  tr("Cannot create trigger:"));
 	}
 	else
 	{
-		status += tr("No action for INSERT");
+		status += tr("No action for INSERT") + "<br/>";
 	}
 
-	status += "\nUPDATE trigger\n";
+	status += "UPDATE trigger<br/>";
 	if (ui.updateEdit->text().length() != 0)
 	{
 		status += execSql(QString("CREATE TRIGGER ")
@@ -172,12 +172,12 @@ void ConstraintsDialog::createButton_clicked()
 						  + "-- created by Sqliteman tool\n\n"
 						  + ui.updateEdit->text()
 						  + "END;",
-						  tr("Cannot create trigger:\n"));
+						  tr("Cannot create trigger"));
 	}
 	else
-		status += tr("No action for UPDATE");
+		status += tr("No action for UPDATE") + "<br/>";
 
-	status += "\nDELETE trigger\n";
+	status += "DELETE trigger<br/>";
 	if (ui.deleteEdit->text().length() != 0)
 	{
 		status += execSql(QString("CREATE TRIGGER ")
@@ -190,12 +190,12 @@ void ConstraintsDialog::createButton_clicked()
 						  + "-- created by Sqliteman tool\n\n"
 						  + ui.deleteEdit->text()
 						  + "END;",
-						  tr("Cannot create trigger:\n"));
+						  tr("Cannot create trigger"));
 	}
 	else
-		status += tr("No action for DELETE");
-	status += execSql("COMMIT;", tr("Cannot commit transaction:\n"));
-	ui.resultEdit->setText(status);
+		status += tr("No action for DELETE") + "<br/>";
+	status += execSql("COMMIT;", tr("Cannot commit transaction"));
+	ui.resultEdit->setHtml(status);
 }
 
 QString ConstraintsDialog::execSql(const QString & statement,
@@ -205,9 +205,11 @@ QString ConstraintsDialog::execSql(const QString & statement,
 	if (query.lastError().isValid())
 	{
 		return message
+			   + ":<br/><span style=\" color:#ff0000;\">"
 			   + query.lastError().text()
-			   + tr("\nusing sql statement:\n")
-			   + statement;
+			   + "<br/></span>" + tr("using sql statement:")
+			   + "<br/><tt>" + statement
+			   + "</tt><br/>";
 	}
 	else
 	{
