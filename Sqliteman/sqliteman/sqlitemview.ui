@@ -35,7 +35,7 @@
    <property name="spacing">
     <number>6</number>
    </property>
-   <item row="0" column="0" rowspan="6">
+   <item row="0" column="0" rowspan="7">
     <widget class="QScrollArea" name="scrollWidget">
      <property name="widgetResizable">
       <bool>true</bool>
@@ -82,7 +82,7 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
+   <item row="6" column="1">
     <spacer>
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -99,6 +99,16 @@
     <widget class="QLabel" name="positionLabel">
      <property name="frameShape">
       <enum>QFrame::Box</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QPushButton" name="copyButton">
+     <property name="toolTip">
+      <string>Duplicate record</string>
+     </property>
+     <property name="text">
+      <string>copy</string>
      </property>
     </widget>
    </item>

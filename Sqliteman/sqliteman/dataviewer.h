@@ -84,6 +84,7 @@ class DataViewer : public QMainWindow
 
 	private slots:
 		void addRow();
+		void copyRow();
 		void removeRow();
 		void deletingRow(int row); // when it actually gets deleted
 		void truncateTable();

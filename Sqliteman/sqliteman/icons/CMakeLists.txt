@@ -21,6 +21,7 @@ document-new.png
 document-open.png
 document-save-as.png
 document-save.png
+duplicate_table_row.png
 edit.png
 extensions.png
 go-next.png

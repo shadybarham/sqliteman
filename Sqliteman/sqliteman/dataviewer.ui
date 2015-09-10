@@ -52,7 +52,7 @@
          </attribute>
          <layout class="QGridLayout">
           <item row="0" column="0">
-           <widget class="SqlTableView" name="tableView">
+           <widget class="SqlTableView" name="tableView" native="true">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -62,17 +62,8 @@
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
             </property>
-            <property name="alternatingRowColors">
+            <property name="alternatingRowColors" stdset="0">
              <bool>true</bool>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::ContiguousSelection</enum>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-            <property name="horizontalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
             </property>
            </widget>
           </item>
@@ -165,6 +156,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionNew_Row"/>
+   <addaction name="actionCopy_Row"/>
    <addaction name="actionRemove_Row"/>
    <addaction name="actionTruncate_Table"/>
    <addaction name="separator"/>
@@ -191,26 +183,46 @@
    <addaction name="actionClose"/>
   </widget>
   <action name="actionNew_Row">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/insert_table_row.png</normaloff>icons/insert_table_row.png</iconset>
+   </property>
    <property name="text">
     <string>New Row</string>
    </property>
   </action>
   <action name="actionRemove_Row">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/delete_table_row.png</normaloff>icons/delete_table_row.png</iconset>
+   </property>
    <property name="text">
     <string>Remove Row</string>
    </property>
   </action>
   <action name="actionTruncate_Table">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/clear_table_contents.png</normaloff>icons/clear_table_contents.png</iconset>
+   </property>
    <property name="text">
     <string>Truncate Table</string>
    </property>
   </action>
   <action name="actionExport_Data">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/document-export.png</normaloff>icons/document-export.png</iconset>
+   </property>
    <property name="text">
     <string>Export Data</string>
    </property>
   </action>
   <action name="actionCommit">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/database_commit.png</normaloff>icons/database_commit.png</iconset>
+   </property>
    <property name="text">
     <string>Commit</string>
    </property>
@@ -219,6 +231,10 @@
    </property>
   </action>
   <action name="actionRollback">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/database_rollback.png</normaloff>icons/database_rollback.png</iconset>
+   </property>
    <property name="text">
     <string>Rollback</string>
    </property>
@@ -227,6 +243,10 @@
    </property>
   </action>
   <action name="actionRipOut">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/snapshot.png</normaloff>icons/snapshot.png</iconset>
+   </property>
    <property name="text">
     <string>Table Snapshot</string>
    </property>
@@ -234,6 +254,10 @@
   <action name="actionClose">
    <property name="enabled">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/close.png</normaloff>icons/close.png</iconset>
    </property>
    <property name="text">
     <string>Close</string>
@@ -246,16 +270,36 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/blob.png</normaloff>icons/blob.png</iconset>
+   </property>
    <property name="text">
     <string>BLOB Preview</string>
    </property>
   </action>
   <action name="action_Goto_Line">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/go-next-use.png</normaloff>icons/go-next-use.png</iconset>
+   </property>
    <property name="text">
     <string>&amp;Goto Record...</string>
    </property>
    <property name="toolTip">
     <string>Go to line number</string>
+   </property>
+  </action>
+  <action name="actionCopy_Row">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/duplicate_table_row.png</normaloff>icons/duplicate_table_row.png</iconset>
+   </property>
+   <property name="text">
+    <string>Duplicate Row</string>
+   </property>
+   <property name="toolTip">
+    <string>Duplicate Row</string>
    </property>
   </action>
  </widget>
@@ -276,6 +320,11 @@
    <extends>QWidget</extends>
    <header>blobpreviewwidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>SqlTableView</class>
+   <extends>QWidget</extends>
+   <header>sqltableview.h</header>
   </customwidget>
  </customwidgets>
  <resources>

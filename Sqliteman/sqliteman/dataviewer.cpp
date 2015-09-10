@@ -4,12 +4,13 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
-	FIXME HTML formatting for error messages
 	FIXME can see "not a blob" after commit
 */
 
 #include <QMessageBox>
+#include <QSqlField>
 #include <QSqlQuery>
+#include <QSqlRecord>
 #include <QSqlError>
 #include <QKeyEvent>
 #include <QClipboard>
@@ -48,8 +49,10 @@ DataViewer::DataViewer(QWidget * parent)
 	ui.splitter->setCollapsible(0, false);
 	ui.splitter->setCollapsible(1, false);
 	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
+    ui.actionCopy_Row->setIcon(Utils::getIcon("duplicate_table_row.png"));
 	ui.actionRemove_Row->setIcon(Utils::getIcon("delete_table_row.png"));
-	ui.actionTruncate_Table->setIcon(Utils::getIcon("clear_table_contents.png"));
+	ui.actionTruncate_Table->setIcon(
+		Utils::getIcon("clear_table_contents.png"));
 	ui.actionCommit->setIcon(Utils::getIcon("database_commit.png"));
 	ui.actionRollback->setIcon(Utils::getIcon("database_rollback.png"));
 	ui.actionRipOut->setIcon(Utils::getIcon("snapshot.png"));
@@ -86,6 +89,10 @@ DataViewer::DataViewer(QWidget * parent)
 
 	connect(ui.actionNew_Row, SIGNAL(triggered()),
 			this, SLOT(addRow()));
+    connect(ui.actionCopy_Row, SIGNAL(triggered()),
+            this, SLOT(copyRow()));
+    connect(ui.itemView->copyButton, SIGNAL(clicked()),
+            this, SLOT(copyRow()));
 	connect(ui.actionRemove_Row, SIGNAL(triggered()),
 			this, SLOT(removeRow()));
 	connect(ui.actionTruncate_Table, SIGNAL(triggered()),
@@ -246,6 +253,7 @@ void DataViewer::updateButtons(const QItemSelection & selected)
 		canPreview = false;
 	}
 	ui.actionNew_Row->setEnabled(editable);
+	ui.actionCopy_Row->setEnabled(editable && rowSelected);
 	ui.actionRemove_Row->setEnabled(editable && rowSelected);
 	ui.actionTruncate_Table->setEnabled(editable && haveRows);
 	ui.actionCommit->setEnabled(pending);
@@ -414,7 +422,8 @@ void DataViewer::addRow()
 	// FIXME adding a row and leaving it all nulls causes commit failure
 	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
 	removeErrorMessage();
-	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
+	SqlTableModel * model
+		= qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
 	{
 		activeRow = model->rowCount();
@@ -423,6 +432,36 @@ void DataViewer::addRow()
 		ui.tableView->selectRow(activeRow);
 		updateButtons(QItemSelection());
 	}
+}
+
+void DataViewer::copyRow()
+{
+    SqlTableModel * model =
+	    qobject_cast<SqlTableModel *>(ui.tableView->model());
+    if (model)
+    {
+        int row = ui.tableView->currentIndex().row();
+        if (row >= 0)
+        {
+            QSqlRecord rec(model->record(row));
+			/* We should be able to insert the copied row after the current one,
+			 * but there seems to be some kind of strange bug in QSqlTableModel
+			 * such that if we do so, we get a reference to the same record
+			 * rather than a new different one.
+			 */
+            if (model->insertRecord(-1, rec))
+			{
+				ui.tableView->selectRow(model->rowCount() - 1);
+				updateButtons(QItemSelection());
+				if (ui.tabWidget->currentIndex() == 1)
+				{
+					ui.itemView->setCurrentIndex(
+						ui.tableView->currentIndex().row(),
+						ui.tableView->currentIndex().column());
+				}
+			}
+        }
+    }
 }
 
 void DataViewer::removeRow()

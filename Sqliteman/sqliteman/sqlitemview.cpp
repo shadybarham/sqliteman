@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include <QTableView>
 
 #include "sqlitemview.h"
+#include "sqlmodels.h"
 
 SqlItemView::SqlItemView(QWidget * parent)
 	: QWidget(parent),
@@ -90,6 +91,7 @@ void SqlItemView::updateButtons(int row)
 	firstButton->setEnabled(findUp(-1) != row);
 	nextButton->setEnabled(findUp(row) != row);
 	lastButton->setEnabled(findDown(rowcount) != row);
+	copyButton->setEnabled(qobject_cast<SqlTableModel *>(m_model) != 0);
 }
 
 void SqlItemView::setCurrentIndex(int row, int column)
