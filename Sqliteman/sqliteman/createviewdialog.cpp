@@ -56,8 +56,8 @@ void CreateViewDialog::createButton_clicked()
 					  + "."
 					  + Utils::quote(ui.nameEdit->text())
 					  + " AS "
-					  + ui.sqlEdit->text()
-					  + ";";
+					  + ui.sqlEdit->text();
+		if (!sql.endsWith(";")) { sql = sql + ";"; }
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		
