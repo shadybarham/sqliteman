@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/doc" >
+    <qresource prefix="/doc">
         <file>en/alterTable.png</file>
         <file>en/apa.html</file>
         <file>en/apas02.html</file>
@@ -85,5 +85,7 @@
         <file>en/table.png</file>
         <file>en/trigger.png</file>
         <file>en/view.png</file>
+        <file>en/duplicate_table_row.png</file>
+        <file>en/go-next-use.png</file>
     </qresource>
 </RCC>

@@ -5,6 +5,9 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME can see "not a blob" after commit
+	FIXME add multiline editor to field context menu
+	FIXME make sql editor work with attached database
+	FIXME handle things better when not in autocommit mode
 */
 
 #include <QMessageBox>
