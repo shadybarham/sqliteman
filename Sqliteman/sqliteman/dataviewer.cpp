@@ -8,6 +8,8 @@ for which a new license (GPL+exception) is in place.
 	FIXME add multiline editor to field context menu
 	FIXME make sql editor work with attached database
 	FIXME handle things better when not in autocommit mode
+	FIXME can't insert row with all non-null values defaulted
+	FIXME use explicit string NULL
 */
 
 #include <QMessageBox>

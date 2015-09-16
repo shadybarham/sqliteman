@@ -28,6 +28,7 @@ class CreateTableDialog : public TableEditorDialog
 	private slots:
 		void createButton_clicked();
 		void tabWidget_currentChanged(int index);
+		void checkChanges();
 
 	private:
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql

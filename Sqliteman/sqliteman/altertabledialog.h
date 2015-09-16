@@ -50,14 +50,14 @@ class AlterTableDialog : public TableEditorDialog
 
 		QTreeWidgetItem * m_item;
 		int m_protectedRows;
+		
+		FieldList m_fields;
 
 		//! \brief Indicate how much protected colums are marked for DROPping.
 		int m_dropColumns;
 
 		//! \brief Fill the GUI with table structure.
 		void resetStructure();
-		//! \brief Setup the OK button if there is something changed
-		void checkChanges();
 
 		/*! \brief Analyze user changes and performs the ALTER TABLE ADD COLUM sqls
 		\retval bool true on succes, false on error
@@ -73,7 +73,6 @@ class AlterTableDialog : public TableEditorDialog
 		/*! \brief Execute statement, handle its errors and outputs message to the GUI.
 		\param statement a SQL statement as QString
 		\param message a text message to display in the log widget
-		\param tmpName an addon text for log in the case of error
 		\retval bool true on SQL succes
 		*/
 		bool execSql(const QString & statement, const QString & message);
@@ -89,7 +88,6 @@ class AlterTableDialog : public TableEditorDialog
 		bool m_alteringActive;
 
 	private slots:
-		void addField();
 		void removeField();
 		void fieldSelected();
 		//! \brief Check if to allow user changes in the table column (qtable row).
@@ -98,6 +96,9 @@ class AlterTableDialog : public TableEditorDialog
 		void dropItem_stateChanged(int);
 
 		void createButton_clicked();
+
+		//! \brief Setup the Alter button if there is something changed
+		void checkChanges();
 };
 
 #endif

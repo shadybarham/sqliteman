@@ -141,7 +141,6 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	}
 	// Make a list with all of the individual field statements
 	// Initialize ourselves a Field Map -- keys and vals are QStrings
-	QHash<QString, QString> fieldMap;
 	QRegExp matcher(sqlField, Qt::CaseInsensitive);
 	while (!fieldList.isEmpty())
 	{
@@ -159,8 +158,6 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 		}
 		fieldList = newFieldList;
 		fieldName = Utils::unQuote(fieldName);
-		// Populate the hash
-		fieldMap[fieldName] = fieldType;
 	}
 
 	while (query.next())
@@ -168,11 +165,25 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 		DatabaseTableField field;
 		field.cid = query.value(0).toInt();
 		field.name = query.value(1).toString();
-		field.type = fieldMap[field.name];
-		if (field.type.isNull() || field.type.isEmpty())
-			field.type = "NULL";
+		field.type  = query.value(2).toString();
 		field.notnull = query.value(3).toBool();
-		field.defval = Utils::unQuote(query.value(4).toString());
+		QVariant defval = query.value(4);
+		if (defval.isNull())
+		{
+			field.defval = QString();
+		}
+		else
+		{
+			QString s = defval.toString();
+			if (s.toUpper().compare("NULL") == 0)
+			{
+				field.defval = QString();
+			}
+			else
+			{
+				field.defval = Utils::unQuote(s);
+			}
+		}
 		field.pk = query.value(5).toBool();
 		if (field.pk) {
 			field.type += " PRIMARY KEY";
@@ -200,14 +211,6 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	return fields;
 }
 #endif
-
-
-
-
-
-
-
-
 
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
@@ -370,7 +373,8 @@ bool Database::exportSql(const QString & fileName)
 	
 	if (query.lastError().isValid())
 	{
-		exception(tr("Error while exporting SQL: %1.").arg(query.lastError().text()));
+		exception(tr(
+			"Error while exporting SQL: %1.").arg(query.lastError().text()));
 		return false;
 	}
 	

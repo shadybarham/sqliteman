@@ -44,17 +44,15 @@ class TableEditorDialog : public QDialog
 		
 		QString getColumnClause(DatabaseTableField column);
 
+	protected:
+		virtual void checkChanges() = 0;
+
 	public slots:
 		virtual void addField();
 		virtual void removeField();
 		virtual void fieldSelected();
-		virtual void nameEdit_textChanged(const QString&);
 		virtual void createButton_clicked();
 		virtual void tabWidget_currentChanged(int index);
-
-private slots:
-		void tableCellChanged(int row, int column);
-
 };
 
 #endif

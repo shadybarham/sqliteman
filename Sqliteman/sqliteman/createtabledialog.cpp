@@ -3,12 +3,14 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME allow CREATE TABLE to use Query Builder
 */
 
 #include <QCheckBox>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QMessageBox>
+#include <QLineEdit>
 
 #include "createtabledialog.h"
 #include "database.h"
@@ -24,6 +26,8 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	setWindowTitle(tr("Create Table"));
 
 	ui.createButton->setDisabled(true);
+	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
+			this, SLOT(checkChanges()));
 
 	ui.textEdit->setText(
 		"CREATE TABLE [IF NOT EXISTS] <database-name.table-name>\n\
@@ -80,6 +84,22 @@ void CreateTableDialog::createButton_clicked()
 		updated = true;
 		ui.resultEdit->setHtml(tr("Table created successfully"));
 	}
+}
+
+void CreateTableDialog::checkChanges()
+{
+	bool bad = ui.nameEdit->text().trimmed().isEmpty();
+	for(int i = 0; i < ui.columnTable->rowCount(); i++)
+	{
+		QLineEdit * name =
+			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+		if (   (name == 0)
+			|| (name->text().trimmed().isEmpty()))
+		{
+			bad = true;
+		}
+	}
+	ui.createButton->setDisabled(bad);
 }
 
 void CreateTableDialog::tabWidget_currentChanged(int index)

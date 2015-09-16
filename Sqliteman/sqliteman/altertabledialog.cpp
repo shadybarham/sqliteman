@@ -3,8 +3,10 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME loses constraints
-	FIXME disable createbutton if any column has empty name
+	FIXME loses constraints (?)
+	FIXME handle all columns replaced
+	FIXME avoid recreating if sqlite ALTER TABLE can do it
+	FIXME allow reordering columns
 */
 
 #include <QCheckBox>
@@ -12,9 +14,11 @@ for which a new license (GPL+exception) is in place.
 #include <QSqlError>
 #include <QTreeWidgetItem>
 #include <QMessageBox>
+#include <QSettings>
 
 #include "altertabledialog.h"
 #include "utils.h"
+#include "preferences.h"
 
 
 AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
@@ -30,7 +34,6 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	updateStage = 0;
 
 	ui.nameEdit->setText(m_item->text(0));
-// 	ui.nameEdit->setDisabled(true);
 	ui.databaseCombo->addItem(m_item->text(1));
 	ui.databaseCombo->setDisabled(true);
 	ui.tabWidget->removeTab(1);
@@ -46,13 +49,20 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	QTableWidgetItem * captDrop = new QTableWidgetItem(tr("Drop"));
 	ui.columnTable->setHorizontalHeaderItem(5, captDrop);
 
-	connect(ui.columnTable, SIGNAL(cellClicked(int, int)), this, SLOT(cellClicked(int,int)));
+	connect(ui.columnTable, SIGNAL(cellClicked(int, int)),
+			this, SLOT(cellClicked(int,int)));
+	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
+			this, SLOT(checkChanges()));
 
 	resetStructure();
 }
 
 void AlterTableDialog::resetStructure()
 {
+	Preferences * prefs = Preferences::instance();
+	bool useNull = prefs->nullHighlight();
+	QString nullText = prefs->nullHighlightText();
+
 	// obtain all indexed columns for DROP COLUMN checks
 	foreach(QString index,
 		Database::getObjects("index", m_item->text(1)).values(m_item->text(0)))
@@ -65,37 +75,79 @@ void AlterTableDialog::resetStructure()
 	}
 
 	// Initialize fields
-	FieldList fields = Database::tableFields(m_item->text(0), m_item->text(1));
+	m_fields = Database::tableFields(m_item->text(0), m_item->text(1));
 	ui.columnTable->clearContents();
-	ui.columnTable->setRowCount(fields.size());
-	for(int i = 0; i < fields.size(); i++)
+	ui.columnTable->setRowCount(m_fields.size());
+	for(int i = 0; i < m_fields.size(); i++)
 	{
-		QTableWidgetItem * nameItem = new QTableWidgetItem(fields[i].name);
-		QTableWidgetItem * typeItem = new QTableWidgetItem(fields[i].type);
-// 		typeItem->setFlags(Qt::ItemIsSelectable); // TODO: change afinity in ALTER TABLE too!
-		QTableWidgetItem * defItem = new QTableWidgetItem(fields[i].defval);
+		QLineEdit * name = new QLineEdit(this);
+		name->setText(m_fields[i].name);
+		name->setFrame(false);
+		connect(name, SIGNAL(textEdited(const QString &)),
+				this, SLOT(checkChanges()));
+		ui.columnTable->setCellWidget(i, 0, name);
+
+		QComboBox * box = new QComboBox(this);
+		box->setEditable(true);
+		box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+		QStringList types;
+		if (useNull && !nullText.isEmpty()) { types << nullText; }
+		else { types << "Null"; }
+		types << "Text" << "PK Integer"  << "PK Autoincrement"
+			  << "Integer" << "Real" << "Blob";
+		box->addItems(types);
+		int n;
+		QString s = m_fields[i].type;
+		if (s.isEmpty())
+		{
+			n = 0;
+		}
+		else
+		{
+			n = box->findText(s, Qt::MatchFixedString);
+			if (n <= 0)
+			{
+				n = box->count();
+				box->addItem(s);
+			}
+		}
+		box->setCurrentIndex(n);
+		connect(box, SIGNAL(currentIndexChanged(int)),
+				this, SLOT(checkChanges()));
+		connect(box, SIGNAL(editTextChanged(const QString &)),
+				this, SLOT(checkChanges()));
+		ui.columnTable->setCellWidget(i, 1, box);
+
+		QCheckBox *nn = new QCheckBox(this);
+		nn->setCheckState(m_fields[i].notnull ? Qt::Checked : Qt::Unchecked);
+		connect(nn, SIGNAL(stateChanged(int)), this, SLOT(checkChanges()));
+		ui.columnTable->setCellWidget(i, 2, nn);
+
+		QLineEdit * defval = new QLineEdit(this);
+		s = m_fields[i].defval;
+		defval->setText(s);
+		if (useNull && s.isNull())
+		{
+			defval->setPlaceholderText(nullText);
+		}
+		defval->setFrame(false);
+		connect(defval, SIGNAL(textEdited(const QString &)),
+				this, SLOT(checkChanges()));
+		ui.columnTable->setCellWidget(i, 3, defval);
+
 		QTableWidgetItem * ixItem = new QTableWidgetItem();
-
-		QCheckBox * dropItem = new QCheckBox(this);
-		connect(dropItem, SIGNAL(stateChanged(int)),
-				this, SLOT(dropItem_stateChanged(int)));
-
 		ixItem->setFlags(Qt::ItemIsSelectable);
-		if (m_columnIndexMap.contains(fields[i].name))
+		if (m_columnIndexMap.contains(m_fields[i].name))
 		{
 			ixItem->setIcon(Utils::getIcon("index.png"));
 			ixItem->setText(tr("Yes"));
 		}
-		else
-			ixItem->setText(tr("No"));
-
-		ui.columnTable->setItem(i, 0, nameItem);
-		ui.columnTable->setItem(i, 1, typeItem);
-		QCheckBox *nn = new QCheckBox(this);
-		nn->setCheckState(fields[i].notnull ? Qt::Checked : Qt::Unchecked);
-		ui.columnTable->setCellWidget(i, 2, nn);
-		ui.columnTable->setItem(i, 3, defItem);
+		else { ixItem->setText(tr("No")); }
 		ui.columnTable->setItem(i, 4, ixItem);
+
+		QCheckBox * dropItem = new QCheckBox(this);
+		connect(dropItem, SIGNAL(stateChanged(int)),
+				this, SLOT(dropItem_stateChanged(int)));
 		ui.columnTable->setCellWidget(i, 5, dropItem);
 	}
 
@@ -392,18 +444,11 @@ bool AlterTableDialog::addColumns()
 	return true;
 }
 
-void AlterTableDialog::addField()
-{
-	TableEditorDialog::addField();
-	checkChanges();
-}
-
 void AlterTableDialog::removeField()
 {
 	if (ui.columnTable->currentRow() < m_protectedRows)
 		return;
 	TableEditorDialog::removeField();
-	checkChanges();
 }
 
 void AlterTableDialog::fieldSelected()
@@ -428,6 +473,62 @@ void AlterTableDialog::cellClicked(int row, int)
 
 void AlterTableDialog::checkChanges()
 {
-// 	ui.createButton->setEnabled(m_dropColumns > 0 || m_protectedRows < ui.columnTable->rowCount());
-	ui.createButton->setEnabled(true);
+	Preferences * prefs = Preferences::instance();
+	bool useNull = prefs->nullHighlight();
+	QString nullText = prefs->nullHighlightText();
+
+	QString newName = ui.nameEdit->text().trimmed();
+	int cols = ui.columnTable->rowCount();
+	int colsLeft = cols;
+	bool changed =   (m_dropColumns != 0)
+				  || (m_item->text(0) != newName)
+				  || (m_protectedRows != cols);
+
+	bool bad = newName.isEmpty();
+	
+	for (int i = 0; i < cols; i++)
+	{
+		QLineEdit * name =
+			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+		if (name->text().isEmpty())
+		{
+			bad = true;
+			break;
+		}
+		if (i < m_fields.count())
+		{
+			QComboBox * type =
+				qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
+			QString ftype = m_fields[i].type;
+			if (ftype.isEmpty())
+			{
+				if (useNull && !nullText.isEmpty())
+				{
+					ftype = nullText;
+				}
+				else
+				{
+					ftype = "Null";
+				}
+			}
+			QString ctype = type->currentText();
+			QCheckBox * nn =
+				qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 2));
+			QLineEdit * defval =
+				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 3));
+			QCheckBox * drop =
+				qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5));
+			if (   (name->text() != m_fields[i].name)
+				|| (ftype != ctype)
+				|| (defval->text() != m_fields[i].defval)
+				|| (nn->checkState() !=
+					(m_fields[i].notnull ? Qt::Checked : Qt::Unchecked)))
+			{
+				changed = true;
+			}
+			if (drop->checkState() == Qt::Checked) { --colsLeft; }
+		}
+	}
+	if (colsLeft == 0) { bad = true; }
+	ui.createButton->setEnabled(changed && !bad);
 }
