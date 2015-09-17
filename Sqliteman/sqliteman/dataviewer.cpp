@@ -436,6 +436,12 @@ void DataViewer::addRow()
 		ui.tableView->scrollToBottom();
 		ui.tableView->selectRow(activeRow);
 		updateButtons(QItemSelection());
+		if (ui.tabWidget->currentIndex() == 1)
+		{
+			ui.itemView->setCurrentIndex(
+				ui.tableView->currentIndex().row(),
+				ui.tableView->currentIndex().column());
+		}
 	}
 }
 
