@@ -8,6 +8,8 @@ for which a new license (GPL+exception) is in place.
 #ifndef UTILS_H
 #define UTILS_H
 
+class QItemSelection;
+class QTreeWidgetItem;
 
 //! Various helper functions
 namespace Utils {
@@ -36,6 +38,10 @@ QString literal(QString s);
 QString unQuote(QString s);
 
 QString like(QString s);
+
+//debugging hacks
+void dump(QItemSelection selection);
+void dump(QTreeWidgetItem & item);
 };
 
 #endif

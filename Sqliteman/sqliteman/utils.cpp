@@ -7,6 +7,8 @@ for which a new license (GPL+exception) is in place.
 
 #include <QIcon>
 #include <QPixmapCache>
+#include <QItemSelection>
+#include <QTreeWidgetItem>
 
 #include "utils.h"
 
@@ -104,4 +106,25 @@ QString Utils::like(QString s)
 			  .replace("%", "@%")
 			  .replace("@", "@@")
 		   + "%' ESCAPE '@'";
+}
+
+// debugging hacks
+void Utils::dump(QItemSelection selection)
+{
+	QModelIndexList list = selection.indexes();
+	int n = list.count();
+	if (n == 0)
+	{
+		qDebug("selection is empty");
+	}
+	else for (int i = 0; i < n; ++i)
+	{
+		QModelIndex index = list.at(i);
+		qDebug("row %d column %d", index.row(), index.column());
+	}
+}
+void Utils::dump(QTreeWidgetItem & item)
+{
+	qDebug("text(0) \"%s\", text(1) \"%s\"",
+		   item.text(0).toUtf8().data(), item.text(1).toUtf8().data());
 }
