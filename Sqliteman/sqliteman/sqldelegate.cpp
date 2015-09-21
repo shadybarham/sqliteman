@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include "utils.h"
 #include "multieditdialog.h"
 #include "preferences.h"
+#include "database.h"
 
 
 SqlDelegate::SqlDelegate(QObject * parent)
@@ -97,15 +98,32 @@ void SqlDelegateUi::focusInEvent(QFocusEvent *e)
 
 void SqlDelegateUi::setSqlData(const QVariant & data)
 {
+	Preferences * prefs = Preferences::instance();
+	bool useBlob = prefs->blobHighlight();
+	QString blobText = prefs->blobHighlightText();
+	bool cropColumns = prefs->cropColumns();
+
 	m_sqlData = data;
-	// blob or multiline
+	// blob
 	if (data.type() == QVariant::ByteArray)
 	{
 		lineEdit->setDisabled(true);
 		lineEdit->setToolTip(tr(
 			"Blobs can be edited with the multiline editor only (Ctrl+Shift+E)"));
 		Preferences * prefs = Preferences::instance();
-		lineEdit->setText(prefs->blobHighlightText());
+		if (useBlob)
+		{
+			lineEdit->setText(prefs->blobHighlightText());
+		}
+		else
+		{
+			QString hex = Database::hex(data.toByteArray());
+			if (cropColumns)
+			{
+				hex = hex.length() > 20 ? hex.left(20)+"..." : hex;
+			}
+			lineEdit->setText(hex);
+		}
 	}
 	else if (m_sqlData.toString().contains("\n"))
 	{

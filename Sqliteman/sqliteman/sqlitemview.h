@@ -45,6 +45,7 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		void setCurrentIndex(int row, int column);
 		int currentRow();
 		int currentColumn();
+		void updateDisplay();
 
 	signals:
 		/*! Emitted when there is a focus change in

@@ -727,15 +727,34 @@ void DataViewer::tableView_selectionChanged(const QItemSelection & selected, con
     bool enable = (tm != 0);
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
-	updateButtons(selected);
+
+	// Workaround for Qt bug: if user selects a single item within the
+	// previous selection, the "selected" parameter passed to this slot
+	// is an empty list instead of a list containing the index of the
+	// newly selected item: we reinstate the correct selection.
+	QModelIndexList indexList = selected.indexes();
+	QModelIndex newindex;
+	QItemSelection newsel;
+	if (indexList.count()> 0)
+	{
+		newindex = indexList.at(0);
+	}
+	else
+	{
+		newindex = ui.tableView->currentIndex();
+	}
+	if (newindex.isValid())
+	{
+		newsel = QItemSelection(newindex, newindex);
+	}
+
+	updateButtons(newsel);
 	if (ui.blobPreviewBox->isVisible())
 	{
-		QModelIndexList indexList = selected.indexes();
-		if (   (indexList.count() == 1)
-			&& indexList.at(0).isValid())
+		if (newindex.isValid())
 		{
 			ui.blobPreview->setBlobData(
-				ui.tableView->model()->data(indexList.at(0), Qt::EditRole));
+				ui.tableView->model()->data(newindex, Qt::EditRole));
 		}
 		else
 		{

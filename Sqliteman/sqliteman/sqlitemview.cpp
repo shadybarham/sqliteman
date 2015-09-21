@@ -13,6 +13,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "sqlitemview.h"
 #include "sqlmodels.h"
+#include "database.h"
 
 SqlItemView::SqlItemView(QWidget * parent)
 	: QWidget(parent),
@@ -25,6 +26,7 @@ SqlItemView::SqlItemView(QWidget * parent)
 			this, SLOT(toFirst()));
 	connect(previousButton, SIGNAL(clicked()),
 			this, SLOT(toPrevious()));
+
 	connect(nextButton, SIGNAL(clicked()),
 			this, SLOT(toNext()));
 	connect(lastButton, SIGNAL(clicked()),
@@ -106,9 +108,30 @@ void SqlItemView::setCurrentIndex(int row, int column)
 		QTextEdit * te = qobject_cast<QTextEdit *>(w);
 		if (te)
 		{
-			te->setText(m_model->data(
-				m_model->index(row, i), Qt::DisplayRole).toString());
-			// when we make it editable, take special action for blobs/nulls
+			QColor color =
+				m_model->data(m_model->index(row, i),
+							  Qt::BackgroundColorRole).value<QColor>();
+			QPalette p(te->palette());
+			p.setColor(QPalette::Active, QPalette::Base, color);
+			p.setColor(QPalette::Inactive, QPalette::Base, color);
+			te->setPalette(p);
+			QVariant rawdata = m_model->data(
+				m_model->index(row, i), Qt::EditRole);
+			if (rawdata.type() == QVariant::ByteArray)
+			{
+				rawdata = m_model->data(
+					m_model->index(row, i), Qt::DisplayRole);
+				te->setReadOnly(true);
+			}
+			if (i == column)
+			{
+				te->setText(rawdata.toString());
+			}
+			else
+			{
+				te->setText(m_model->data(
+					m_model->index(row, i), Qt::DisplayRole).toString());
+			}
 		}
 	}
 	updateButtons(row);
@@ -180,6 +203,7 @@ void SqlItemView::aApp_focusChanged(QWidget* old, QWidget* now)
 			if (w == now)
 			{
 				m_column = i;
+				setCurrentIndex(m_row, m_column);
 				emit indexChanged();
 				break;
 			}

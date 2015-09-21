@@ -40,7 +40,8 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 
 QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 {
-	QString curr(QSqlTableModel::data(item, Qt::DisplayRole).toString());
+	QVariant rawdata = QSqlTableModel::data(item, Qt::DisplayRole);
+	QString curr(rawdata.toString());
 	// numbers
 	if (role == Qt::TextAlignmentRole)
 	{
@@ -53,9 +54,6 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 
 	if (role == Qt::BackgroundColorRole)
     {
-    	// mark rows prepared for a deletion in this trasnaction
-        if (m_deleteCache.contains(item.row()))
-            return QVariant(Qt::red);
         for (int i = 0; i < columnCount(); ++i)
         {
             if (isDirty(index(item.row(), i)))
@@ -73,33 +71,38 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 	bool cropColumns = prefs->cropColumns();
 
 	// nulls
-	if (useNull && curr.isNull())
+	if (curr.isNull())
 	{
-		if (role == Qt::BackgroundColorRole)
-			return QVariant(nullColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("NULL value"));
-		if (role == Qt::DisplayRole)
-			return QVariant(nullText);
+		if (useNull)
+		{
+			if (role == Qt::BackgroundColorRole)
+				return QVariant(nullColor);
+			if (role == Qt::DisplayRole)
+				return QVariant(nullText);
+		}
 	}
-	// BLOBs
-	// any others handling with blobs - e.g. converting to images etc.
-	// are followed with serious performance issues.
-	// Users can see it through edit dialog.
-	if (/*f.type.toUpper() == "BLOB" || */
-		useBlob /*&&
-		   record().field(item.column()).type() == QVariant::ByteArray*/
-		   && QSqlTableModel::data(item, Qt::DisplayRole).type() == QVariant::ByteArray)
+
+	// blobs
+	if (rawdata.type() == QVariant::ByteArray)
 	{
-		if (role == Qt::BackgroundColorRole)
-			return QVariant(blobColor);
-		if (role == Qt::ToolTipRole)
-			return QVariant(tr("BLOB value"));
-		if (role == Qt::DisplayRole)
-			return QVariant(blobText);
-		if (role == Qt::EditRole)
-// 			return Database::hex(QSqlTableModel::data(item, Qt::DisplayRole).toByteArray());
-			return QSqlTableModel::data(item, Qt::DisplayRole);
+		if (role == Qt::ToolTipRole) { return QVariant(tr("BLOB value")); }
+		if (useBlob)
+		{
+			if (role == Qt::BackgroundColorRole) { return QVariant(blobColor); }
+			if (role == Qt::DisplayRole) { return QVariant(blobText); }
+		}
+		else if (role == Qt::DisplayRole)
+		{
+			curr = Database::hex(rawdata.toByteArray());
+			if (!cropColumns) { return QVariant(curr); }
+		}
+	}
+
+	if (role == Qt::BackgroundColorRole)
+	{
+		return QColor(255, 255, 255);
 	}
 
 	// advanced tooltips
@@ -299,7 +302,8 @@ SqlQueryModel::SqlQueryModel( QObject * parent)
 
 QVariant SqlQueryModel::data(const QModelIndex & item, int role) const
 {
-	QString curr(QSqlQueryModel::data(item, Qt::DisplayRole).toString());
+	QVariant rawdata = QSqlQueryModel::data(item, Qt::DisplayRole);
+	QString curr(rawdata.toString());
 
 	// numbers
 	if (role == Qt::TextAlignmentRole)
@@ -330,17 +334,22 @@ QVariant SqlQueryModel::data(const QModelIndex & item, int role) const
 			return QVariant(nullText);
 	}
 
-	if (/*f.type.toUpper() == "BLOB" || */
-		useBlob /*&&
-		   record().field(item.column()).type() == QVariant::ByteArray*/
-		   && QSqlQueryModel::data(item, Qt::DisplayRole).type() == QVariant::ByteArray)
+	if (useBlob && (rawdata.type() == QVariant::ByteArray))
 	{
 		if (role == Qt::BackgroundColorRole)
 			return QVariant(blobColor);
 		if (role == Qt::ToolTipRole)
 			return QVariant(tr("BLOB value"));
-		if (role == Qt::DisplayRole)
+		if (   (role == Qt::DisplayRole)
+			|| (role == Qt::EditRole))
+		{
 			return QVariant(blobText);
+		}
+	}
+
+	if (role == Qt::BackgroundColorRole)
+	{
+		return QColor(255, 255, 255);
 	}
 
 	// advanced tooltips
