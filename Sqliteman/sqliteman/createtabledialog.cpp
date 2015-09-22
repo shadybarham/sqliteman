@@ -21,6 +21,7 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 {
 	creator = parent;
 	updated = false;
+	m_dirty = false;
 	ui.removeButton->setEnabled(false); // Disable row removal
 	addField(); // A table should have at least one field
 	setWindowTitle(tr("Create Table"));
@@ -28,14 +29,10 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	ui.createButton->setDisabled(true);
 	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
 			this, SLOT(checkChanges()));
+	connect(ui.textEdit, SIGNAL(textChanged(const QString&)),
+			this, SLOT(setDirty()));
 
-	ui.textEdit->setText(
-		"CREATE TABLE [IF NOT EXISTS] <database-name.table-name>\n\
-(\n\
-    <column-name> <type> <constraint...>,\n\
-    ...\n\
-    [, constraints ]\n\
-)");
+	ui.textEdit->setText("");
 }
 
 QString CreateTableDialog::getSQLfromGUI()
@@ -56,6 +53,7 @@ QString CreateTableDialog::getSQLfromGUI()
 	}
 	sql = sql.remove(sql.size() - 2, 2); 	// cut the extra ", "
 	sql += "\n);\n";
+	m_dirty = true;
 
 	return sql;
 }
@@ -102,20 +100,31 @@ void CreateTableDialog::checkChanges()
 	ui.createButton->setDisabled(bad);
 }
 
+void CreateTableDialog::setDirty()
+{
+	m_dirty = true;
+}
+
 void CreateTableDialog::tabWidget_currentChanged(int index)
 {
 	if (index == 1)
 	{
-		//FIXME only do this if editor window is dirty
-		// and use more sensible message
-		int com = QMessageBox::question(this, tr("Sqliteman"),
-			tr("The current content of the Advanced SQL editor will be lost."
-			   "Do you really want to recreate your SQL?"),
-			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
-		if (com == QMessageBox::Yes)
+		if (m_dirty)
+		{
+			int com = QMessageBox::question(this, tr("Sqliteman"),
+				tr("Do you want to keep the current content of the SQL editor?."
+				   "\nYes to keep it,\nNo to create from the Design tab"
+				   "\nCancel to return to the Design tab"),
+				QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+			if (com == QMessageBox::No)
+				ui.textEdit->setText(getSQLfromGUI());
+			else if (com == QMessageBox::Cancel)
+				ui.tabWidget->setCurrentIndex(0);
+		}
+		else
+		{
 			ui.textEdit->setText(getSQLfromGUI());
-		else if (com == QMessageBox::Cancel)
-			ui.tabWidget->setCurrentIndex(0);
+		}
 	}
 	TableEditorDialog::tabWidget_currentChanged(index);
 }

@@ -29,11 +29,14 @@ class CreateTableDialog : public TableEditorDialog
 		void createButton_clicked();
 		void tabWidget_currentChanged(int index);
 		void checkChanges();
+		void setDirty();
 
 	private:
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
 		QString getSQLfromGUI();
+
+		bool m_dirty; // SQL has been edited
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
