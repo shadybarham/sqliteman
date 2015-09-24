@@ -29,8 +29,6 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	ui.createButton->setDisabled(true);
 	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
 			this, SLOT(checkChanges()));
-	connect(ui.textEdit, SIGNAL(textChanged(const QString&)),
-			this, SLOT(setDirty()));
 
 	ui.textEdit->setText("");
 }
