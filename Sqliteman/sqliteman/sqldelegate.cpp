@@ -168,6 +168,8 @@ void SqlDelegateUi::editButton_clicked(bool state)
 
 void SqlDelegateUi::lineEdit_textEdited(const QString & text)
 {
+	int cursor = lineEdit->cursorPosition();
 	m_sqlData = text;
     emit textChanged();
+	lineEdit->setCursorPosition(cursor);
 }
