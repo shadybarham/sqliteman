@@ -828,6 +828,10 @@ void DataViewer::gotoLine()
 	ui.tableView->selectionModel()->select(QItemSelection(left, left),
 										   QItemSelectionModel::ClearAndSelect);
 	ui.tableView->setCurrentIndex(left);
+	if (ui.tabWidget->currentIndex() == 1)
+	{
+		ui.itemView->setCurrentIndex(row, column);
+	}
 	updateButtons();
 }
 
