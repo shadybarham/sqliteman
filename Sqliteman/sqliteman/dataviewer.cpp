@@ -4,7 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
-	FIXME can see "not a blob" after commit
 	FIXME add multiline editor to field context menu
 	FIXME make sql editor work with attached database
 	FIXME handle things better when not in autocommit mode
@@ -96,8 +95,6 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(addRow()));
     connect(ui.actionCopy_Row, SIGNAL(triggered()),
             this, SLOT(copyRow()));
-    connect(ui.itemView->copyButton, SIGNAL(clicked()),
-            this, SLOT(copyRow()));
 	connect(ui.actionRemove_Row, SIGNAL(triggered()),
 			this, SLOT(removeRow()));
 	connect(ui.actionTruncate_Table, SIGNAL(triggered()),
@@ -187,7 +184,7 @@ bool DataViewer::checkForPending()
 	else { return true; }
 }
 
-void DataViewer::updateButtons(const QItemSelection & selected)
+void DataViewer::updateButtons()
 {
 	int row = -1;
 	bool haveRows;
@@ -199,11 +196,7 @@ void DataViewer::updateButtons(const QItemSelection & selected)
 	int tab = ui.tabWidget->currentIndex();
 	QAbstractItemModel * model = ui.tableView->model();
 	SqlTableModel * table = qobject_cast<SqlTableModel *>(model);
-	QModelIndexList indexList = selected.indexes();
-	if (indexList.count() == 0)
-	{
-		indexList = ui.tableView->selectedIndexes();
-	}
+	QModelIndexList indexList = ui.tableView->selectedIndexes();
 	foreach (const QModelIndex &index, indexList)
 	{
 		if (index.isValid())
@@ -225,6 +218,7 @@ void DataViewer::updateButtons(const QItemSelection & selected)
 		}
 	}
 	activeRow = rowSelected ? row : -1;
+	QVariant data;
 	if (model)
 	{
 		if (table)
@@ -238,6 +232,7 @@ void DataViewer::updateButtons(const QItemSelection & selected)
 			pending = false;
 		}
 		haveRows = model->rowCount() > 0;
+		data = model->data(ui.tableView->currentIndex(), Qt::EditRole);
 	}
 	else
 	{
@@ -245,11 +240,9 @@ void DataViewer::updateButtons(const QItemSelection & selected)
 		pending = false;
 		haveRows = false;
 	}
-	if (singleItem && model)
+	if (singleItem && (data.type() == QVariant::ByteArray))
 	{
 		QPixmap pm;
-		QVariant data = model->data(ui.tableView->currentIndex(),
-									Qt::EditRole);
 		pm.loadFromData(data.toByteArray());
 		canPreview = !pm.isNull();
 	}
@@ -311,7 +304,7 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 	ui.itemView->setTable(ui.tableView);
 	ui.tabWidget->setCurrentIndex(0);
 	resizeViewToContents(model);
-	updateButtons(QItemSelection());
+	updateButtons();
 	
 	rowCountChanged();
 
@@ -435,7 +428,7 @@ void DataViewer::addRow()
 		model->insertRows(activeRow, 1);
 		ui.tableView->scrollToBottom();
 		ui.tableView->selectRow(activeRow);
-		updateButtons(QItemSelection());
+		updateButtons();
 		if (ui.tabWidget->currentIndex() == 1)
 		{
 			ui.itemView->setCurrentIndex(
@@ -463,7 +456,7 @@ void DataViewer::copyRow()
             if (model->insertRecord(-1, rec))
 			{
 				ui.tableView->selectRow(model->rowCount() - 1);
-				updateButtons(QItemSelection());
+				updateButtons();
 				if (ui.tabWidget->currentIndex() == 1)
 				{
 					ui.itemView->setCurrentIndex(
@@ -484,7 +477,7 @@ void DataViewer::removeRow()
 		int row = ui.tableView->currentIndex().row();
 		model->removeRows(row, 1);
 		ui.tableView->hideRow(row);
-		updateButtons(QItemSelection());
+		updateButtons();
 	}
 }
 
@@ -593,7 +586,7 @@ void DataViewer::commit()
 	model->setPendingTransaction(false);
 	reSelect();
 	resizeViewToContents(model);
-	updateButtons(QItemSelection());
+	updateButtons();
 }
 
 void DataViewer::rollback()
@@ -616,7 +609,7 @@ void DataViewer::rollback()
 		}
 		reSelect();
 		resizeViewToContents(model);
-		updateButtons(QItemSelection());
+		updateButtons();
 	}
 }
 
@@ -711,7 +704,7 @@ void DataViewer::handleBlobPreview(bool state)
 {
 	if (state)
 		tableView_selectionChanged(QItemSelection(), QItemSelection());
-	updateButtons(QItemSelection());
+	updateButtons();
 	if (ui.blobPreviewBox->isVisible())
 	{
 		ui.blobPreview->setBlobData(
@@ -720,7 +713,8 @@ void DataViewer::handleBlobPreview(bool state)
 	}
 }
 
-void DataViewer::tableView_selectionChanged(const QItemSelection & selected, const QItemSelection &)
+void DataViewer::tableView_selectionChanged(const QItemSelection &,
+											const QItemSelection &)
 {
 	removeErrorMessage();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
@@ -728,33 +722,14 @@ void DataViewer::tableView_selectionChanged(const QItemSelection & selected, con
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
 
-	// Workaround for Qt bug: if user selects a single item within the
-	// previous selection, the "selected" parameter passed to this slot
-	// is an empty list instead of a list containing the index of the
-	// newly selected item: we reinstate the correct selection.
-	QModelIndexList indexList = selected.indexes();
-	QModelIndex newindex;
-	QItemSelection newsel;
-	if (indexList.count()> 0)
-	{
-		newindex = indexList.at(0);
-	}
-	else
-	{
-		newindex = ui.tableView->currentIndex();
-	}
-	if (newindex.isValid())
-	{
-		newsel = QItemSelection(newindex, newindex);
-	}
-
-	updateButtons(newsel);
+	updateButtons();
+	QModelIndex index = ui.tableView->currentIndex();
 	if (ui.blobPreviewBox->isVisible())
 	{
-		if (newindex.isValid())
+		if (index.isValid())
 		{
 			ui.blobPreview->setBlobData(
-				ui.tableView->model()->data(newindex, Qt::EditRole));
+				ui.tableView->model()->data(index, Qt::EditRole));
 		}
 		else
 		{
@@ -768,23 +743,27 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	removeErrorMessage();
 	if (ix == 0)
 	{
-		// be carefull with this. See itemView_indexChanged() docs.
+		// be careful with this. See itemView_indexChanged() docs.
 		disconnect(ui.itemView, SIGNAL(indexChanged()),
-				this, SLOT(itemView_indexChanged()));
+				   this, SLOT(itemView_indexChanged()));
+		disconnect(ui.itemView, SIGNAL(dataChanged()),
+				   this, SLOT(tableView_dataChanged()));
 	}
 	if (ix == 1)
 	{
 		ui.itemView->setCurrentIndex(ui.tableView->currentIndex().row(),
 									 ui.tableView->currentIndex().column());
-		// be carefull with this. See itemView_indexChanged() docs.
+		// be careful with this. See itemView_indexChanged() docs.
 		connect(ui.itemView, SIGNAL(indexChanged()),
 				this, SLOT(itemView_indexChanged()));
+		connect(ui.itemView, SIGNAL(dataChanged()),
+				this, SLOT(tableView_dataChanged()));
 	}
 	
 	if (ui.actionBLOB_Preview->isChecked())
 		ui.blobPreviewBox->setVisible(ix!=2);
 	ui.statusText->setVisible(ix != 2);
-	updateButtons(QItemSelection());
+	updateButtons();
 }
 
 void DataViewer::itemView_indexChanged()
@@ -794,12 +773,13 @@ void DataViewer::itemView_indexChanged()
 		ui.tableView->model()->index(ui.itemView->currentRow(),
 								     ui.itemView->currentColumn())
 							);
+	updateButtons();
 }
 
 void DataViewer::tableView_dataChanged()
 {
 	removeErrorMessage();
-	updateButtons(QItemSelection());
+	updateButtons();
 }
 
 void DataViewer::showSqlScriptResult(QString line)
@@ -810,7 +790,7 @@ void DataViewer::showSqlScriptResult(QString line)
 	ui.scriptEdit->append("\n");
 	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
 	ui.tabWidget->setCurrentIndex(2);
-	updateButtons(QItemSelection());
+	updateButtons();
 }
 
 void DataViewer::sqlScriptStart()
@@ -848,7 +828,7 @@ void DataViewer::gotoLine()
 	ui.tableView->selectionModel()->select(QItemSelection(left, left),
 										   QItemSelectionModel::ClearAndSelect);
 	ui.tableView->setCurrentIndex(left);
-	updateButtons(QItemSelection());
+	updateButtons();
 }
 
 void DataViewer::actOpenEditor_triggered()

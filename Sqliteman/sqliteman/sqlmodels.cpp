@@ -123,11 +123,6 @@ bool SqlTableModel::setData ( const QModelIndex & ix, const QVariant & value, in
 	if (role == Qt::EditRole)
 		m_pending = true;
 
-    int r = ix.row();
-//	emit dataChanged( index(r, 0), index(r, columnCount()-1) );
-	int c = ix.column();
-	emit dataChanged( index(r, c), index(r, c) );
-
 	return QSqlTableModel::setData(ix, value, role);
 }
 

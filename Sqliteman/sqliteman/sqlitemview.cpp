@@ -18,6 +18,7 @@ for which a new license (GPL+exception) is in place.
 SqlItemView::SqlItemView(QWidget * parent)
 	: QWidget(parent),
 	m_row(0),
+	m_changing(false),
 	m_model(0)
 {
 	setupUi(this);
@@ -56,7 +57,7 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 		m_gridLayout->addWidget(
 			new QLabel(tmp.arg(rec.fieldName(i)), layoutWidget), i, 0);
 		QTextEdit * w = new QTextEdit(layoutWidget);
-		w->setReadOnly(true); // TODO: make it transaction reliable
+		w->setReadOnly(false);
 		w->setAcceptRichText(false);
 		int mh = QFontMetrics(w->currentFont()).lineSpacing();
 		w->setMinimumHeight(mh);
@@ -64,6 +65,8 @@ void SqlItemView::setModel(QAbstractItemModel * model)
                          QSizePolicy::MinimumExpanding);
 		m_gridLayout->addWidget(w, i, 1);
 		m_gridLayout->setRowMinimumHeight(i, mh);
+		connect(w, SIGNAL(textChanged()),
+				this, SLOT(textChanged()));
 	}
 	scrollWidget->setWidget(layoutWidget);
 
@@ -88,20 +91,19 @@ void SqlItemView::updateButtons(int row)
 		}
 		else { ++notDeleted; }
 	}
-	positionLabel->setText(tr("%1 of %2").arg(adjRow + 1).arg(notDeleted));
+	positionLabel->setText(tr("row %1 of %2").arg(adjRow + 1).arg(notDeleted));
 	previousButton->setEnabled(findDown(row) != row);
 	firstButton->setEnabled(findUp(-1) != row);
 	nextButton->setEnabled(findUp(row) != row);
 	lastButton->setEnabled(findDown(rowcount) != row);
-	copyButton->setEnabled(qobject_cast<SqlTableModel *>(m_model) != 0);
 }
 
 void SqlItemView::setCurrentIndex(int row, int column)
 {
 	m_column = column;
-	// We need to do this even if m_row has not changed, in case we're selecting
-	// row 0 for the first time after the item viewer was created
 	m_row = row;
+	m_changing = true;
+	bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
 	for (int i = 0; i < m_count; ++i)
 	{
 		QWidget * w = m_gridLayout->itemAtPosition(i, 1)->widget();
@@ -119,21 +121,21 @@ void SqlItemView::setCurrentIndex(int row, int column)
 				m_model->index(row, i), Qt::EditRole);
 			if (rawdata.type() == QVariant::ByteArray)
 			{
-				rawdata = m_model->data(
-					m_model->index(row, i), Qt::DisplayRole);
+				te->setText(m_model->data(
+					m_model->index(row, i), Qt::DisplayRole).toString());
 				te->setReadOnly(true);
-			}
-			if (i == column)
-			{
-				te->setText(rawdata.toString());
 			}
 			else
 			{
+				te->setReadOnly(!writeable);
+				Qt::ItemDataRole role = (writeable && (i == column)) ?
+					Qt::EditRole : Qt::DisplayRole;
 				te->setText(m_model->data(
-					m_model->index(row, i), Qt::DisplayRole).toString());
+					m_model->index(row, i), role).toString());
 			}
 		}
 	}
+	m_changing = false;
 	updateButtons(row);
 }
 
@@ -172,25 +174,37 @@ int SqlItemView::findDown(int row)
 void SqlItemView::toFirst()
 {
 	int row = findUp(-1);
-	if (row != m_row) { setCurrentIndex(row, m_column); }
+	if (row != m_row) {
+		setCurrentIndex(row, m_column);
+		emit indexChanged();
+	}
 }
 
 void SqlItemView::toPrevious()
 {
 	int row = findDown(m_row);
-	if (row != m_row) { setCurrentIndex(row, m_column); }
+	if (row != m_row) {
+		setCurrentIndex(row, m_column); 
+		emit indexChanged();
+	}
 }
 
 void SqlItemView::toNext()
 {
 	int row = findUp(m_row);
-	if (row != m_row) { setCurrentIndex(row, m_column); }
+	if (row != m_row) {
+		setCurrentIndex(row, m_column);
+		emit indexChanged();
+	}
 }
 
 void SqlItemView::toLast()
 {
 	int row = findDown(m_model->rowCount());
-	if (row != m_row) { setCurrentIndex(row, m_column); }
+	if (row != m_row) {
+		setCurrentIndex(row, m_column);
+		emit indexChanged();
+	}
 }
 
 void SqlItemView::aApp_focusChanged(QWidget* old, QWidget* now)
@@ -208,5 +222,19 @@ void SqlItemView::aApp_focusChanged(QWidget* old, QWidget* now)
 				break;
 			}
 		}
+	}
+}
+
+void SqlItemView::textChanged()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	if (te && !m_changing)
+	{
+		m_changing = true;
+		QModelIndex index = m_model->index(m_row, m_column);
+		m_model->setData(index, QVariant(te->toPlainText()));
+		emit dataChanged();
+		m_changing = false;
 	}
 }

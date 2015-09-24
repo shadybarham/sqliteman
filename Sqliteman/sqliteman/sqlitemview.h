@@ -52,12 +52,14 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		the m_mapper's widgets only. It's used in DataViewer
 		for syncing BLOB preview and table view indexes. */
 		void indexChanged();
+		void dataChanged();
 
 	private:
 		//! Current active "column"
 		int m_column;
 		int m_row;
 		int m_count;
+		bool m_changing;
 		QAbstractItemModel * m_model;
 		QTableView * m_table;
 
@@ -65,7 +67,8 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 
 		int findUp(int row);
 		int findDown(int row);
-	private slots:
+
+private slots:
 		void toFirst();
 		void toPrevious();
 		void toNext();
@@ -75,6 +78,7 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		/*! Handle app focus change. It chatches only m_mapper's
 		widgets. It emits indexChanged() for DataViewer. */
 		void aApp_focusChanged(QWidget* old, QWidget* now);
+		void textChanged();
 };
 
 #endif

@@ -80,7 +80,7 @@ class DataViewer : public QMainWindow
 		void resizeViewToContents(QAbstractItemModel * model);
 		void resizeEvent(QResizeEvent * event);
 		//! \brief Show/hide action tools
-		void updateButtons(const QItemSelection & selected);
+		void updateButtons();
 
 	private slots:
 		void addRow();

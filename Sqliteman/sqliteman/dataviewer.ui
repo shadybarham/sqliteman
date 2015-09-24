@@ -44,7 +44,7 @@
        </property>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="tab">
          <attribute name="title">
@@ -74,15 +74,8 @@
           <string>Item View</string>
          </attribute>
          <layout class="QGridLayout">
-          <item row="1" column="0">
-           <widget class="SqlItemView" name="itemView" native="true"/>
-          </item>
           <item row="0" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Item View is read only now.</string>
-            </property>
-           </widget>
+           <widget class="SqlItemView" name="itemView" native="true"/>
           </item>
          </layout>
         </widget>
