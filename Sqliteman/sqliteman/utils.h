@@ -42,6 +42,7 @@ QString like(QString s);
 //debugging hacks
 void dump(QItemSelection selection);
 void dump(QTreeWidgetItem & item);
+void dump(QVariant x);
 };
 
 #endif
