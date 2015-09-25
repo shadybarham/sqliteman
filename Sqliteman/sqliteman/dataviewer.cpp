@@ -4,7 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
-	FIXME add multiline editor to field context menu
 	FIXME make sql editor work with attached database
 	FIXME handle things better when not in autocommit mode
 	FIXME can't insert row with all non-null values defaulted
@@ -35,6 +34,7 @@ for which a new license (GPL+exception) is in place.
 #include "utils.h"
 #include "blobpreviewwidget.h"
 #include "sqltableview.h"
+#include "multieditdialog.h"
 
 
 DataViewer::DataViewer(QWidget * parent)
@@ -77,8 +77,13 @@ DataViewer::DataViewer(QWidget * parent)
     connect(actInsertNull, SIGNAL(triggered()), this, SLOT(actInsertNull_triggered()));
     actOpenEditor = new QAction(Utils::getIcon("edit.png"), tr("Open Data Editor..."), ui.tableView);
     connect(actOpenEditor, SIGNAL(triggered()), this, SLOT(actOpenEditor_triggered()));
+    actOpenMultiEditor = new QAction(tr("Open Multiline Editor..."),
+									 ui.tableView);
+    connect(actOpenMultiEditor, SIGNAL(triggered()),
+			this, SLOT(actOpenMultiEditor_triggered()));
     ui.tableView->addAction(actInsertNull);
     ui.tableView->addAction(actOpenEditor);
+    ui.tableView->addAction(actOpenMultiEditor);
 
 	// custom delegate
 	SqlDelegate * delegate = new SqlDelegate(this);
@@ -721,6 +726,7 @@ void DataViewer::tableView_selectionChanged(const QItemSelection &,
     bool enable = (tm != 0);
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
+    actOpenMultiEditor->setEnabled(enable);
 
 	updateButtons();
 	QModelIndex index = ui.tableView->currentIndex();
@@ -839,6 +845,21 @@ void DataViewer::actOpenEditor_triggered()
 {
 	removeErrorMessage();
     ui.tableView->edit(ui.tableView->currentIndex());
+}
+
+void DataViewer::actOpenMultiEditor_triggered()
+{
+	removeErrorMessage();
+	MultiEditDialog * dia = new MultiEditDialog(this);
+	QAbstractItemModel * model = ui.tableView->model();
+	QVariant data = model->data(ui.tableView->currentIndex(), Qt::EditRole);
+	dia->setData(data);
+	if (dia->exec())
+	{
+		data = dia->data();
+		ui.tableView->model()->setData(ui.tableView->currentIndex(),
+									   data, Qt::EditRole);
+	}
 }
 
 void DataViewer::actInsertNull_triggered()

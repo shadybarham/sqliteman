@@ -75,6 +75,7 @@ class DataViewer : public QMainWindow
 		bool wasItemView;
 
         QAction * actOpenEditor;
+        QAction * actOpenMultiEditor;
         QAction * actInsertNull;
 		
 		void resizeViewToContents(QAbstractItemModel * model);
@@ -131,6 +132,7 @@ class DataViewer : public QMainWindow
 		void gotoLine();
 
         void actOpenEditor_triggered();
+        void actOpenMultiEditor_triggered();
         void actInsertNull_triggered();
 
 		void rowDoubleClicked(int);
