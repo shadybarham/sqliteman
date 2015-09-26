@@ -83,6 +83,7 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		QueryStringModel * columnModel;
 		QueryStringModel * selectModel;
 		void CommonSetup();
+		QString m_rowid;
 		
 	private slots:
 		void tableSelected(const QString & table);

@@ -101,6 +101,10 @@ void QueryEditorDialog::CommonSetup()
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
 	connect(removeAllButton, SIGNAL(clicked()), this, SLOT(removeAllSelect()));
 	connect(removeButton, SIGNAL(clicked()), this, SLOT(removeSelect()));
+	connect(columnView, SIGNAL(doubleClicked(const QModelIndex &)),
+			this, SLOT(addSelect()));
+	connect(selectView, SIGNAL(doubleClicked(const QModelIndex &)),
+			this, SLOT(removeSelect()));
 }
 
 
@@ -225,6 +229,22 @@ void QueryEditorDialog::tableSelected(const QString & table)
 	curTable = table;
 	QStringList cols;
 
+	bool rowid = true;
+	bool _rowid_ = true;
+	bool oid = true;
+	foreach(DatabaseTableField i, fields)
+	{
+		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
+			{ rowid = false; }
+		if (i.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
+			{ _rowid_ = false; }
+		if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
+			{ oid = false; }
+	}
+	if (rowid) { cols << QString("rowid"); m_rowid = "rowid"; }
+	else if (_rowid_) { cols << QString("_rowid_"); m_rowid = "_rowid_"; }
+	else if (oid) { cols << QString("oid"); m_rowid = "oid"; }
+
 	foreach(DatabaseTableField i, fields)
 		cols << i.name;
 
@@ -238,8 +258,16 @@ void QueryEditorDialog::tableSelected(const QString & table)
 
 void QueryEditorDialog::addAllSelect()
 {
-	selectModel->setStringList(columnModel->stringList());
-	columnModel->clear();
+	QStringList list(columnModel->stringList());
+	foreach (QString s, list)
+	{
+		if (s.compare(m_rowid))
+		{
+			selectModel->append(s);
+			list.removeAll(s);
+		}
+	}
+	columnModel->setStringList(list);
 }
 
 void QueryEditorDialog::addSelect()
