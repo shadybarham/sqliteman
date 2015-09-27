@@ -15,30 +15,7 @@ class QTreeWidgetItem;
 #include "database.h"
 #include "ui_queryeditordialog.h"
 
-
-/*! 
- * @brief A hidden helper widget for editing a query term
- * \author Igor Khanin
- */
-class TermEditor : public QWidget
-{
-	Q_OBJECT
-
-	public:
-		TermEditor(const FieldList & fieldList, QWidget * parent = 0);
-		
-		QString selectedField();
-		int selectedRelation();
-		QString selectedValue();
-		
-	private:
-		QComboBox * fields;
-		QComboBox * relations;
-		QLineEdit * value;
-};
-
-
-/*! \brief Improved QStringListModel for items handling in paralel
+/*! \brief Improved QStringListModel for items handling in paralell
 layouts. See queryeditordilog.ui in Qt4 designer.
 QueryStringModels are used in "swap" items views.
 \author Petr Vanek <petr@scribus.info>
@@ -84,6 +61,7 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		QueryStringModel * selectModel;
 		void CommonSetup();
 		QString m_rowid;
+		QStringList m_columnList;
 		
 	private slots:
 		void tableSelected(const QString & table);
@@ -95,11 +73,14 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		void addSelect();
 		void removeAllSelect();
 		void removeSelect();
+		// Order by tab
+		void moreOrders();
+		void lessOrders();
+
+		void relationsIndexChanged(const QString &);
 
 	private:
 		QString curTable;
-		//! a layout used to store and manage TermEditor widgets
-		QVBoxLayout * termsLayout;
 };
 
 #endif //QUERYEDITORDIALOG_H

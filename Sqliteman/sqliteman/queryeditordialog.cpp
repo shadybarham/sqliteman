@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME allow ORDER BY in query builder
 */
 #include <QScrollBar>
 #include <QComboBox>
@@ -13,43 +12,6 @@ for which a new license (GPL+exception) is in place.
 
 #include "queryeditordialog.h"
 #include "utils.h"
-
-TermEditor::TermEditor(const FieldList & fieldList, QWidget * parent)
-	: QWidget(parent)
-{
-	fields = new QComboBox();
-	for(int i = 0; i < fieldList.size(); i++)
-		fields->addItem(fieldList[i].name);
-
-	relations = new QComboBox();
-	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
-									  << tr("Equals") << tr("Not equals")
-									  << tr("Bigger than") << tr("Smaller than")
-									  << tr("is null") << tr("is not null"));
-
-	value = new QLineEdit();
-
-	QHBoxLayout * layout = new QHBoxLayout();
-	layout->addWidget(fields);
-	layout->addWidget(relations);
-	layout->addWidget(value);
-
-	setLayout(layout);
-}
-
-QString TermEditor::selectedField()
-{
-	return fields->currentText();
-}
-int TermEditor::selectedRelation()
-{
-	return relations->currentIndex();
-}
-QString TermEditor::selectedValue()
-{
-	return value->text();
-}
-
 
 QueryStringModel::QueryStringModel(QObject * parent)
 	: QStringListModel(parent)
@@ -85,17 +47,20 @@ void QueryEditorDialog::CommonSetup()
 	selectModel = new QueryStringModel(this);
 	columnView->setModel(columnModel);
 	selectView->setModel(selectModel);
-
-	// a litle bit of black magic to get Term scrolling right
-	QWidget * w = new QWidget();
-	termsLayout = new QVBoxLayout(w);
-	w->setLayout(termsLayout);
-	scrollArea->setWidget(w);
 	
+	termsTable->setColumnCount(3);
+	termsTable->horizontalHeader()->hide();
+	termsTable->verticalHeader()->hide();
+	termsTable->setShowGrid(false);
+	ordersTable->setColumnCount(3);
+	ordersTable->horizontalHeader()->hide();
+	ordersTable->verticalHeader()->hide();
+	ordersTable->setShowGrid(false);
+
 	connect(tableList, SIGNAL(activated(const QString &)),
 			this, SLOT(tableSelected(const QString &)));
-	connect(moreButton, SIGNAL(clicked()), this, SLOT(moreTerms()));
-	connect(lessButton, SIGNAL(clicked()), this, SLOT(lessTerms()));
+	connect(termMoreButton, SIGNAL(clicked()), this, SLOT(moreTerms()));
+	connect(termLessButton, SIGNAL(clicked()), this, SLOT(lessTerms()));
 	//
 	connect(addAllButton, SIGNAL(clicked()), this, SLOT(addAllSelect()));
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
@@ -105,6 +70,8 @@ void QueryEditorDialog::CommonSetup()
 			this, SLOT(addSelect()));
 	connect(selectView, SIGNAL(doubleClicked(const QModelIndex &)),
 			this, SLOT(removeSelect()));
+	connect(orderMoreButton, SIGNAL(clicked()), this, SLOT(moreOrders()));
+	connect(orderLessButton, SIGNAL(clicked()), this, SLOT(lessOrders()));
 }
 
 
@@ -116,6 +83,9 @@ QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 
 	QStringList tables = Database::getObjects("table").keys();
 	tableList->addItems(tables);
+	// FIXME need to fix create parser before this will work
+//	tables = Database::getObjects("view").keys();
+//	tableList->addItems(tables);
 	
 	// If a database has at least one table. auto select it
 	if(tables.size() > 0)
@@ -159,67 +129,91 @@ QString QueryEditorDialog::statement()
 					Utils::quote(tableList->currentText()));
 
 	// Optionaly add terms
-	if(termsLayout->count() > 0)
+	if (termsTable->rowCount() > 0)
 	{
 		// But first determine what is the chosen logic word (And/Or)
-		(andButton->isChecked()) ? logicWord = "AND" : logicWord = "OR";
+		(andButton->isChecked()) ? logicWord = " AND " : logicWord = " OR ";
 
 		sql += " WHERE ";
 
-		for(int i = 0; i < termsLayout->count(); i++)
+		for(int i = 0; i < termsTable->rowCount(); i++)
 		{
-			QWidget * widget = termsLayout->itemAt(i)->widget();
-
-			if(!widget)
-				continue;
-
-			TermEditor * term = qobject_cast<TermEditor *>(widget);
-			if(term)
+			QComboBox * fields =
+				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 0));
+			QComboBox * relations =
+				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 1));
+			connect(relations,
+					SIGNAL(currentIndexChanged(const QString & text)),
+					this, SLOT(relationChanged(const QString & text)));
+			QLineEdit * value =
+				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			if (fields && relations && value)
 			{
-				sql += Utils::quote(term->selectedField());
+				if (i > 0) { sql += logicWord; }
+				sql += Utils::quote(fields->currentText());
 
-				switch(term->selectedRelation())
+				switch (relations->currentIndex())
 				{
-					case 0:		// Contains
-						sql += (" LIKE " + Utils::like(term->selectedValue()));
+					case 0:	// Contains
+						sql += (" LIKE " + Utils::like(value->text()));
 						break;
 
 					case 1: 	// Doesn't contain
 						sql += (" NOT LIKE "
-								+ Utils::like(term->selectedValue()));
+								+ Utils::like(value->text()));
 						break;
 
 					case 2:		// Equals
-						sql += (" = " + Utils::literal(term->selectedValue()));
+						sql += (" = " + Utils::literal(value->text()));
 						break;
 
 					case 3:		// Not equals
-						sql += (" <> " + Utils::literal(term->selectedValue()));
+						sql += (" <> " + Utils::literal(value->text()));
 						break;
 
 					case 4:		// Bigger than
-						sql += (" > " + Utils::literal(term->selectedValue()));
+						sql += (" > " + Utils::literal(value->text()));
 						break;
 
 					case 5:		// Smaller than
-						sql += (" < " + Utils::literal(term->selectedValue()));
+						sql += (" < " + Utils::literal(value->text()));
 						break;
 
 					case 6:		// is null
-						sql += (" ISNULL ");
+						sql += (" ISNULL");
 						break;
 
 					case 7:		// is not null
-						sql += (" NOTNULL ");
+						sql += (" NOTNULL");
 						break;
 				}
 			}
-			sql += (" " + logicWord + " ");
 		}
-		sql = sql.remove(sql.size() - (logicWord.size() + 2), logicWord.size() + 2); // cut the extra " AND " or " OR "
 	}
-	sql += ";";
 
+	// optionally add ORDER BY clauses
+	if (ordersTable->rowCount() > 0)
+	{
+		sql += " ORDER BY ";
+		for (int i = 0; i < ordersTable->rowCount(); i++)
+		{
+			QComboBox * fields =
+				qobject_cast<QComboBox *>(ordersTable->cellWidget(i, 0));
+			QComboBox * collators =
+				qobject_cast<QComboBox *>(ordersTable->cellWidget(i, 1));
+			QComboBox * directions =
+				qobject_cast<QComboBox *>(ordersTable->cellWidget(i, 2));
+			if (fields && collators && directions)
+			{
+				if (i > 0) { sql += ", "; }
+				sql += Utils::quote(fields->currentText()) + " COLLATE ";
+				sql += collators->currentText() + " ";
+				sql += directions->currentText();
+			}
+		}
+	}
+
+	sql += ";";
 	return sql;
 }
 
@@ -227,7 +221,7 @@ void QueryEditorDialog::tableSelected(const QString & table)
 {
 	FieldList fields = Database::tableFields(table, m_schema);
 	curTable = table;
-	QStringList cols;
+	m_columnList.clear();
 
 	bool rowid = true;
 	bool _rowid_ = true;
@@ -241,20 +235,27 @@ void QueryEditorDialog::tableSelected(const QString & table)
 		if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
 			{ oid = false; }
 	}
-	if (rowid) { cols << QString("rowid"); m_rowid = "rowid"; }
-	else if (_rowid_) { cols << QString("_rowid_"); m_rowid = "_rowid_"; }
-	else if (oid) { cols << QString("oid"); m_rowid = "oid"; }
+	if (rowid)
+		{ m_columnList << QString("rowid"); m_rowid = "rowid"; }
+	else if (_rowid_)
+		{ m_columnList << QString("_rowid_"); m_rowid = "_rowid_"; }
+	else if (oid)
+		{ m_columnList << QString("oid"); m_rowid = "oid"; }
 
 	foreach(DatabaseTableField i, fields)
-		cols << i.name;
+		m_columnList << i.name;
 
-	columnModel->setStringList(cols);
+	columnModel->setStringList(m_columnList);
 	selectModel->clear();
+	tabWidget->setCurrentIndex(0);
 
-	// clear terms
-	while (termsLayout->count() != 0)
-		lessTerms();
+	// clear terms and orders
+	termsTable->clear();
+	termsTable->setRowCount(0); // clear() doesn't seem to do this
+	ordersTable->clear();
+	ordersTable->setRowCount(0); // clear() doesn't seem to do this
 }
+
 
 void QueryEditorDialog::addAllSelect()
 {
@@ -311,23 +312,100 @@ void QueryEditorDialog::removeSelect()
 
 void QueryEditorDialog::moreTerms()
 {
-	TermEditor * term = new TermEditor(Database::tableFields(curTable, m_schema));
-	termsLayout->addWidget(term);
-	lessButton->setEnabled(true);
-	scrollArea->widget()->resize(scrollArea->widget()->sizeHint());
-	qApp->processEvents();
-	scrollArea->verticalScrollBar()->setValue(scrollArea->verticalScrollBar()->maximum());
+	int i = termsTable->rowCount();
+	termsTable->setRowCount(i + 1);
+	QComboBox * fields = new QComboBox();
+	fields->addItems(m_columnList);
+	termsTable->setCellWidget(i, 0, fields);
+	QComboBox * relations = new QComboBox();
+	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
+									  << tr("Equals") << tr("Not equals")
+									  << tr("Bigger than") << tr("Smaller than")
+									  << tr("is null") << tr("is not null"));
+	termsTable->setCellWidget(i, 1, relations);
+	connect(relations, SIGNAL(currentIndexChanged(const QString &)),
+			this, SLOT(relationsIndexChanged(const QString &)));
+	QLineEdit * value = new QLineEdit();
+	termsTable->setCellWidget(i, 2, value);
+	termsTable->resizeColumnsToContents();
+	termLessButton->setEnabled(true);
 }
 
 void QueryEditorDialog::lessTerms()
 {
-	QLayoutItem * child = termsLayout->takeAt(termsLayout->count() - 1);
-	if(child)
+	int i = termsTable->rowCount() - 1;
+	termsTable->removeRow(i);
+	termsTable->resizeColumnsToContents();
+	if (i == 0)
+		termLessButton->setEnabled(false);
+}
+
+void QueryEditorDialog::moreOrders()
+{
+	int i = ordersTable->rowCount();
+	ordersTable->setRowCount(i + 1);
+	QComboBox * fields = new QComboBox();
+	fields->addItems(m_columnList);
+	ordersTable->setCellWidget(i, 0, fields);
+	QComboBox * collators = new QComboBox();
+	collators->addItem("BINARY");
+	collators->addItem("NOCASE");
+	collators->addItem("RTRIM");
+	ordersTable->setCellWidget(i, 1, collators);
+	QComboBox * directions = new QComboBox();
+	directions->addItem("ASC");
+	directions->addItem("DESC");
+	ordersTable->setCellWidget(i, 2, directions);
+	ordersTable->resizeColumnsToContents();
+	orderLessButton->setEnabled(true);
+}
+
+void QueryEditorDialog::lessOrders()
+{
+	int i = ordersTable->rowCount() - 1;
+	ordersTable->removeRow(i);
+	if (i == 0)
+		orderLessButton->setEnabled(false);
+}
+
+void QueryEditorDialog::relationsIndexChanged(const QString &)
+{
+	QComboBox * relations = qobject_cast<QComboBox *>(sender());
+	for (int i = 0; i < termsTable->rowCount(); ++i)
 	{
-		delete child->widget();
-		delete child;
+		if (relations == termsTable->cellWidget(i, 1))
+		{
+			QLineEdit * value =
+				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			if (value)
+			{
+				switch (relations->currentIndex())
+				{
+					case 0: value->show(); // Contains
+						return;
+
+					case 1: value->show(); // Doesn't contain
+						return;
+
+					case 2: value->show(); // Equals
+						return;
+
+					case 3: value->show(); // Not equals
+						return;
+
+					case 4: value->show(); // Bigger than
+						return;
+
+					case 5: value->show(); // Smaller than
+						return;
+
+					case 6: value->hide(); // is null
+						return;
+
+					case 7: value->hide(); // is not null
+						return;
+				}
+			}
+		}
 	}
-	
-	if(termsLayout->count() == 0)
-		lessButton->setEnabled(false);
 }
