@@ -4,7 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
-	FIXME make sql editor work with attached database
+	FIXME make query builder work with attached database
 	FIXME handle things better when not in autocommit mode
 	FIXME can't insert row with all non-null values defaulted
 	FIXME use explicit string NULL
@@ -422,7 +422,6 @@ void DataViewer::showStatusText(bool show)
 
 void DataViewer::addRow()
 {
-	// FIXME adding a row and leaving it all nulls causes commit failure
 	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
 	removeErrorMessage();
 	SqlTableModel * model
@@ -431,6 +430,7 @@ void DataViewer::addRow()
 	{
 		activeRow = model->rowCount();
 		model->insertRows(activeRow, 1);
+		model->initRecord(activeRow);
 		ui.tableView->scrollToBottom();
 		ui.tableView->selectRow(activeRow);
 		updateButtons();

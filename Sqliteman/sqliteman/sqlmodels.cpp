@@ -3,8 +3,10 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-FIXME if table name contains non-alphanumeric characters, no rows are displayed,
+
+If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
+This is a QT bug.
 */
 
 #include <QColor>
@@ -33,9 +35,6 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 		case 4: m_readRowsCount = 4096; break;
 		default: m_readRowsCount = 0; break;
 	}
-
-	connect(this, SIGNAL(primeInsert(int, QSqlRecord &)),
-			this, SLOT(doPrimeInsert(int, QSqlRecord &)));
 }
 
 QVariant SqlTableModel::data(const QModelIndex & item, int role) const
@@ -169,28 +168,37 @@ QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int
 	return QSqlTableModel::headerData(section, orientation, role);
 }
 
-void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
+// Workaround for Qt bug creating all-NULL records:
+// use instead of doPrimeInsert()
+void SqlTableModel::initRecord(int row)
 {
 	FieldList fl = Database::tableFields(tableName(), m_schema);
 	bool ok;
 	QString defval;
 	// guess what type is the default value.
-	foreach (DatabaseTableField column, fl)
+	for (int i = 0; i < fl.count(); ++i)
 	{
+		DatabaseTableField column = fl.at(i);
 		if (column.defval.isNull())
-			continue;
-		defval = column.defval;
-		defval.toInt(&ok);
-		if (!ok)
 		{
-			defval.toDouble(&ok);
+			setData(index(row, i), QVariant("nothing"));
+			setData(index(row, i), QVariant());
+		}
+		else
+		{
+			defval = column.defval;
+			defval.toInt(&ok);
 			if (!ok)
 			{
-				if (defval.left(1) == "'" || defval.left(1) == "\"")
-					defval = defval.mid(1, defval.length()-2);
+				defval.toDouble(&ok);
+				if (!ok)
+				{
+					if (defval.left(1) == "'" || defval.left(1) == "\"")
+						defval = defval.mid(1, defval.length()-2);
+				}
 			}
+			setData(index(row, i), QVariant(defval));
 		}
-		record.setValue(column.name, QVariant(defval));
 	}
 }
 

@@ -52,6 +52,7 @@ class SqlTableModel : public QSqlTableModel
 		void attach() { m_useCount++; }
 
 		bool isDeleted(int row);
+		void initRecord(int row);
 
 	signals:
 		void reallyDeleting(int row);
@@ -82,10 +83,6 @@ protected:
 		QVariant headerData(int section,
 							Qt::Orientation orientation,
 							int role = Qt::DisplayRole) const;
-
-	private slots:
-		//! \brief Called when is new row created in the view (not in the model).
-		void doPrimeInsert(int, QSqlRecord &);
 
 	public slots:
 		bool select();
