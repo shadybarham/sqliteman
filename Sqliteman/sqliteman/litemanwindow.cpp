@@ -6,7 +6,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
 	FIXME should we allow attaching a database which is already open?
 	      it can cause confusion
-
+	FIXME use SAVEPOINTs to catch errors instead of BEGINs (nests better)
 */
 #include <QTreeWidget>
 #include <QTableView>

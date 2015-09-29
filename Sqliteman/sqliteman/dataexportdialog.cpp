@@ -23,6 +23,7 @@ for which a new license (GPL+exception) is in place.
 #include "dataexportdialog.h"
 #include "database.h"
 #include "preferences.h"
+#include "sqlmodels.h"
 
 #define LF QChar(0x0A)  /* '\n' */
 #define CR QChar(0x0D)  /* '\r' */
@@ -36,6 +37,7 @@ DataExportDialog::DataExportDialog(DataViewer * parent, const QString & tableNam
 	Preferences * prefs = Preferences::instance();
 
 	m_data = parent->tableData();
+	m_table = qobject_cast<SqlTableModel *>(m_data);
 	m_header = parent->tableHeader();
 	cancelled = false;
 
@@ -120,7 +122,6 @@ void DataExportDialog::checkButtonStatus()
 
 bool DataExportDialog::doExport()
 {
-	//FIXME don't export blanks for deleted records
 	progress = new QProgressDialog("Exporting...", "Abort", 0, 0, this);
 	connect(progress, SIGNAL(canceled()), this, SLOT(cancel()));
 	progress->setWindowModality(Qt::WindowModal);
@@ -226,8 +227,8 @@ bool DataExportDialog::exportCSV()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)
 		{
@@ -258,8 +259,8 @@ bool DataExportDialog::exportHTML()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		out << "<tr>";
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)
@@ -291,8 +292,8 @@ bool DataExportDialog::exportExcelXML()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		out << "<ss:Row>" << endl();
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)
@@ -313,8 +314,8 @@ bool DataExportDialog::exportSql()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		out << "insert into " << m_tableName << " (\"" << columns << "\") values (";
 		QSqlRecord r = m_data->record(i);
 
@@ -341,8 +342,8 @@ bool DataExportDialog::exportPython()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		out << "	{ ";
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)
@@ -386,8 +387,8 @@ bool DataExportDialog::exportQoreSelectRows()
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{
-		if (!setProgress(i))
-			return false;
+		if (!setProgress(i)) { return false; }
+		if (m_table && m_table->isDeleted(i)) { continue; }
 		out << "	(";
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)

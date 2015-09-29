@@ -18,6 +18,7 @@ for which a new license (GPL+exception) is in place.
 class DataViewer;
 class QProgressDialog;
 class QSqlQueryModel;
+class SqlTableModel;
 
 
 /*! \brief GUI for data export into file or clipboard
@@ -36,6 +37,7 @@ class DataExportDialog : public QDialog
 		const QString m_tableName;
 		bool cancelled;
 		QSqlQueryModel * m_data;
+		SqlTableModel * m_table;
 		QStringList m_header;
 		QProgressDialog * progress;
 

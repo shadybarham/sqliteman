@@ -214,6 +214,11 @@ bool SqlTableModel::removeRows ( int row, int count, const QModelIndex & parent)
 	return ret;
 }
 
+bool SqlTableModel::isDeleted(int row)
+{
+	return m_deleteCache.contains(row);
+}
+
 void SqlTableModel::setTable(const QString &tableName)
 {
 	m_header.clear();

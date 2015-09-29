@@ -51,6 +51,8 @@ class SqlTableModel : public QSqlTableModel
 		// add a user
 		void attach() { m_useCount++; }
 
+		bool isDeleted(int row);
+
 	signals:
 		void reallyDeleting(int row);
 		void rowCountChanged();
