@@ -74,11 +74,11 @@ void AlterViewDialog::createButton_clicked()
 	QSqlDatabase db = QSqlDatabase::database(SESSION_NAME);
 
 	ui.resultEdit->setHtml("");
-	QString sql = QString("BEGIN TRANSACTION ;");
+	QString sql = QString("SAVEPOINT ALTER_VIEW ;");
 	QSqlQuery q1(sql, db);
 	if (q1.lastError().isValid())
 	{
-		QString errtext = QString(tr("Cannot begin transaction"))
+		QString errtext = QString(tr("Cannot create savepoint"))
 						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + q1.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
@@ -103,7 +103,21 @@ void AlterViewDialog::createButton_clicked()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
 		ui.resultEdit->append(errtext);
-		QSqlQuery q3("ROLLBACK ;", db);
+		QSqlQuery q3("ROLLBACK TO ALTER_VIEW;", db);
+		if (q3.lastError().isValid())
+		{
+			ui.resultEdit->append(tr("Cannot roll back after error"));
+		}
+		else
+		{
+			QSqlQuery q4("RELEASE ALTER_VIEW;", db);
+			if (!q4.lastError().isValid())
+			{
+				return;
+			}
+		}
+		ui.resultEdit->append(tr(
+			"Database may be left with a pending savepoint."));
 		return;
 	}
 	update = true;
@@ -127,20 +141,29 @@ void AlterViewDialog::createButton_clicked()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
 		ui.resultEdit->append(errtext);
-		QSqlQuery q3("ROLLBACK ;", db);
+		QSqlQuery q3("ROLLBACK TO ALTER_VIEW;", db);
 		return;
 	}
-	sql = QString("COMMIT TRANSACTION ;");
+	sql = QString("RELEASE ALTER_VIEW ;");
 	QSqlQuery q5(sql, db);
 	if(q5.lastError().isValid())
 	{
-		QString errtext = tr("Cannot commit transaction")
+		QString errtext = tr("Cannot release savepoint")
 						  + ":<br/><span style=\" color:#ff0000;\">"
 						  + q5.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
 		ui.resultEdit->append(errtext);
-		QSqlQuery q6("ROLLBACK ;", db);
+		QSqlQuery q6("ROLLBACK TO ALTER_VIEW;", db);
+		if(q6.lastError().isValid())
+		{
+			QString errtext = tr("Cannot roll back either")
+							  + ":<br/><span style=\" color:#ff0000;\">"
+							  + q5.lastError().text()
+							  + "<br/></span>" + tr("using sql statement:")
+							  + "<br/><tt>" + sql;
+			ui.resultEdit->append(errtext);
+		}
 		return;
 	}
 	ui.resultEdit->insertHtml(tr("View altered successfully"));

@@ -24,6 +24,7 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 {
 	updated = false;
 	setupUi(this);
+	resultEdit->setHtml("");
 	QSettings settings("yarpen.cz", "sqliteman");
 	int hh = settings.value("populator/height", QVariant(500)).toInt();
 	int ww = settings.value("populator/width", QVariant(600)).toInt();
@@ -112,11 +113,8 @@ qlonglong PopulatorDialog::tableRowCount()
 				  + Utils::quote(m_table)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	query.exec();
-	if (query.lastError().isValid())
+	if (!execSql(sql, tr("Cannot get statistics for table")))
 	{
-		textBrowser->append(tr("Cannot get statistics for table."));
-		textBrowser->append(query.lastError().text());
 		return -1;
 	}
 	while(query.next())
@@ -179,15 +177,14 @@ void PopulatorDialog::populateButton_clicked()
 		};
 	}
 
-	if (!Database::execSql("BEGIN TRANSACTION;"))
+	if (!execSql("SAVEPOINT POPULATOR;", tr("Cannot create savepoint")))
 	{
-		textBrowser->append(tr("Begin transaction failed."));
-		Database::execSql("ROLLBACK;");
+		execSql("ROLLBACK TO POPULATOR;", tr("Cannot roll back after error"));
 		return;
 	}
 
 	qlonglong cntPre, cntPost;
-	textBrowser->clear();
+	resultEdit->clear();
 
 	cntPre = tableRowCount();
 	QSqlQuery query(QSqlDatabase::database(SESSION_NAME));
@@ -213,16 +210,24 @@ void PopulatorDialog::populateButton_clicked()
 		query.prepare(sql);
 		if (!query.exec())
 		{
-			textBrowser->append(query.lastError().text());
+			QString errtext = tr("Cannot insert values")
+							  + ":<br/><span style=\" color:#ff0000;\">"
+							  + query.lastError().text()
+							  + "<br/></span>" + tr("using sql statement:")
+							  + "<br/><tt>" + sql;
+			resultEdit->append(errtext);
 			if (!constraintBox->isChecked()) { break; }
 		}
 		else { updated = true; }
 	}
 
-	if (!Database::execSql("COMMIT;"))
+	if (!execSql("RELEASE POPULATOR;", tr("Cannot release savepoint")))
 	{
-		textBrowser->append(tr("Transaction commit failed."));
-		Database::execSql("ROLLBACK;");
+		if (!execSql("ROLLBACK TO POPULATOR;", tr("Cannot roll back either")))
+		{
+			resultEdit->append(tr(
+				"Database may be left with a pending savepoint."));
+		}
 		updated = false;
 		return;
 	}
@@ -230,7 +235,7 @@ void PopulatorDialog::populateButton_clicked()
 	cntPost = tableRowCount();
 
 	if (cntPre != -1 && cntPost != -1)
-		textBrowser->append(tr("Row(s) inserted: %1").arg(cntPost-cntPre));
+		resultEdit->append(tr("Row(s) inserted: %1").arg(cntPost-cntPre));
 }
 
 QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
@@ -242,13 +247,17 @@ QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 				  + "."
 				  + Utils::quote(m_table)
 				  + ";";
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	query.exec();
 
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
-		textBrowser->append(tr("Cannot get MAX() for column: %1").arg(c.name));
-		textBrowser->append(query.lastError().text());
+		QString errtext = tr("Cannot get MAX() for column ")
+						  + c.name
+						  + ":<br/><span style=\" color:#ff0000;\">"
+						  + query.lastError().text()
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + sql;
+		resultEdit->append(errtext);
 		return QVariantList();
 	}
 
@@ -370,3 +379,20 @@ QVariantList PopulatorDialog::dateValues(Populator::PopColumn c)
 
 	return ret;
 }
+
+bool PopulatorDialog::execSql(const QString & statement, const QString & message)
+{
+	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
+	if(query.lastError().isValid())
+	{
+		QString errtext = message
+						  + ":<br/><span style=\" color:#ff0000;\">"
+						  + query.lastError().text()
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + statement;
+		resultEdit->append(errtext);
+		return false;
+	}
+	return true;
+}
+

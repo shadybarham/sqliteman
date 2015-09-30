@@ -32,7 +32,8 @@ class ConstraintsDialog : public QDialog
 		QString m_schema;
 		QString m_table;
 
-		QString execSql(const QString & statement, const QString & message);
+		bool execSql(const QString & statement, const QString & message);
+		void doRollback(QString message);
 
     private slots:
 		/*! \brief Parse user's inputs and create a sql statements */

@@ -76,6 +76,7 @@ class AlterTableDialog : public TableEditorDialog
 		\retval bool true on SQL succes
 		*/
 		bool execSql(const QString & statement, const QString & message);
+		void doRollback(QString message);
 
 		//! \brief Returns a list of DDL statements to recreate reqired obejcts after all.
 		QStringList originalSource();

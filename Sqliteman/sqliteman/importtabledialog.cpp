@@ -162,8 +162,7 @@ void ImportTableDialog::slotAccepted()
 	{
 		return;
 	}
-	// FIXME what if we're not in autocommit mode?
-	if (!Database::execSql("BEGIN TRANSACTION;"))
+	if (!Database::execSql("SAVEPOINT IMPORT_TABLE;"))
 	{
 		// FIXME emit some failure message here
 		return;
@@ -196,7 +195,7 @@ void ImportTableDialog::slotAccepted()
 
 	if (result)
 	{
-		Database::execSql("COMMIT;");
+		Database::execSql("RELEASE IMPORT_TABLE;");
 		accept();
 	}
 	else
@@ -205,7 +204,7 @@ void ImportTableDialog::slotAccepted()
 		if (dia.exec())
 		{
 			//FIXME need to override errors here
-			if (Database::execSql("COMMIT;"))
+			if (Database::execSql("RELEASE IMPORT_TABLE;"))
 			{
 				update = m_alteringActive;
 				accept();
@@ -213,7 +212,8 @@ void ImportTableDialog::slotAccepted()
 				return;
 			}
 		}
-		Database::execSql("ROLLBACK;");
+		Database::execSql("ROLLBACK TO IMPORT_TABLE;");
+		Database::execSql("RELEASE IMPORT_TABLE;");
 	}
 }
 

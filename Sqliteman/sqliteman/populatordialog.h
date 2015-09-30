@@ -81,6 +81,8 @@ class PopulatorDialog : public QDialog, public Ui::PopulatorDialog
 		1/0/-1 in the case of execBatch()). */
 		qlonglong tableRowCount();
 
+		bool execSql(const QString & statement, const QString & message);
+
 	private slots:
 		void populateButton_clicked();
 		void spinBox_valueChanged(int);

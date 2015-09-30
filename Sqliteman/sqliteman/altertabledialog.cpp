@@ -179,6 +179,19 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 	return true;
 }
 
+void AlterTableDialog::doRollback(QString message)
+{
+	if (execSql("ROLLBACK TO ALTER_TABLE;", message))
+	{
+		// rollback does not cancel the savepoint
+		if (execSql("RELEASE ALTER_TABLE;", QString("")))
+		{
+			return;
+		}
+	}
+	ui.resultEdit->append(tr("Database may be left with a pending savepoint."));
+}
+
 QStringList AlterTableDialog::originalSource()
 {
 	QString ixsql = QString("select sql from ")
@@ -222,7 +235,7 @@ bool AlterTableDialog::renameTable(QString newTableName)
 					  + newTableName;
 	if (execSql(sql, message))
 	{
-		updateStage = 1;
+		updateStage = 1;;
 		m_item->setText(0, newTableName);
 		return true;
 	}
@@ -250,12 +263,12 @@ void AlterTableDialog::createButton_clicked()
 			QMessageBox::Yes, QMessageBox::Cancel);
 		if (ret == QMessageBox::Cancel) { return; }
 	}
-	if (!execSql("BEGIN TRANSACTION;", tr("Cannot begin transaction")))
+	if (!execSql("SAVEPOINT ALTER_TABLE;", tr("Cannot create savepoint")))
 	{
 		return;
 	}
 	if (!renameTable(newTableName)) {
-		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+		doRollback(tr("Cannot roll back after error"));
 		return;
 	}
 
@@ -300,7 +313,7 @@ void AlterTableDialog::createButton_clicked()
 						  + tmpName;
 		if (!execSql(sql, message))
 		{
-			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+			doRollback(tr("Cannot roll back after error"));
 			return;
 		}
 		updateStage = 1;
@@ -323,7 +336,7 @@ void AlterTableDialog::createButton_clicked()
 				  + m_item->text(0);
 		if (!execSql(sql, message))
 		{
-			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+			doRollback(tr("Cannot roll back after error"));
 			return;
 		}
 
@@ -345,7 +358,7 @@ void AlterTableDialog::createButton_clicked()
 				  + tmpName;
 		if (!execSql(sql, message))
 		{
-			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+			doRollback(tr("Cannot roll back after error"));
 			return;
 		}
 		updateStage = 2;
@@ -360,7 +373,7 @@ void AlterTableDialog::createButton_clicked()
 				  + tmpName;
 		if (!execSql(sql, message))
 		{
-			execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+			doRollback(tr("Cannot roll back after error"));
 			return;
 		}
 
@@ -370,8 +383,7 @@ void AlterTableDialog::createButton_clicked()
 			if (!execSql(restoreSql,
 				tr("Cannot recreate original index/trigger")))
 			{
-				execSql("ROLLBACK TRANSACTION;",
-						tr("Cannot roll back after error"));
+				doRollback(tr("Cannot roll back after error"));
 				return;
 			}
 		}
@@ -380,13 +392,13 @@ void AlterTableDialog::createButton_clicked()
 	// handle add columns
 	if (!addColumns())
 	{
-		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back after error"));
+		doRollback(tr("Cannot roll back after error"));
 		return;
 	}
 
-	if (!execSql("COMMIT;", tr("Cannot commit")))
+	if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
 	{
-		execSql("ROLLBACK TRANSACTION;", tr("Cannot roll back either"));
+		doRollback(tr("Cannot roll back either"));
 		return;
 	}
 	if (updateStage > 0)

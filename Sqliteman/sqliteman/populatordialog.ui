@@ -174,7 +174,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QTextBrowser" name="textBrowser">
+     <widget class="QTextEdit" name="resultEdit">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -186,6 +186,12 @@
         <width>16777215</width>
         <height>100</height>
        </size>
+      </property>
+      <property name="undoRedoEnabled">
+       <bool>false</bool>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>
