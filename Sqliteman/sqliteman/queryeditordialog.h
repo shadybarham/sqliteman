@@ -50,20 +50,24 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		 * @param parent The parent widget for the dialog.
 		 */
 		QueryEditorDialog(QWidget * parent = 0);
-		QueryEditorDialog(QTreeWidgetItem * item, QWidget * parent = 0);
 		~QueryEditorDialog();
+		void setItem(QTreeWidgetItem * item);
 		//! \brief generates a valid SQL statement using the values in the dialog
 		QString statement();
 
 	private:
 		QString m_schema;
+		QString m_table;
 		QueryStringModel * columnModel;
 		QueryStringModel * selectModel;
-		void CommonSetup();
 		QString m_rowid;
 		QStringList m_columnList;
-		
-	private slots:
+
+		void resetModel();
+		void resetTables();
+		void resetSchema();
+
+private slots:
 		void tableSelected(const QString & table);
 		// Term tab
 		void moreTerms();
@@ -76,11 +80,10 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		// Order by tab
 		void moreOrders();
 		void lessOrders();
+		// ButtonBox clicked other than OK or Cancel
 
 		void relationsIndexChanged(const QString &);
-
-	private:
-		QString curTable;
+		void resetClicked();
 };
 
 #endif //QUERYEDITORDIALOG_H

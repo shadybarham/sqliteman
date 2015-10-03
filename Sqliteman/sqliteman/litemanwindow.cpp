@@ -6,6 +6,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
 	FIXME should we allow attaching a database which is already open?
 	      it can cause confusion
+	FIXME not displaying sql_master for temporary table
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -109,6 +110,8 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 	qDebug() << "Initial DB: " << fileToOpen;
 	if (!fileToOpen.isNull() && !fileToOpen.isEmpty())
 		open(fileToOpen);
+
+	queryEditor =  new QueryEditorDialog(this);
 }
 
 LiteManWindow::~LiteManWindow()
@@ -691,14 +694,14 @@ void LiteManWindow::help()
 void LiteManWindow::buildQuery()
 {
 	dataViewer->removeErrorMessage();
-	QueryEditorDialog dlg(this);
 
-	int ret = dlg.exec();
+	queryEditor->setItem(0);
+	int ret = queryEditor->exec();
 
 	if(ret == QDialog::Accepted)
 	{
 		/*runQuery*/
-		execSql(dlg.statement());
+		execSql(queryEditor->statement());
 	}
 }
 
@@ -707,15 +710,14 @@ void LiteManWindow::contextBuildQuery()
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	if (!item) { return; }
-	
-	QueryEditorDialog dlg(item, this);
 
-	int ret = dlg.exec();
+	queryEditor->setItem(item);
+	int ret = queryEditor->exec();
 
 	if(ret == QDialog::Accepted)
 	{
 		/*runQuery*/
-		execSql(dlg.statement());
+		execSql(queryEditor->statement());
 	}
 }
 

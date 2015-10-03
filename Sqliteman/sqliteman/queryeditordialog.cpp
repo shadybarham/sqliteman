@@ -35,7 +35,72 @@ void QueryStringModel::append(const QString & value)
 	setStringList(l);
 }
 
-void QueryEditorDialog::CommonSetup()
+void QueryEditorDialog::resetModel()
+{
+	selectModel->clear();
+	tabWidget->setCurrentIndex(0);
+	termsTable->clear();
+	termsTable->setRowCount(0); // clear() doesn't seem to do this
+	ordersTable->clear();
+	ordersTable->setRowCount(0); // clear() doesn't seem to do this
+}
+
+void QueryEditorDialog::tableSelected(const QString & table)
+{
+	resetModel();
+
+	m_table = table;
+
+	bool rowid = true;
+	bool _rowid_ = true;
+	bool oid = true;
+	m_columnList.clear();
+	FieldList fields = Database::tableFields(table, m_schema);
+	foreach (DatabaseTableField i, fields)
+	{
+		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
+			{ rowid = false; }
+		if (i.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
+			{ _rowid_ = false; }
+		if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
+			{ oid = false; }
+	}
+	if (rowid)
+		{ m_columnList << QString("rowid"); m_rowid = "rowid"; }
+	else if (_rowid_)
+		{ m_columnList << QString("_rowid_"); m_rowid = "_rowid_"; }
+	else if (oid)
+		{ m_columnList << QString("oid"); m_rowid = "oid"; }
+
+	foreach (DatabaseTableField i, fields)
+	{ m_columnList << i.name; }
+
+	columnModel->setStringList(m_columnList);
+}
+
+void QueryEditorDialog::resetTables()
+{
+	tableList->setCurrentIndex(0);
+	if (tableList->count() > 0)
+	{
+		tableSelected(tableList->currentText());
+	}
+	else
+	{
+		resetModel();
+	}
+}
+
+void QueryEditorDialog::resetSchema()
+{
+	tableList->clear();
+	tableList->addItems(Database::getObjects("table", m_schema).keys());
+// FIXME need to fix create parser before this will work
+//	tables = Database::getObjects("view").keys();
+//	tableList->addItems(tables);
+}
+
+QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 {
 	setupUi(this);
 	QSettings settings("yarpen.cz", "sqliteman");
@@ -47,7 +112,7 @@ void QueryEditorDialog::CommonSetup()
 	selectModel = new QueryStringModel(this);
 	columnView->setModel(columnModel);
 	selectView->setModel(selectModel);
-	
+
 	termsTable->setColumnCount(3);
 	termsTable->horizontalHeader()->hide();
 	termsTable->verticalHeader()->hide();
@@ -61,7 +126,6 @@ void QueryEditorDialog::CommonSetup()
 			this, SLOT(tableSelected(const QString &)));
 	connect(termMoreButton, SIGNAL(clicked()), this, SLOT(moreTerms()));
 	connect(termLessButton, SIGNAL(clicked()), this, SLOT(lessTerms()));
-	//
 	connect(addAllButton, SIGNAL(clicked()), this, SLOT(addAllSelect()));
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
 	connect(removeAllButton, SIGNAL(clicked()), this, SLOT(removeAllSelect()));
@@ -72,36 +136,56 @@ void QueryEditorDialog::CommonSetup()
 			this, SLOT(removeSelect()));
 	connect(orderMoreButton, SIGNAL(clicked()), this, SLOT(moreOrders()));
 	connect(orderLessButton, SIGNAL(clicked()), this, SLOT(lessOrders()));
-}
-
-
-QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
-{
-	CommonSetup();
+	QList<QAbstractButton *> buttons =  buttonBox->buttons();
+	QAbstractButton * button;
+	foreach (button, buttons)
+	{
+		if (button->text() == "Reset")
+		{
+			connect(button, SIGNAL(clicked(bool)), this, SLOT(resetClicked()));
+		}
+	}
 
 	m_schema = "main";
-
-	QStringList tables = Database::getObjects("table").keys();
-	tableList->addItems(tables);
-	// FIXME need to fix create parser before this will work
-//	tables = Database::getObjects("view").keys();
-//	tableList->addItems(tables);
-	
-	// If a database has at least one table. auto select it
-	if(tables.size() > 0)
-		tableSelected(tables[0]); 
+	resetSchema();
+	resetTables();
 }
 
-QueryEditorDialog::QueryEditorDialog(QTreeWidgetItem * item, QWidget * parent)
-	: QDialog(parent)
+void QueryEditorDialog::setItem(QTreeWidgetItem * item)
 {
-	CommonSetup();
-
-	m_schema = item->text(1);
-
-	tableList->addItem(item->text(0));
-	tableList->setEnabled(false);
-	tableSelected(item->text(0)); 
+	if (item)
+	{
+		// invoked from context menu
+		// catch case of same table name in different schema
+		bool changed = m_table != item->text(0);
+		if (m_schema != item->text(1))
+		{
+			m_schema = item->text(1);
+			resetSchema();
+			changed = true;
+		}
+		if (changed)
+		{
+			tableSelected(item->text(0));
+			for (int i = 0; i < tableList->count(); ++i)
+			{
+				if (tableList->itemText(i) == m_table)
+				{
+					tableList->setCurrentIndex(i);
+					tableList->setEnabled(false);
+					return;
+				}
+			}
+			// shouldn't happen
+			tableList->setCurrentIndex(0);
+			tableList->setEnabled(true);
+		}
+	}
+	else
+	{
+		// invoked from database menu
+		tableList->setEnabled(true);
+	}
 }
 
 QueryEditorDialog::~QueryEditorDialog()
@@ -217,45 +301,6 @@ QString QueryEditorDialog::statement()
 	return sql;
 }
 
-void QueryEditorDialog::tableSelected(const QString & table)
-{
-	FieldList fields = Database::tableFields(table, m_schema);
-	curTable = table;
-	m_columnList.clear();
-
-	bool rowid = true;
-	bool _rowid_ = true;
-	bool oid = true;
-	foreach(DatabaseTableField i, fields)
-	{
-		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
-			{ rowid = false; }
-		if (i.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
-			{ _rowid_ = false; }
-		if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
-			{ oid = false; }
-	}
-	if (rowid)
-		{ m_columnList << QString("rowid"); m_rowid = "rowid"; }
-	else if (_rowid_)
-		{ m_columnList << QString("_rowid_"); m_rowid = "_rowid_"; }
-	else if (oid)
-		{ m_columnList << QString("oid"); m_rowid = "oid"; }
-
-	foreach(DatabaseTableField i, fields)
-		m_columnList << i.name;
-
-	columnModel->setStringList(m_columnList);
-	selectModel->clear();
-	tabWidget->setCurrentIndex(0);
-
-	// clear terms and orders
-	termsTable->clear();
-	termsTable->setRowCount(0); // clear() doesn't seem to do this
-	ordersTable->clear();
-	ordersTable->setRowCount(0); // clear() doesn't seem to do this
-}
-
 
 void QueryEditorDialog::addAllSelect()
 {
@@ -289,15 +334,13 @@ void QueryEditorDialog::addSelect()
 
 void QueryEditorDialog::removeAllSelect()
 {
-	tableSelected(curTable);
-	selectModel->clear();
+	tableSelected(m_table);
 }
 
 void QueryEditorDialog::removeSelect()
 {
 	QItemSelectionModel *selections = selectView->selectionModel();
-	if (!selections->hasSelection())
-		return;
+	if (!selections->hasSelection()) { return; }
 	QStringList list(selectModel->stringList());
 	QString val;
 	foreach (QModelIndex i, selections->selectedIndexes())
@@ -307,7 +350,8 @@ void QueryEditorDialog::removeSelect()
 		list.removeAll(val);
 	}
 	selectModel->setStringList(list);
-	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(selectModel->rowCount()!=0);
+	buttonBox->button(QDialogButtonBox::Ok)
+		->setEnabled(selectModel->rowCount() !=0 );
 }
 
 void QueryEditorDialog::moreTerms()
@@ -408,4 +452,11 @@ void QueryEditorDialog::relationsIndexChanged(const QString &)
 			}
 		}
 	}
+}
+
+void QueryEditorDialog::resetClicked()
+{
+	tableList->setCurrentIndex(0);
+	tableList->setEnabled(true);
+	tableSelected(tableList->currentText());
 }

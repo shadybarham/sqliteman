@@ -18,6 +18,7 @@ class QSplitter;
 class SchemaBrowser;
 class SqlEditor;
 class HelpBrowser;
+class QueryEditorDialog;
 
 class QAction;
 class QMenu;
@@ -177,6 +178,7 @@ class LiteManWindow : public QMainWindow
 		SqlEditor* sqlEditor;
 		QSplitter* splitterSql;
 		HelpBrowser * helpBrowser;
+		QueryEditorDialog * queryEditor;
 		
 		QMenu * databaseMenu;
 		QMenu * adminMenu;
