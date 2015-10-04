@@ -6,6 +6,7 @@ for which a new license (GPL+exception) is in place.
 */
 
 #include <QIcon>
+#include <QComboBox>
 #include <QPixmapCache>
 #include <QItemSelection>
 #include <QTreeWidgetItem>
@@ -129,6 +130,32 @@ void Utils::dump(QTreeWidgetItem & item)
 {
 	qDebug("text(0) \"%s\", text(1) \"%s\"",
 		   item.text(0).toUtf8().data(), item.text(1).toUtf8().data());
+}
+void Utils::dump(QTreeWidgetItem * item)
+{
+	item ? dump(*item) : qDebug("Null QTreeWidgetItem");
+}
+void Utils::dump(QComboBox & box)
+{
+	int n = box.count();
+	if (n == 0)
+	{
+		qDebug("QComboBox with no items");
+	}
+	else
+	{
+		QString s;
+		for (int i = 0; i < n; ++i)
+		{
+			if (i > 0) { s.append(", "); }
+			s.append(box.itemText(i));
+		}
+		qDebug("%s", s.toUtf8().data());
+	}
+}
+void Utils::dump(QComboBox * box)
+{
+	box ? dump(*box) : qDebug("Null QComboBox");
 }
 void Utils::dump(QVariant x)
 {

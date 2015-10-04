@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #ifndef UTILS_H
 #define UTILS_H
 
+class QComboBox;
 class QItemSelection;
 class QTreeWidgetItem;
 
@@ -42,6 +43,9 @@ QString like(QString s);
 //debugging hacks
 void dump(QItemSelection selection);
 void dump(QTreeWidgetItem & item);
+void dump(QTreeWidgetItem * item);
+void dump(QComboBox & box);
+void dump(QComboBox *box);
 void dump(QVariant x);
 };
 

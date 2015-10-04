@@ -54,8 +54,11 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		void setItem(QTreeWidgetItem * item);
 		//! \brief generates a valid SQL statement using the values in the dialog
 		QString statement();
+		void treeChanged();
+		void tableAltered(QString oldName, QString newName);
 
 	private:
+		bool initialised;
 		QString m_schema;
 		QString m_table;
 		QueryStringModel * columnModel;
@@ -64,11 +67,13 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		QStringList m_columnList;
 
 		void resetModel();
-		void resetTables();
-		void resetSchema();
+		QStringList getColumns();
+		void resetTableList();
+		void resetSchemaList();
 
 private slots:
 		void tableSelected(const QString & table);
+		void schemaSelected(const QString & schema);
 		// Term tab
 		void moreTerms();
 		void lessTerms();
@@ -80,8 +85,6 @@ private slots:
 		// Order by tab
 		void moreOrders();
 		void lessOrders();
-		// ButtonBox clicked other than OK or Cancel
-
 		void relationsIndexChanged(const QString &);
 		void resetClicked();
 };

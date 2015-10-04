@@ -45,17 +45,13 @@ void QueryEditorDialog::resetModel()
 	ordersTable->setRowCount(0); // clear() doesn't seem to do this
 }
 
-void QueryEditorDialog::tableSelected(const QString & table)
+QStringList QueryEditorDialog::getColumns()
 {
-	resetModel();
-
-	m_table = table;
-
+	QStringList columns;
 	bool rowid = true;
 	bool _rowid_ = true;
 	bool oid = true;
-	m_columnList.clear();
-	FieldList fields = Database::tableFields(table, m_schema);
+	FieldList fields = Database::tableFields(m_table, m_schema);
 	foreach (DatabaseTableField i, fields)
 	{
 		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
@@ -66,20 +62,31 @@ void QueryEditorDialog::tableSelected(const QString & table)
 			{ oid = false; }
 	}
 	if (rowid)
-		{ m_columnList << QString("rowid"); m_rowid = "rowid"; }
+		{ columns << QString("rowid"); m_rowid = "rowid"; }
 	else if (_rowid_)
-		{ m_columnList << QString("_rowid_"); m_rowid = "_rowid_"; }
+		{ columns << QString("_rowid_"); m_rowid = "_rowid_"; }
 	else if (oid)
-		{ m_columnList << QString("oid"); m_rowid = "oid"; }
+		{ columns << QString("oid"); m_rowid = "oid"; }
 
-	foreach (DatabaseTableField i, fields)
-	{ m_columnList << i.name; }
+	foreach (DatabaseTableField i, fields) { columns << i.name; }
+	return columns;
+}
 
+void QueryEditorDialog::tableSelected(const QString & table)
+{
+	resetModel();
+	m_table = table;
+	m_columnList = getColumns();
 	columnModel->setStringList(m_columnList);
 }
 
-void QueryEditorDialog::resetTables()
+void QueryEditorDialog::resetTableList()
 {
+	tableList->clear();
+	tableList->addItems(Database::getObjects("table", m_schema).keys());
+// FIXME need to fix create parser before this will work
+//	tableList->addItems(Database::getObjects("view", m_schema).keys());
+	tableList->adjustSize();
 	tableList->setCurrentIndex(0);
 	if (tableList->count() > 0)
 	{
@@ -91,13 +98,26 @@ void QueryEditorDialog::resetTables()
 	}
 }
 
-void QueryEditorDialog::resetSchema()
+void QueryEditorDialog::schemaSelected(const QString & schema)
 {
-	tableList->clear();
-	tableList->addItems(Database::getObjects("table", m_schema).keys());
-// FIXME need to fix create parser before this will work
-//	tables = Database::getObjects("view").keys();
-//	tableList->addItems(tables);
+	m_schema = schema;
+	resetTableList();
+}
+
+void QueryEditorDialog::resetSchemaList()
+{
+	schemaList->clear();
+	schemaList->addItems(Database::getDatabases().keys());
+	schemaList->adjustSize();
+	schemaList->setCurrentIndex(0);
+	if (schemaList->count() > 0)
+	{
+		schemaSelected(schemaList->currentText());
+	}
+	else
+	{
+		resetTableList();
+	}
 }
 
 QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
@@ -122,6 +142,8 @@ QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 	ordersTable->verticalHeader()->hide();
 	ordersTable->setShowGrid(false);
 
+	connect(schemaList, SIGNAL(activated(const QString &)),
+			this, SLOT(schemaSelected(const QString &)));
 	connect(tableList, SIGNAL(activated(const QString &)),
 			this, SLOT(tableSelected(const QString &)));
 	connect(termMoreButton, SIGNAL(clicked()), this, SLOT(moreTerms()));
@@ -145,45 +167,64 @@ QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 			connect(button, SIGNAL(clicked(bool)), this, SLOT(resetClicked()));
 		}
 	}
-
-	m_schema = "main";
-	resetSchema();
-	resetTables();
+	initialised = false;
 }
 
 void QueryEditorDialog::setItem(QTreeWidgetItem * item)
 {
+	if (!initialised)
+	{
+		resetSchemaList();
+		initialised = true;
+	}
 	if (item)
 	{
 		// invoked from context menu
-		// catch case of same table name in different schema
-		bool changed = m_table != item->text(0);
-		if (m_schema != item->text(1))
+		bool found = false;
+		for (int i = 0; i < schemaList->count(); ++i)
 		{
-			m_schema = item->text(1);
-			resetSchema();
-			changed = true;
-		}
-		if (changed)
-		{
-			tableSelected(item->text(0));
-			for (int i = 0; i < tableList->count(); ++i)
+			if (schemaList->itemText(i) == item->text(1))
 			{
-				if (tableList->itemText(i) == m_table)
-				{
-					tableList->setCurrentIndex(i);
-					tableList->setEnabled(false);
-					return;
-				}
+				schemaList->setCurrentIndex(i);
+				found = true;
+				break;
 			}
-			// shouldn't happen
-			tableList->setCurrentIndex(0);
-			tableList->setEnabled(true);
 		}
+		if (!found)
+		{
+			schemaList->setCurrentIndex(0);
+		}
+		if (m_schema != schemaList->currentText())
+		{
+			schemaSelected(schemaList->currentText());
+			// force table select if same name table in different schema
+			m_table = QString();
+		}
+		found = false;
+		for (int i = 0; i < tableList->count(); ++i)
+		{
+			if (tableList->itemText(i) == item->text(0))
+			{
+				tableList->setCurrentIndex(i);
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			tableList->setCurrentIndex(0);
+		}
+		if (m_table != item->text(0))
+		{
+			tableSelected(tableList->currentText());
+		}
+		schemaList->setEnabled(false);
+		tableList->setEnabled(false);
 	}
 	else
 	{
 		// invoked from database menu
+		schemaList->setEnabled(true);
 		tableList->setEnabled(true);
 	}
 }
@@ -226,9 +267,6 @@ QString QueryEditorDialog::statement()
 				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 0));
 			QComboBox * relations =
 				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 1));
-			connect(relations,
-					SIGNAL(currentIndexChanged(const QString & text)),
-					this, SLOT(relationChanged(const QString & text)));
 			QLineEdit * value =
 				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
 			if (fields && relations && value)
@@ -365,7 +403,7 @@ void QueryEditorDialog::moreTerms()
 	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
 									  << tr("Equals") << tr("Not equals")
 									  << tr("Bigger than") << tr("Smaller than")
-									  << tr("is null") << tr("is not null"));
+									  << tr("Is null") << tr("Is not null"));
 	termsTable->setCellWidget(i, 1, relations);
 	connect(relations, SIGNAL(currentIndexChanged(const QString &)),
 			this, SLOT(relationsIndexChanged(const QString &)));
@@ -456,7 +494,102 @@ void QueryEditorDialog::relationsIndexChanged(const QString &)
 
 void QueryEditorDialog::resetClicked()
 {
-	tableList->setCurrentIndex(0);
-	tableList->setEnabled(true);
+	if (schemaList->isEnabled())
+	{
+		schemaList->setCurrentIndex(0);
+		schemaSelected(schemaList->currentText());
+	}
+	if (tableList->isEnabled()) { tableList->setCurrentIndex(0); }
 	tableSelected(tableList->currentText());
+}
+
+void QueryEditorDialog::treeChanged()
+{
+	schemaList->clear();
+	schemaList->addItems(Database::getDatabases().keys());
+	bool found = false;
+	for (int i = 0; i < schemaList->count(); ++i)
+	{
+		if (schemaList->itemText(i) == m_schema)
+		{
+			schemaList->setCurrentIndex(i);
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+	{
+		schemaList->setEnabled(true);
+		schemaList->setCurrentIndex(0);
+		if (schemaList->count() > 0)
+		{
+			schemaSelected(schemaList->currentText());
+		}
+		else
+		{
+			resetTableList();
+		}
+	}
+	else
+	{
+		tableList->clear();
+		tableList->addItems(Database::getObjects("table", m_schema).keys());
+// FIXME need to fix create parser before this will work
+//		tableList->addItems(Database::getObjects("view", m_schema).keys());
+		found = false;
+		for (int i = 0; i < tableList->count(); ++i)
+		{
+			if (tableList->itemText(i) == m_table)
+			{
+				tableList->setCurrentIndex(i);
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			tableList->setEnabled(true);
+			tableList->setCurrentIndex(0);
+			if (tableList->count() > 0)
+			{
+				tableSelected(tableList->currentText());
+			}
+			else
+			{
+				resetModel();
+			}
+		}
+		else
+		{
+			QStringList columns = getColumns();
+			if (m_columnList != columns)
+			{
+				resetModel();
+				m_columnList = columns;
+				columnModel->setStringList(m_columnList);
+			}
+		}
+	}
+}
+
+void QueryEditorDialog::tableAltered(QString oldName, QString newName)
+{
+	for (int i = 0; i < tableList->count(); ++i)
+	{
+		if (tableList->itemText(i) == oldName)
+		{
+			tableList->setItemText(i, newName);
+			if (m_table == oldName)
+			{
+				m_table = newName;
+				QStringList columns = getColumns();
+				if (m_columnList != columns)
+				{
+					resetModel();
+					m_columnList = columns;
+					columnModel->setStringList(m_columnList);
+				}
+			}
+		}
+	}
 }

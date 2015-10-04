@@ -104,14 +104,14 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 	m_activeItem = 0;
 	statusBar()->addPermanentWidget(m_sqliteVersionLabel);
 
+	queryEditor =  new QueryEditorDialog(this);
+
 	readSettings();
 
 	// Check command line
 	qDebug() << "Initial DB: " << fileToOpen;
 	if (!fileToOpen.isNull() && !fileToOpen.isEmpty())
 		open(fileToOpen);
-
-	queryEditor =  new QueryEditorDialog(this);
 }
 
 LiteManWindow::~LiteManWindow()
@@ -630,6 +630,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		// Build tree & clean model
 		schemaBrowser->tableTree->buildTree();
 		schemaBrowser->buildPragmasTree();
+		queryEditor->treeChanged();
 		dataViewer->setTableModel(new QSqlQueryModel(), false);
 		m_activeItem = 0;
 	
@@ -698,7 +699,7 @@ void LiteManWindow::buildQuery()
 	queryEditor->setItem(0);
 	int ret = queryEditor->exec();
 
-	if(ret == QDialog::Accepted)
+	if (ret == QDialog::Accepted)
 	{
 		/*runQuery*/
 		execSql(queryEditor->statement());
@@ -782,6 +783,7 @@ void LiteManWindow::execSql(QString query)
 		if (Utils::updateObjectTree(query))
 		{
 			schemaBrowser->tableTree->buildTree();
+			queryEditor->treeChanged();
 		}
 	}
 }
@@ -830,6 +832,7 @@ void LiteManWindow::createTable()
 			if (item->type() == TableTree::TablesItemType)
 				schemaBrowser->tableTree->buildTables(item, item->text(1));
 		}
+		queryEditor->treeChanged();
 	}
 }
 
@@ -840,6 +843,7 @@ void LiteManWindow::alterTable()
 
 	if (!item) { return; }
 
+	QString oldName = item->text(0);
 	bool isActive = m_activeItem == item;
 	dataViewer->saveSelection();
 	AlterTableDialog dlg(this, item, isActive);
@@ -853,6 +857,7 @@ void LiteManWindow::alterTable()
 			treeItemActivated(item, 0);
 			dataViewer->reSelect();
 		}
+		queryEditor->tableAltered(oldName, item->text(0));
 	}
 }
 
@@ -909,6 +914,7 @@ void LiteManWindow::renameTable()
 			}
 			else
 			{
+				queryEditor->tableAltered(item->text(0), text);
 				item->setText(0, text);
 				if (isActive)
 				{
@@ -951,6 +957,7 @@ void LiteManWindow::importTable()
 							    item ? item->text(1) : "main");
 	if (dlg.exec() == QDialog::Accepted)
 	{
+		queryEditor->tableAltered(item->text(0), item->text(0));
 		dataViewer->saveSelection();
 		if (isActive)
 		{
@@ -999,6 +1006,7 @@ void LiteManWindow::dropTable()
 		{
 			schemaBrowser->tableTree->buildTables(item->parent(),
 												  item->text(1));
+			queryEditor->treeChanged();
 			if (isActive)
 			{
 				dataViewer->setNotPending();
@@ -1015,8 +1023,11 @@ void LiteManWindow::createView()
 	CreateViewDialog dia("", "", this);
 
 	dia.exec();
-	if(dia.update)
+	if (dia.update)
+	{
 		schemaBrowser->tableTree->buildViewTree(dia.schema(), dia.name());
+		queryEditor->treeChanged();
+	}
 }
 
 void LiteManWindow::alterView()
@@ -1083,6 +1094,7 @@ void LiteManWindow::dropView()
 		else
 		{
 			schemaBrowser->tableTree->buildViews(item->parent(), item->text(1));
+			queryEditor->treeChanged();
 			if (isActive)
 			{
 				dataViewer->setTableModel(new QSqlQueryModel(), false);
@@ -1381,6 +1393,7 @@ void LiteManWindow::attachDatabase()
 			else
 			{
 				schemaBrowser->tableTree->buildDatabase(schema);
+				queryEditor->treeChanged();
 			}
 		}
 	}
@@ -1411,6 +1424,7 @@ void LiteManWindow::detachDatabase()
 		QSqlDatabase::database(attachedDb[dbname]).close();
 		attachedDb.remove(dbname);
 		delete schemaBrowser->tableTree->currentItem();
+		queryEditor->treeChanged();
 	}
 }
 
