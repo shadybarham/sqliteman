@@ -305,7 +305,14 @@ DbObjects Database::getSysObjects(const QString & schema)
 					.arg(getMaster(schema)),
 					QSqlDatabase::database(SESSION_NAME));
 
-	objs.insert("sqlite_master", "");
+	if (schema.compare("temp"))
+	{
+		objs.insert("sqlite_master", "");
+	}
+	else
+	{
+		objs.insert("sqlite_temp_master", "");
+	}
 	while(query.next())
 		objs.insertMulti(query.value(1).toString(), query.value(0).toString());
 
