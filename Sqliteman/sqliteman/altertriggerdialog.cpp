@@ -16,6 +16,7 @@ for which a new license (GPL+exception) is in place.
 
 AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & schema, QWidget * parent)
 	: QDialog(parent),
+	update(false),
 	m_schema(schema),
 	m_name(name)
 {
@@ -96,6 +97,8 @@ void AlterTriggerDialog::createButton_clicked()
 		ui.resultEdit->setHtml(errtext);
 		return;
 	}
-	ui.resultEdit->setText(tr("Trigger created successfully"));
-// 	update = true;
+	{
+		ui.resultEdit->setText(tr("Trigger created successfully"));
+	}
+ 	update = true;
 }

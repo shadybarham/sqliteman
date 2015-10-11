@@ -24,7 +24,7 @@ class AlterTriggerDialog : public QDialog
 		AlterTriggerDialog(const QString & name, const QString & schema, QWidget * parent = 0);
 		~AlterTriggerDialog();
 
-// 		bool update;
+ 		bool update;
 
 	private:
 		Ui::CreateTriggerDialog ui;

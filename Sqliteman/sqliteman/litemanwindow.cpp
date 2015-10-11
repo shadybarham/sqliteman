@@ -655,6 +655,20 @@ void LiteManWindow::handleExtensions(bool enable)
 }
 #endif
 
+void LiteManWindow::checkForCatalogue()
+{
+	if (m_activeItem && (m_activeItem->type() == TableTree::SystemType))
+	{
+		// We are displaying a system item, probably the catalogue,
+		// and we've changed something invalidating the catalogue
+		dataViewer->saveSelection();
+		QTreeWidgetItem * item = m_activeItem;
+		m_activeItem = 0;
+		treeItemActivated(item, 0);
+		dataViewer->reSelect();
+	}
+}
+
 void LiteManWindow::openRecent()
 {
 	QAction *action = qobject_cast<QAction *>(sender());
@@ -832,6 +846,7 @@ void LiteManWindow::createTable()
 				schemaBrowser->tableTree->buildTables(item, item->text(1));
 		}
 		queryEditor->treeChanged();
+		checkForCatalogue();
 	}
 }
 
@@ -850,6 +865,7 @@ void LiteManWindow::alterTable()
 	if (dlg.updateStage == 2)
 	{
 		schemaBrowser->tableTree->buildTableItem(item, true);
+		checkForCatalogue();
 		if (isActive)
 		{
 			m_activeItem = 0; // we've changed it
@@ -915,6 +931,7 @@ void LiteManWindow::renameTable()
 			{
 				queryEditor->tableAltered(item->text(0), text);
 				item->setText(0, text);
+				checkForCatalogue();
 				if (isActive)
 				{
 					m_activeItem = 0; // we've changed it
@@ -1006,6 +1023,7 @@ void LiteManWindow::dropTable()
 			schemaBrowser->tableTree->buildTables(item->parent(),
 												  item->text(1));
 			queryEditor->treeChanged();
+			checkForCatalogue();
 			if (isActive)
 			{
 				dataViewer->setNotPending();
@@ -1026,6 +1044,7 @@ void LiteManWindow::createView()
 	{
 		schemaBrowser->tableTree->buildViewTree(dia.schema(), dia.name());
 		queryEditor->treeChanged();
+		checkForCatalogue();
 	}
 }
 
@@ -1047,6 +1066,7 @@ void LiteManWindow::alterView()
 			schemaBrowser->tableTree->buildTriggers(triggers, item->text(1),
 													item->text(0));
 		}
+		checkForCatalogue();
 		if (isActive)
 		{
 			dataViewer->saveSelection();
@@ -1094,6 +1114,7 @@ void LiteManWindow::dropView()
 		{
 			schemaBrowser->tableTree->buildViews(item->parent(), item->text(1));
 			queryEditor->treeChanged();
+			checkForCatalogue();
 			if (isActive)
 			{
 				dataViewer->setTableModel(new QSqlQueryModel(), false);
@@ -1458,17 +1479,27 @@ void LiteManWindow::createTrigger()
 											item->parent()->type(), this);
 	dia->exec();
 	if (dia->update)
+	{
 		schemaBrowser->tableTree->buildTriggers(item, schema, table);
+		checkForCatalogue();
+	}
 	delete dia;
 }
 
 void LiteManWindow::alterTrigger()
 {
 	dataViewer->removeErrorMessage();
-	QString table(schemaBrowser->tableTree->currentItem()->text(0));
-	QString schema(schemaBrowser->tableTree->currentItem()->text(1));
-	AlterTriggerDialog *dia = new AlterTriggerDialog(table, schema, this);
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	QString table(item->text(0));
+	QString schema(item->text(1));
+	AlterTriggerDialog *dia =
+		new AlterTriggerDialog(table, schema, this);
 	dia->exec();
+	if (dia->update)
+	{
+		schemaBrowser->tableTree->buildTriggers(item, schema, table);
+		checkForCatalogue();
+	}
 	delete dia;
 }
 
@@ -1510,6 +1541,7 @@ void LiteManWindow::dropTrigger()
 			schemaBrowser->tableTree->buildTriggers(
 				item->parent(), item->text(1),
 				item->parent()->parent()->text(0));
+			checkForCatalogue();
 		}
 	}
 }
@@ -1522,7 +1554,11 @@ void LiteManWindow::constraintTriggers()
 	ConstraintsDialog dia(table, schema, this);
 	dia.exec();
 	if (dia.update)
-		schemaBrowser->tableTree->buildTriggers(schemaBrowser->tableTree->currentItem(), schema, table);
+	{
+		schemaBrowser->tableTree->buildTriggers(
+			schemaBrowser->tableTree->currentItem(), schema, table);
+		checkForCatalogue();
+	}
 }
 
 void LiteManWindow::reindex()

@@ -84,6 +84,8 @@ class LiteManWindow : public QMainWindow
 #ifdef ENABLE_EXTENSIONS
 		//! \brief Setup loading extensions actions and environment depending on prefs.
 		void handleExtensions(bool enable);
+
+		void checkForCatalogue();
 #endif
 
 	protected:
