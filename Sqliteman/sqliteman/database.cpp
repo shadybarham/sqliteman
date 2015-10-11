@@ -244,13 +244,13 @@ DbObjects Database::getObjects(const QString type, const QString schema)
 	QString sql;
 	if (type.isNull())
 	{
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM ")
+        sql = QString("SELECT name, tbl_name FROM ")
 			  + getMaster(schema)
 			  + ";";
 	}
 	else
 	{
-        sql = QString("SELECT lower(name), lower(tbl_name) FROM ")
+        sql = QString("SELECT name, tbl_name FROM ")
 			  + getMaster(schema)
 			  + " WHERE lower(type) = "
 			  + Utils::literal(type).toLower()
@@ -300,12 +300,12 @@ DbObjects Database::getSysObjects(const QString & schema)
 {
 	DbObjects objs;
 
-    QSqlQuery query(QString("SELECT lower(name), lower(tbl_name) FROM %1 "
+    QSqlQuery query(QString("SELECT name, tbl_name FROM %1 "
 							"WHERE type = 'table' and name like 'sqlite_%';")
 					.arg(getMaster(schema)),
 					QSqlDatabase::database(SESSION_NAME));
 
-	if (schema.compare("temp"))
+	if (schema.compare("temp", Qt::CaseInsensitive))
 	{
 		objs.insert("sqlite_master", "");
 	}
@@ -570,7 +570,7 @@ QStringList Database::loadExtension(const QStringList & list)
 
 QString Database::getMaster(const QString &schema)
 {
-    if (schema.compare(QString("temp"),Qt::CaseInsensitive)==0)
+    if (schema.compare(QString("temp"), Qt::CaseInsensitive)==0)
 	{
 		return QString("sqlite_temp_master");
 	}
@@ -579,3 +579,15 @@ QString Database::getMaster(const QString &schema)
 		return QString("%1.sqlite_master").arg(Utils::quote(schema));
 	}
 }
+
+QString Database::getTempName(const QString & schema)
+{
+	QStringList existing = getObjects(QString(), schema).keys();
+	int i = 0;
+	while (existing.contains(QString("tmpname_%1").arg(i), Qt::CaseInsensitive))
+	{
+		++i;
+	}
+	return QString("tmpname_%1").arg(i);
+}
+

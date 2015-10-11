@@ -179,6 +179,9 @@ class Database
 		*/
 		static QStringList loadExtension(const QStringList & list);
 
+		// get a name which isn't already in use
+		static QString getTempName(const QString & schema);
+
 	private:
 		//! \brief Error feedback to the user.
 		static void exception(const QString & message);

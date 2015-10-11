@@ -104,7 +104,7 @@ void AlterTableDialog::resetStructure()
 		}
 		else
 		{
-			n = box->findText(s, Qt::MatchFixedString);
+			n = box->findText(s, Qt::MatchFixedString | Qt::MatchCaseSensitive);
 			if (n <= 0)
 			{
 				n = box->count();
@@ -221,21 +221,50 @@ QStringList AlterTableDialog::originalSource()
 
 bool AlterTableDialog::renameTable(QString newTableName)
 {
-	if (m_item->text(0) == newTableName) { return true; }
+	QString oldName = m_item->text(0);
+	if (oldName.compare(newTableName, Qt::CaseInsensitive) == 0)
+	{
+		if (oldName.compare(newTableName, Qt::CaseSensitive) == 0)
+		{
+			return true;
+		}
+		else
+		{
+			// sqlite won't rename if only case changes,
+			// so we rename via a temporary name
+			QString tmpName = Database::getTempName(m_item->text(1));
+			QString sql = QString("ALTER TABLE ")
+						  + Utils::quote(m_item->text(1))
+						  + "."
+						  + Utils::quote(oldName)
+						  + " RENAME TO "
+						  + Utils::quote(tmpName)
+						  + ";";
+			QString message = tr("Cannot rename table ")
+							  + oldName
+							  + tr(" to ")
+							  + tmpName;
+			if (!execSql(sql, message))
+			{
+				return false;
+			}
+			oldName = tmpName;
+		}
+	}
 	QString sql = QString("ALTER TABLE ")
 				  + Utils::quote(m_item->text(1))
 				  + "."
-				  + Utils::quote(m_item->text(0))
+				  + Utils::quote(oldName)
 				  + " RENAME TO "
 				  + Utils::quote(newTableName)
 				  + ";";
 	QString message = tr("Cannot rename table ")
-					  + m_item->text(0)
+					  + oldName
 					  + tr(" to ")
 					  + newTableName;
 	if (execSql(sql, message))
 	{
-		updateStage = 1;;
+		updateStage = 1;
 		m_item->setText(0, newTableName);
 		return true;
 	}
@@ -277,16 +306,11 @@ void AlterTableDialog::createButton_clicked()
 	{
         FieldList oldColumns =
 	        Database::tableFields(m_item->text(0), m_item->text(1));
-		QStringList existingObjects = Database::getObjects().keys();
 		// indexes and triggers on the original table
 		QStringList originalSrc = originalSource();
 
 		// generate unique temporary tablename
-		QString tmpName("_alter%1_" + m_item->text(0));
-		int tmpCount = 0;
-		while (existingObjects.contains(tmpName.arg(tmpCount), Qt::CaseInsensitive))
-			++tmpCount;
-		tmpName = tmpName.arg(tmpCount);
+		QString tmpName = Database::getTempName(m_item->text(1));
 
 		// create temporary table without selected columns
 		FieldList newColumns;
@@ -493,7 +517,7 @@ void AlterTableDialog::checkChanges()
 	int cols = ui.columnTable->rowCount();
 	int colsLeft = cols;
 	bool changed =   (m_dropColumns != 0)
-				  || (m_item->text(0) != newName)
+				  || (m_item->text(0).compare(newName, Qt::CaseSensitive))
 				  || (m_protectedRows != cols);
 
 	bool bad = newName.isEmpty();

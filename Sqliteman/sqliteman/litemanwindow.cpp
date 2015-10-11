@@ -883,6 +883,7 @@ void LiteManWindow::renameTable()
 	if (!item) { return; }
 
 	QString text = item->text(0);
+	QString oldName = text;
 	while (1)
 	{
 		bool ok = true;
@@ -903,16 +904,52 @@ void LiteManWindow::renameTable()
 				QMessageBox::Yes, QMessageBox::Cancel);
 			if (ret == QMessageBox::Cancel) { continue; }
 		}
-		if (text == item->text(0)) { return; }
 		bool isActive = m_activeItem == item;
 		dataViewer->saveSelection();
+		if (text.compare(oldName, Qt::CaseInsensitive) == 0)
+		{
+			if (text.compare(oldName, Qt::CaseSensitive) == 0)
+			{
+				return;
+			}
+			else
+			{
+				// sqlite won't rename if only case changes,
+				// so we rename via a temporary name
+				QString tmpName = Database::getTempName(item->text(1));
+				// check needed because QSqlTableModel holds the table name
+				if ((!isActive) || (checkForPending()))
+				{
+					QString sql = QString("ALTER TABLE ")
+								  + Utils::quote(item->text(1))
+								  + "."
+								  + Utils::quote(oldName)
+								  + " RENAME TO "
+								  + Utils::quote(tmpName)
+								  + ";";
+					QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+					if (query.lastError().isValid())
+					{
+						dataViewer->setStatusText(
+							tr("Cannot rename table ")
+							+ item->text(1) + tr(".") + item->text(0)
+							+ ":<br/><span style=\" color:#ff0000;\">"
+							+ query.lastError().text()
+							+ "<br/></span>" + tr("using sql statement:")
+							+ "<br/><tt>" + sql);
+						return;
+					}
+					oldName = tmpName;
+				}
+			}
+		}
 		// check needed because QSqlTableModel holds the table name
 		if ((!isActive) || (checkForPending()))
 		{
 			QString sql = QString("ALTER TABLE ")
 						  + Utils::quote(item->text(1))
 						  + "."
-						  + Utils::quote(item->text(0))
+						  + Utils::quote(oldName)
 						  + " RENAME TO "
 						  + Utils::quote(text)
 						  + ";";
@@ -921,7 +958,7 @@ void LiteManWindow::renameTable()
 			{
 				dataViewer->setStatusText(
 					tr("Cannot rename table ")
-					+ item->text(1) + tr(".") + item->text(0)
+					+ item->text(1) + tr(".") + oldName
 					+ ":<br/><span style=\" color:#ff0000;\">"
 					+ query.lastError().text()
 					+ "<br/></span>" + tr("using sql statement:")
