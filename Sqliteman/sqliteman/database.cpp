@@ -430,13 +430,16 @@ bool Database::dumpDatabase(const QString & fileName)
 }
 
 QString Database::describeObject(const QString & name,
-								 const QString & schema)
+								 const QString & schema,
+								 const QString & type)
 {
     QString sql = QString("select sql from ")
     			  + getMaster(schema)
     			  + " where lower(name) = "
     			  + Utils::quote(name).toLower()
-    			  + ";";
+    			  + " and type = \""
+				  + type
+				  + "\";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if (query.lastError().isValid())

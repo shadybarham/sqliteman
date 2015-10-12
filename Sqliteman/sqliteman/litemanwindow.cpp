@@ -6,7 +6,6 @@ for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
 	FIXME should we allow attaching a database which is already open?
 	      it can cause confusion
-	FIXME describe confused by two objects with same name
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -306,7 +305,7 @@ void LiteManWindow::initActions()
 	connect(dropIndexAct, SIGNAL(triggered()), this, SLOT(dropIndex()));
 
 	describeTableAct = new QAction(tr("D&escribe Table"), this);
-	connect(describeTableAct, SIGNAL(triggered()), this, SLOT(describeObject()/*describeTable()*/));
+	connect(describeTableAct, SIGNAL(triggered()), this, SLOT(describeTable()));
 
 	importTableAct = new QAction(tr("&Import Table Data..."), this);
 	connect(importTableAct, SIGNAL(triggered()), this, SLOT(importTable()));
@@ -322,13 +321,13 @@ void LiteManWindow::initActions()
 	connect(dropTriggerAct, SIGNAL(triggered()), this, SLOT(dropTrigger()));
 
 	describeTriggerAct = new QAction(tr("D&escribe Trigger"), this);
-	connect(describeTriggerAct, SIGNAL(triggered()), this, SLOT(describeObject()/*describeTrigger()*/));
+	connect(describeTriggerAct, SIGNAL(triggered()), this, SLOT(describeTrigger()));
 
 	describeViewAct = new QAction(tr("D&escribe View"), this);
-	connect(describeViewAct, SIGNAL(triggered()), this, SLOT(describeObject()/*describeView()*/));
+	connect(describeViewAct, SIGNAL(triggered()), this, SLOT(describeView()));
 
 	describeIndexAct = new QAction(tr("D&escribe Index"), this);
-	connect(describeIndexAct, SIGNAL(triggered()), this, SLOT(describeObject()/*describeIndex()*/));
+	connect(describeIndexAct, SIGNAL(triggered()), this, SLOT(describeIndex()));
 
 	reindexAct = new QAction(tr("&Reindex"), this);
 	connect(reindexAct, SIGNAL(triggered()), this, SLOT(reindex()));
@@ -1338,20 +1337,21 @@ void LiteManWindow::treeContextMenuOpened(const QPoint & pos)
 		contextMenu->exec(schemaBrowser->tableTree->viewport()->mapToGlobal(pos));
 }
 
-void LiteManWindow::describeObject()
+void LiteManWindow::describeObject(QString type)
 {
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	/*runQuery*/
-// 	execSql(QString("select sql as \"%1\" from \"%2\".sqlite_master where name = '%3';")
-// 			.arg(tr("Describe %1").arg(item->text(0).toUpper()))
-// 			.arg(item->text(1))
-// 			.arg(item->text(0)));
-	QString desc(Database::describeObject(item->text(0), item->text(1)));
+	QString desc(Database::describeObject(item->text(0), item->text(1), type));
 	dataViewer->sqlScriptStart();
 	dataViewer->showSqlScriptResult("-- " + tr("Describe %1").arg(item->text(0).toUpper()));
 	dataViewer->showSqlScriptResult(desc);
 }
+
+void LiteManWindow::describeTable() { describeObject("table"); }
+void LiteManWindow::describeTrigger() { describeObject("trigger"); }
+void LiteManWindow::describeView() { describeObject("view"); }
+void LiteManWindow::describeIndex() { describeObject("index"); }
+
 
 void LiteManWindow::analyzeDialog()
 {

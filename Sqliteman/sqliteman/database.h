@@ -149,7 +149,9 @@ class Database
 
 		static bool dumpDatabase(const QString & fileName);
 
-		static QString describeObject(const QString & name, const QString & schema = "main");
+		static QString describeObject(const QString & name,
+									  const QString & schema,
+									  const QString & type);
 
 		/*! \brief BLOB X'foo' notation. See sqlite3 internals as a reference.
 		\param val a raw "encoded" QByteArray (string)

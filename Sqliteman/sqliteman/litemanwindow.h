@@ -84,9 +84,11 @@ class LiteManWindow : public QMainWindow
 #ifdef ENABLE_EXTENSIONS
 		//! \brief Setup loading extensions actions and environment depending on prefs.
 		void handleExtensions(bool enable);
+#endif
 
 		void checkForCatalogue();
-#endif
+
+		void describeObject(QString type);
 
 	protected:
 		/*! \brief This method handles closing of the main window by saving the window's state and accepting
@@ -127,9 +129,10 @@ class LiteManWindow : public QMainWindow
 		void createIndex();
 		void dropIndex();
 
-// 		void describeTable();
-// 		void describeView();
-// 		void describeIndex();
+		void describeTable();
+		void describeTrigger();
+		void describeView();
+		void describeIndex();
 		void reindex();
 
 		void treeItemActivated(QTreeWidgetItem * item, int column);
@@ -148,12 +151,9 @@ class LiteManWindow : public QMainWindow
 
 		void createTrigger();
 		void alterTrigger();
-// 		void describeTrigger();
 		void dropTrigger();
 
 		void constraintTriggers();
-
-		void describeObject();
 
 		void refreshTable();
 

@@ -36,7 +36,7 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	              + Utils::quote(schema)
 				  + ".sqlite_master where name = "
 				  + Utils::quote(name)
-				  + ";";
+				  + " and type = \"trigger\" ;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{

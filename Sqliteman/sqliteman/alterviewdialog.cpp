@@ -36,7 +36,7 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 				  + Utils::quote(schema)
 				  + ".sqlite_master where name = "
 				  + Utils::quote(name)
-				  + ";";
+				  + " and type = \"view\" ;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	while (query.next())
 	{
