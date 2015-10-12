@@ -6,6 +6,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
 	FIXME should we allow attaching a database which is already open?
 	      it can cause confusion
+	FIXME describe confused by two objects with same name
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -1169,7 +1170,11 @@ void LiteManWindow::createIndex()
 	CreateIndexDialog dia(table, schema, this);
 	dia.exec();
 	if (dia.update)
-		schemaBrowser->tableTree->buildIndexes(schemaBrowser->tableTree->currentItem(), schema, table);
+	{
+		schemaBrowser->tableTree->buildIndexes(
+			schemaBrowser->tableTree->currentItem(), schema, table);
+		checkForCatalogue();
+	}
 }
 
 void LiteManWindow::dropIndex()
@@ -1207,7 +1212,9 @@ void LiteManWindow::dropIndex()
 		else
 		{
 			schemaBrowser->tableTree->buildIndexes(
-				item->parent(), item->text(1), item->parent()->parent()->text(0));
+				item->parent(), item->text(1),
+				item->parent()->parent()->text(0));
+			checkForCatalogue();
 		}
 	}
 }
@@ -1527,14 +1534,16 @@ void LiteManWindow::alterTrigger()
 {
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	QString table(item->text(0));
+	QTreeWidgetItem * triglist = item->parent();
+	QString trigger(item->text(0));
+	QString table(triglist->parent()->text(0));
 	QString schema(item->text(1));
 	AlterTriggerDialog *dia =
-		new AlterTriggerDialog(table, schema, this);
+		new AlterTriggerDialog(trigger, schema, this);
 	dia->exec();
 	if (dia->update)
 	{
-		schemaBrowser->tableTree->buildTriggers(item, schema, table);
+		schemaBrowser->tableTree->buildTriggers(triglist, schema, table);
 		checkForCatalogue();
 	}
 	delete dia;

@@ -29,6 +29,7 @@ class CreateTriggerDialog : public QDialog
 
 	private:
 		Ui::CreateTriggerDialog ui;
+		void resultAppend(QString text);
 
 	private slots:
 		void createButton_clicked();

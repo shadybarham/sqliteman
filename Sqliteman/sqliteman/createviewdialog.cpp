@@ -50,6 +50,7 @@ void CreateViewDialog::nameEdit_textChanged(const QString& text)
 
 void CreateViewDialog::createButton_clicked()
 {
+	ui.resultEdit->setHtml("");
 	if (creator && creator->checkForPending())
 	{
 		QString sql = QString("CREATE VIEW ")
@@ -64,16 +65,34 @@ void CreateViewDialog::createButton_clicked()
 		
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setText(tr("Cannot create view")
-								   + ":<br/><span style=\" color:#ff0000;\">"
-								   + query.lastError().text()
-								   + "<br/></span>" + tr("using sql statement:")
-								   + "<br/><tt>" + sql);
+			resultAppend(tr("Cannot create view")
+						 + ":<br/><span style=\" color:#ff0000;\">"
+						 + query.lastError().text()
+						 + "<br/></span>" + tr("using sql statement:")
+						 + "<br/><tt>" + sql);
 			return;
 		}
-		ui.resultEdit->setText(tr("View created successfully"));
+		resultAppend(tr("View created successfully"));
 		update = true;
 		m_schema = ui.databaseCombo->currentText();
 		m_name = ui.nameEdit->text();
+	}
+}
+
+void CreateViewDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
 	}
 }

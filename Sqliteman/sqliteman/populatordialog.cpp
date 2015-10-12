@@ -137,6 +137,7 @@ void PopulatorDialog::populateButton_clicked()
 {
 	// Avoid QVariantList extension because it doesn't work for column names
 	// containing special characters
+	resultEdit->setHtml("");
 	m_columnList.clear();
 	for (int i = 0; i < columnTable->rowCount(); ++i)
 		m_columnList.append(qobject_cast<PopulatorColumnWidget*>(columnTable->cellWidget(i, 2))->column());
@@ -215,7 +216,7 @@ void PopulatorDialog::populateButton_clicked()
 							  + query.lastError().text()
 							  + "<br/></span>" + tr("using sql statement:")
 							  + "<br/><tt>" + sql;
-			resultEdit->append(errtext);
+			resultAppend(errtext);
 			if (!constraintBox->isChecked()) { break; }
 		}
 		else { updated = true; }
@@ -225,7 +226,7 @@ void PopulatorDialog::populateButton_clicked()
 	{
 		if (!execSql("ROLLBACK TO POPULATOR;", tr("Cannot roll back either")))
 		{
-			resultEdit->append(tr(
+			resultAppend(tr(
 				"Database may be left with a pending savepoint."));
 		}
 		updated = false;
@@ -235,7 +236,7 @@ void PopulatorDialog::populateButton_clicked()
 	cntPost = tableRowCount();
 
 	if (cntPre != -1 && cntPost != -1)
-		resultEdit->append(tr("Row(s) inserted: %1").arg(cntPost-cntPre));
+		resultAppend(tr("Row(s) inserted: %1").arg(cntPost-cntPre));
 }
 
 QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
@@ -257,7 +258,7 @@ QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		resultEdit->append(errtext);
+		resultAppend(errtext);
 		return QVariantList();
 	}
 
@@ -390,9 +391,26 @@ bool PopulatorDialog::execSql(const QString & statement, const QString & message
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + statement;
-		resultEdit->append(errtext);
+		resultAppend(errtext);
 		return false;
 	}
 	return true;
 }
 
+void PopulatorDialog::resultAppend(QString text)
+{
+	resultEdit->append(text);
+	int lh = QFontMetrics(resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		resultEdit->setFixedHeight(lh * lines);
+	}
+}

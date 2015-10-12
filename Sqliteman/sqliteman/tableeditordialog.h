@@ -41,8 +41,10 @@ class TableEditorDialog : public QDialog
 		Else use default('foo') = add SQL string mark.
 		*/
 		QString getDefaultClause(const QString & defVal);
-		
+
 		QString getColumnClause(DatabaseTableField column);
+
+		void resultAppend(QString text);
 
 	protected:
 		virtual void checkChanges() = 0;

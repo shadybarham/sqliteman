@@ -173,7 +173,7 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + statement;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		return false;
 	}
 	return true;
@@ -189,7 +189,7 @@ void AlterTableDialog::doRollback(QString message)
 			return;
 		}
 	}
-	ui.resultEdit->append(tr("Database may be left with a pending savepoint."));
+	resultAppend(tr("Database may be left with a pending savepoint."));
 }
 
 QStringList AlterTableDialog::originalSource()
@@ -211,7 +211,7 @@ QStringList AlterTableDialog::originalSource()
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + ixsql;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		return QStringList();
 	}
 	while(query.next())
@@ -428,7 +428,7 @@ void AlterTableDialog::createButton_clicked()
 	if (updateStage > 0)
 	{
 		resetStructure();
-		ui.resultEdit->append(tr("Alter Table Done"));
+		resultAppend(tr("Alter Table Done"));
 	}
 }
 
@@ -471,12 +471,12 @@ bool AlterTableDialog::addColumns()
 							  + query.lastError().text()
 							  + "<br/></span>" + tr("using sql statement:")
 							  + "<br/><tt>" + fullSql;
-			ui.resultEdit->append(errtext);
+			resultAppend(errtext);
 			return false;
 		}
 		updateStage = 2;
 	}
-	ui.resultEdit->append(tr("Columns added successfully"));
+	resultAppend(tr("Columns added successfully"));
 	return true;
 }
 

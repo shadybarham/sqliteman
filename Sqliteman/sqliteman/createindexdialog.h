@@ -38,6 +38,7 @@ class CreateIndexDialog : public QDialog
 		QString m_schema;
 
 		void checkToEnable();
+		void resultAppend(QString text);
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work

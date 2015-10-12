@@ -54,7 +54,8 @@ CreateTriggerDialog::CreateTriggerDialog(const QString & name,
 			 + "BEGIN\n<statement-list>\nEND;");
 	}
 
-	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+	connect(ui.createButton, SIGNAL(clicked()),
+			this, SLOT(createButton_clicked()));
 }
 
 CreateTriggerDialog::~CreateTriggerDialog()
@@ -66,6 +67,7 @@ CreateTriggerDialog::~CreateTriggerDialog()
 
 void CreateTriggerDialog::createButton_clicked()
 {
+	ui.resultEdit->setHtml("");
 	LiteManWindow * lmw = qobject_cast<LiteManWindow*>(parent());
 	if (lmw && lmw->checkForPending())
 	{
@@ -74,14 +76,32 @@ void CreateTriggerDialog::createButton_clicked()
 		
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setHtml(tr("Cannot create trigger")
-								   + ":<br/><span style=\" color:#ff0000;\">"
-								   + query.lastError().text()
-								   + "<br/></span>" + tr("using sql statement:")
-								   + "<br/><tt>" + sql);
+			resultAppend(tr("Cannot create trigger")
+						 + ":<br/><span style=\" color:#ff0000;\">"
+						 + query.lastError().text()
+						 + "<br/></span>" + tr("using sql statement:")
+						 + "<br/><tt>" + sql);
 			return;
 		}
-		ui.resultEdit->setText(tr("Trigger created successfully"));
+		resultAppend(tr("Trigger created successfully"));
 		update = true;
+	}
+}
+
+void CreateTriggerDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
 	}
 }

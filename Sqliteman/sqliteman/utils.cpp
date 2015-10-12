@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include <QTreeWidgetItem>
 #include <QTime>
 #include <QUrl>
+#include <QTextEdit>
 
 #include "utils.h"
 
@@ -156,6 +157,18 @@ void Utils::dump(QComboBox & box)
 void Utils::dump(QComboBox * box)
 {
 	box ? dump(*box) : qDebug("Null QComboBox");
+}
+void Utils::dump(QStringList sl)
+{
+	qDebug("%s", sl.join(", ").toUtf8().data());
+}
+void Utils::dump(QTextEdit & te)
+{
+	qDebug("%s", te.toHtml().toUtf8().data());
+}
+void Utils::dump(QTextEdit * te)
+{
+	qDebug("%s", te->toHtml().toUtf8().data());
 }
 void Utils::dump(QVariant x)
 {

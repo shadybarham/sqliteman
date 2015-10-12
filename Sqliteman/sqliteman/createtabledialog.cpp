@@ -58,6 +58,7 @@ QString CreateTableDialog::getSQLfromGUI()
 
 void CreateTableDialog::createButton_clicked()
 {
+	ui.resultEdit->setHtml("");
 	if (creator && creator->checkForPending())
 	{
 		QString sql;
@@ -70,15 +71,15 @@ void CreateTableDialog::createButton_clicked()
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
 		{
-			ui.resultEdit->setHtml(tr("Cannot create table")
-								   + ":<br/><span style=\" color:#ff0000;\">"
-								   + query.lastError().text()
-								   + "<br/></span>" + tr("using sql statement:")
-								   + "<br/><tt>" + sql);
+			resultAppend(tr("Cannot create table")
+						 + ":<br/><span style=\" color:#ff0000;\">"
+						 + query.lastError().text()
+						 + "<br/></span>" + tr("using sql statement:")
+						 + "<br/><tt>" + sql);
 			return;
 		}
 		updated = true;
-		ui.resultEdit->setHtml(tr("Table created successfully"));
+		resultAppend(tr("Table created successfully"));
 	}
 }
 

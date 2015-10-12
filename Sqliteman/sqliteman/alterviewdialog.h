@@ -31,6 +31,7 @@ class AlterViewDialog : public QDialog
 
 	private:
 		Ui::CreateViewDialog ui;
+		void resultAppend(QString text);
 		
 	private slots:
 		void createButton_clicked();

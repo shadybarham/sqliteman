@@ -68,6 +68,7 @@ CreateIndexDialog::~CreateIndexDialog()
 
 void CreateIndexDialog::createButton_clicked()
 {
+	ui.resultEdit->setHtml("");
 	if (creator && creator->checkForPending())
 	{
 		QStringList cols;
@@ -98,15 +99,15 @@ void CreateIndexDialog::createButton_clicked()
 		QSqlQuery q(sql, QSqlDatabase::database(SESSION_NAME));
 		if(q.lastError().isValid())
 		{
-			ui.resultEdit->setHtml(tr("Error while creating index ")
-								   + ui.indexNameEdit->text()
-								   + ":<br/><span style=\" color:#ff0000;\">"
-								   + q.lastError().text()
-								   + "<br/></span>" + tr("using sql statement:")
-								   + "<br/><tt>" + sql);
+			resultAppend(tr("Error while creating index ")
+						 + ui.indexNameEdit->text()
+						 + ":<br/><span style=\" color:#ff0000;\">"
+						 + q.lastError().text()
+						 + "<br/></span>" + tr("using sql statement:")
+						 + "<br/><tt>" + sql);
 			return;
 		}
-		ui.resultEdit->setText(tr("Index created successfully."));
+		resultAppend(tr("Index created successfully."));
 		update = true;
 	}
 }
@@ -138,4 +139,22 @@ void CreateIndexDialog::checkToEnable()
 		}
 	}
 	ui.createButton->setEnabled(nameTest && columnTest);
+}
+
+void CreateIndexDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
+	}
 }

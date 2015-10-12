@@ -3,6 +3,9 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME should update m_name and m_schema after successful alter
+		  waiting for new statement parser to fix this
+	FIXME trigger with same name as a table confuses it
 */
 #include <QPushButton>
 #include <QSqlQuery>
@@ -21,6 +24,7 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	m_name(name)
 {
 	ui.setupUi(this);
+	ui.resultEdit->setHtml("");
 	QSettings settings("yarpen.cz", "sqliteman");
 	int hh = settings.value("altertrigger/height", QVariant(500)).toInt();
 	int ww = settings.value("altertrigger/width", QVariant(600)).toInt();
@@ -42,7 +46,7 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->setHtml(errtext);
+		resultAppend(errtext);
 		ui.createButton->setEnabled(false);
 	}
 	else
@@ -65,6 +69,7 @@ AlterTriggerDialog::~AlterTriggerDialog()
 
 void AlterTriggerDialog::createButton_clicked()
 {
+	ui.resultEdit->setHtml("");
 	QString sql = QString("DROP TRIGGER ")
 				  + Utils::quote(m_schema)
 				  + "."
@@ -79,7 +84,7 @@ void AlterTriggerDialog::createButton_clicked()
 						  + drop.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->setHtml(errtext);
+		resultAppend(errtext);
 		return;
 	}
 
@@ -94,11 +99,31 @@ void AlterTriggerDialog::createButton_clicked()
 						  + query.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 					  + "<br/><tt>" + sql;
-		ui.resultEdit->setHtml(errtext);
+		resultAppend(errtext);
 		return;
 	}
+	resultAppend(tr("Trigger created successfully"));
+	update = true;
+
+	// for the moment, we don't allow the user to alter the same trigger again
+	// because its name may have changed
+	accept();
+}
+
+void AlterTriggerDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
 	{
-		ui.resultEdit->setText(tr("Trigger created successfully"));
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
 	}
- 	update = true;
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
+	}
 }

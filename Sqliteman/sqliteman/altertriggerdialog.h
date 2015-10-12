@@ -30,6 +30,7 @@ class AlterTriggerDialog : public QDialog
 		Ui::CreateTriggerDialog ui;
 		QString m_schema;
 		QString m_name;
+		void resultAppend(QString text);
 
 	private slots:
 		void createButton_clicked();

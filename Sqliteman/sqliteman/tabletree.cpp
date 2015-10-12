@@ -161,7 +161,7 @@ void TableTree::buildSysIndexes(QTreeWidgetItem *indexesItem, const QString & sc
 void TableTree::buildTriggers(QTreeWidgetItem *triggersItem, const QString & schema, const QString & table)
 {
 	deleteChildren(triggersItem);
-	QStringList values = Database::getObjects("trigger", schema).values(table.toLower());
+	QStringList values = Database::getObjects("trigger", schema).values(table);
 	triggersItem->setText(0, trLabel(trTriggers).arg(values.size()));
 	triggersItem->setIcon(0, Utils::getIcon("trigger.png"));
 	triggersItem->setText(1, schema);

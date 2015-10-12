@@ -206,3 +206,21 @@ QString TableEditorDialog::getColumnClause(DatabaseTableField column)
 	return " " + Utils::quote(column.name)
 		       + " " + tt + nn + def + ",\n";
 }
+
+void TableEditorDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
+	}
+}

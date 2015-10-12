@@ -83,6 +83,8 @@ class PopulatorDialog : public QDialog, public Ui::PopulatorDialog
 
 		bool execSql(const QString & statement, const QString & message);
 
+		void resultAppend(QString text);
+
 	private slots:
 		void populateButton_clicked();
 		void spinBox_valueChanged(int);

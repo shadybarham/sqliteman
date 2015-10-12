@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 class QComboBox;
 class QItemSelection;
 class QTreeWidgetItem;
+class QTextEdit;
 
 //! Various helper functions
 namespace Utils {
@@ -46,6 +47,9 @@ void dump(QTreeWidgetItem & item);
 void dump(QTreeWidgetItem * item);
 void dump(QComboBox & box);
 void dump(QComboBox *box);
+void dump(QStringList sl);
+void dump(QTextEdit & te);
+void dump(QTextEdit * te);
 void dump(QVariant x);
 };
 

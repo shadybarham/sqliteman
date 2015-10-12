@@ -22,6 +22,7 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	update(false)
 {
 	ui.setupUi(this);
+	ui.resultEdit->setHtml("");
 	QSettings settings("yarpen.cz", "sqliteman");
 	int hh = settings.value("alterview/height", QVariant(500)).toInt();
 	int ww = settings.value("alterview/width", QVariant(600)).toInt();
@@ -83,7 +84,7 @@ void AlterViewDialog::createButton_clicked()
 						  + q1.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		return;
 	}
 	sql = QString("DROP VIEW ")
@@ -102,7 +103,7 @@ void AlterViewDialog::createButton_clicked()
 						  + q2.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		QSqlQuery q3("ROLLBACK TO ALTER_VIEW;", db);
 		if (q3.lastError().isValid())
 		{
@@ -116,7 +117,7 @@ void AlterViewDialog::createButton_clicked()
 				return;
 			}
 		}
-		ui.resultEdit->append(tr(
+		resultAppend(tr(
 			"Database may be left with a pending savepoint."));
 		return;
 	}
@@ -140,7 +141,7 @@ void AlterViewDialog::createButton_clicked()
 						  + q4.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		QSqlQuery q3("ROLLBACK TO ALTER_VIEW;", db);
 		return;
 	}
@@ -153,7 +154,7 @@ void AlterViewDialog::createButton_clicked()
 						  + q5.lastError().text()
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + sql;
-		ui.resultEdit->append(errtext);
+		resultAppend(errtext);
 		QSqlQuery q6("ROLLBACK TO ALTER_VIEW;", db);
 		if(q6.lastError().isValid())
 		{
@@ -162,9 +163,27 @@ void AlterViewDialog::createButton_clicked()
 							  + q5.lastError().text()
 							  + "<br/></span>" + tr("using sql statement:")
 							  + "<br/><tt>" + sql;
-			ui.resultEdit->append(errtext);
+			resultAppend(errtext);
 		}
 		return;
 	}
-	ui.resultEdit->insertHtml(tr("View altered successfully"));
+	resultAppend(tr("View altered successfully"));
+}
+
+void AlterViewDialog::resultAppend(QString text)
+{
+	ui.resultEdit->append(text);
+	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.resultEdit->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.resultEdit->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.resultEdit->setFixedHeight(lh * lines);
+	}
 }

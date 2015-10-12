@@ -42,6 +42,8 @@ class CreateViewDialog : public QDialog
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
 		LiteManWindow * creator;
 
+		void resultAppend(QString text);
+
 	private slots:
 		void createButton_clicked();
 		void nameEdit_textChanged(const QString& text);
