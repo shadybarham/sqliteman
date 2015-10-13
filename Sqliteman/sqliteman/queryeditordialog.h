@@ -9,7 +9,6 @@ for which a new license (GPL+exception) is in place.
 #define QUERYEDITORDIALOG_H
 
 class QTreeWidgetItem;
-class QueryStringModel;
 
 #include "database.h"
 #include "ui_queryeditordialog.h"
@@ -35,37 +34,6 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		QString statement();
 		void treeChanged();
 		void tableAltered(QString oldName, QString newName);
-
-	private:
-		bool initialised;
-		QString m_schema;
-		QString m_table;
-		QueryStringModel * columnModel;
-		QueryStringModel * selectModel;
-		QString m_rowid;
-		QStringList m_columnList;
-
-		void resetModel();
-		QStringList getColumns();
-		void resetTableList();
-		void resetSchemaList();
-
-private slots:
-		void tableSelected(const QString & table);
-		void schemaSelected(const QString & schema);
-		// Term tab
-		void moreTerms();
-		void lessTerms();
-		// Fields tab
-		void addAllSelect();
-		void addSelect();
-		void removeAllSelect();
-		void removeSelect();
-		// Order by tab
-		void moreOrders();
-		void lessOrders();
-		void relationsIndexChanged(const QString &);
-		void resetClicked();
 };
 
 #endif //QUERYEDITORDIALOG_H
