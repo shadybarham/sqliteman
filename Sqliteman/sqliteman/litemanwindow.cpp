@@ -6,6 +6,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
 	FIXME should we allow attaching a database which is already open?
 	      it can cause confusion
+    FIXME allow create view and create table to use query editor
 */
 #include <QTreeWidget>
 #include <QTableView>

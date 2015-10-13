@@ -8,32 +8,11 @@ for which a new license (GPL+exception) is in place.
 #ifndef QUERYEDITORDIALOG_H
 #define QUERYEDITORDIALOG_H
 
-#include <QStringListModel>
-
 class QTreeWidgetItem;
+class QueryStringModel;
 
 #include "database.h"
 #include "ui_queryeditordialog.h"
-
-/*! \brief Improved QStringListModel for items handling in paralell
-layouts. See queryeditordilog.ui in Qt4 designer.
-QueryStringModels are used in "swap" items views.
-\author Petr Vanek <petr@scribus.info>
-*/
-class QueryStringModel : public QStringListModel
-{
-	Q_OBJECT
-
-	public:
-		QueryStringModel(QObject * parent = 0);
-		//! Make it non-editable
-		Qt::ItemFlags flags (const QModelIndex & index) const;
-		//! remove all items from model
-		void clear();
-		//! append new string at the end of the model
-		void append(const QString & value);
-};
-
 
 /*!
  * @brief A dialog for creating and editing queries

@@ -11,29 +11,8 @@ for which a new license (GPL+exception) is in place.
 #include <QTreeWidgetItem>
 
 #include "queryeditordialog.h"
+#include "querystringmodel.h"
 #include "utils.h"
-
-QueryStringModel::QueryStringModel(QObject * parent)
-	: QStringListModel(parent)
-{
-}
-
-Qt::ItemFlags QueryStringModel::flags (const QModelIndex & index) const
-{
-	return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
-}
-
-void QueryStringModel::clear()
-{
-	setStringList(QStringList());
-}
-
-void QueryStringModel::append(const QString & value)
-{
-	QStringList l(stringList());
-	l.append(value);
-	setStringList(l);
-}
 
 void QueryEditorDialog::resetModel()
 {

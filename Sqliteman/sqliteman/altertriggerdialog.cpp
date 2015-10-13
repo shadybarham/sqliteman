@@ -5,7 +5,6 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME should update m_name and m_schema after successful alter
 		  waiting for new statement parser to fix this
-	FIXME trigger with same name as a table confuses it
 */
 #include <QPushButton>
 #include <QSqlQuery>

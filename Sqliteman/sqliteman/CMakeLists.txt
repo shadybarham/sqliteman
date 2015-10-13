@@ -38,6 +38,7 @@ SET( SQLITEMAN_SRC
     preferences.cpp
     preferencesdialog.cpp
     queryeditordialog.cpp
+    querystringmodel.cpp
     schemabrowser.cpp
     shortcuteditordialog.cpp
     shortcutmodel.cpp
@@ -101,6 +102,7 @@ SET( SQLITEMAN_MOC
     preferences.h
     preferencesdialog.h
     queryeditordialog.h
+    querystringmodel.h
     schemabrowser.h
     shortcuteditordialog.h
     shortcutmodel.h
