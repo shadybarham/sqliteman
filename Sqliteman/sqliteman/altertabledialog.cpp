@@ -34,9 +34,17 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	ui.removeButton->setEnabled(false);
 	setWindowTitle(tr("Alter Table"));
 
-	ui.nameEdit->setText(m_item->text(0));
-	ui.databaseCombo->addItem(m_item->text(1));
-	ui.databaseCombo->setDisabled(true);
+	if (m_item)
+	{
+		ui.nameEdit->setText(m_item->text(0));
+		int i = ui.databaseCombo->findText(m_item->text(1),
+			Qt::MatchFixedString | Qt::MatchCaseSensitive);
+		if (i >= 0)
+		{
+			ui.databaseCombo->setCurrentIndex(i);
+			ui.databaseCombo->setDisabled(true);
+		}
+	}
 	ui.tabWidget->removeTab(2);
 	ui.tabWidget->removeTab(1);
 	ui.adviceLabel->hide();

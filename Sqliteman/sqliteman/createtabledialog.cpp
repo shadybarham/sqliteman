@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QCheckBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QTreeWidgetItem>
 #include <QMessageBox>
 #include <QLineEdit>
 
@@ -16,7 +17,8 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "utils.h"
 
-CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
+CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
+									 QTreeWidgetItem * item)
 	: TableEditorDialog(parent)
 {
 	creator = parent;
@@ -25,6 +27,16 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	ui.removeButton->setEnabled(false); // Disable row removal
 	setWindowTitle(tr("Create Table"));
 
+	if (item)
+	{
+		int i = ui.databaseCombo->findText(item->text(1),
+			Qt::MatchFixedString | Qt::MatchCaseSensitive);
+		if (i >= 0)
+		{
+			ui.databaseCombo->setCurrentIndex(i);
+			ui.databaseCombo->setDisabled(true);
+		}
+	}
 	m_tabWidgetIndex = ui.tabWidget->currentIndex();
 	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
 			this, SLOT(tabWidget_currentChanged(int)));

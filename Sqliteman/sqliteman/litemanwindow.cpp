@@ -63,8 +63,6 @@ for which a new license (GPL+exception) is in place.
 #include "driver/qsql_sqlite.h"
 #endif
 
-
-
 LiteManWindow::LiteManWindow(const QString & fileToOpen)
 	: QMainWindow(),
 	m_mainDbPath(""),
@@ -834,8 +832,9 @@ void LiteManWindow::dumpDatabase()
 
 void LiteManWindow::createTable()
 {
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
 	dataViewer->removeErrorMessage();
-	CreateTableDialog dlg(this);
+	CreateTableDialog dlg(this, item);
 	dlg.exec();
 	if (dlg.updated)
 	{
@@ -1075,7 +1074,8 @@ void LiteManWindow::dropTable()
 void LiteManWindow::createView()
 {
 	dataViewer->removeErrorMessage();
-	CreateViewDialog dia("", "", this);
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	CreateViewDialog dia(item->text(1), this);
 
 	dia.exec();
 	if (dia.update)
@@ -1314,6 +1314,8 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 			contextMenu->addAction(refreshTreeAct);
 			if (cur->text(0) != "main")
 				contextMenu->addAction(detachAct);
+			contextMenu->addAction(createTableAct);
+			contextMenu->addAction(createViewAct);
 			break;
 
 		case TableTree::TriggersItemType:

@@ -15,7 +15,8 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "utils.h"
 
-CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema, LiteManWindow * parent)
+CreateViewDialog::CreateViewDialog(const QString & schema,
+								   LiteManWindow * parent)
 	: QDialog(parent),
 	update(false)
 {
@@ -27,6 +28,12 @@ CreateViewDialog::CreateViewDialog(const QString & name, const QString & schema,
 	resize(ww, hh);
 
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
+	int i = ui.databaseCombo->findText(schema,
+		Qt::MatchFixedString | Qt::MatchCaseSensitive);
+	if (i >= 0)
+	{
+		ui.databaseCombo->setCurrentIndex(i);
+	}
 
 	ui.createButton->setDisabled(true);
 

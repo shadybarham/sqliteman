@@ -22,7 +22,7 @@ class CreateViewDialog : public QDialog
 	Q_OBJECT
 
 	public:
-		CreateViewDialog(const QString & name, const QString & schema,
+		CreateViewDialog(const QString & schema,
 						 LiteManWindow * parent = 0);
 		~CreateViewDialog();
 

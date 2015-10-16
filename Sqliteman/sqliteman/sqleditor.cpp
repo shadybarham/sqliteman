@@ -352,7 +352,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 void SqlEditor::actionCreateView_triggered()
 {
 	emit showSqlScriptResult("");
-	CreateViewDialog dia("", "", creator);
+	CreateViewDialog dia("", creator);
 
 	dia.setText(query());
 	dia.exec();

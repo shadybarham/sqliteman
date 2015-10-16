@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include "litemanwindow.h"
 #include "tableeditordialog.h"
 
+class QTreeWidgetItem;
 class QPushButton;
 
 /*! \brief A GUI for CREATE TABLE procedure.
@@ -21,7 +22,8 @@ class CreateTableDialog : public TableEditorDialog
 	Q_OBJECT
 
 	public:
-		CreateTableDialog(LiteManWindow * parent = 0);
+		CreateTableDialog(LiteManWindow * parent = 0,
+						  QTreeWidgetItem * item = 0);
 		~CreateTableDialog(){};
 
 		bool updated;
