@@ -13,7 +13,6 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "ui_tableeditordialog.h"
 
-
 /*! \brief A base dialog for creating and editing tables.
 This dialog is taken as a inheritance parent for AlterTableDialog
 and CreateTableDialog.
@@ -53,8 +52,6 @@ class TableEditorDialog : public QDialog
 		virtual void addField();
 		virtual void removeField();
 		virtual void fieldSelected();
-		virtual void createButton_clicked();
-		virtual void tabWidget_currentChanged(int index);
 };
 
 #endif

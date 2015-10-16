@@ -13,6 +13,7 @@ for which a new license (GPL+exception) is in place.
 #include "tableeditordialog.h"
 
 class QTreeWidgetItem;
+class QPushButton;
 
 /*! \brief Handle alter table features.
 Sqlite3 has very limited ALTER TABLE feature set, so
@@ -25,6 +26,7 @@ Drop Column is using a workaround with tmp table, insert-select
 statement and renaming. See createButton_clicked()
 \author Petr Vanek <petr@scribus.info>
 */
+
 class AlterTableDialog : public TableEditorDialog
 {
 	Q_OBJECT
@@ -50,6 +52,7 @@ class AlterTableDialog : public TableEditorDialog
 
 		QTreeWidgetItem * m_item;
 		int m_protectedRows;
+		QPushButton * m_alterButton;
 		
 		FieldList m_fields;
 
@@ -96,7 +99,7 @@ class AlterTableDialog : public TableEditorDialog
 
 		void dropItem_stateChanged(int);
 
-		void createButton_clicked();
+		void alterButton_clicked();
 
 		//! \brief Setup the Alter button if there is something changed
 		void checkChanges();

@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME allow CREATE TABLE to use Query Builder
 	FIXME Context create table should use correct database
 */
 
@@ -24,14 +23,22 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent)
 	updated = false;
 	m_dirty = false;
 	ui.removeButton->setEnabled(false); // Disable row removal
-	addField(); // A table should have at least one field
 	setWindowTitle(tr("Create Table"));
 
-	ui.createButton->setDisabled(true);
+	m_tabWidgetIndex = ui.tabWidget->currentIndex();
+	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
+			this, SLOT(tabWidget_currentChanged(int)));
+	m_createButton =
+		ui.buttonBox->addButton("Create", QDialogButtonBox::ApplyRole);
+	m_createButton->setDisabled(true);
+	connect(m_createButton, SIGNAL(clicked(bool)),
+			this, SLOT(createButton_clicked()));
 	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
 			this, SLOT(checkChanges()));
 
 	ui.textEdit->setText("");
+	ui.queryEditor->setItem(0);
+	addField(); // A table should have at least one field
 }
 
 QString CreateTableDialog::getSQLfromGUI()
@@ -39,21 +46,33 @@ QString CreateTableDialog::getSQLfromGUI()
 	QString sql = QString("CREATE TABLE ")
 				  + Utils::quote(ui.databaseCombo->currentText())
 				  + "."
-				  + Utils::quote(ui.nameEdit->text())
-				  + " (\n";
-	QString nn;
-	QString def;
-	DatabaseTableField f;
-
-	for(int i = 0; i < ui.columnTable->rowCount(); i++)
+				  + Utils::quote(ui.nameEdit->text());
+	switch (m_tabWidgetIndex)
 	{
-		f = getColumn(i);
-		sql += getColumnClause(f);
-	}
-	sql = sql.remove(sql.size() - 2, 2); 	// cut the extra ", "
-	sql += "\n);\n";
-	m_dirty = true;
+		case 0:
+			{
+				sql += " (\n";
+				QString nn;
+				QString def;
+				DatabaseTableField f;
 
+				for(int i = 0; i < ui.columnTable->rowCount(); i++)
+				{
+					f = getColumn(i);
+					sql += getColumnClause(f);
+				}
+				sql = sql.remove(sql.size() - 2, 2); 	// cut the extra ", "
+				sql += "\n);\n";
+				setDirty();
+			}
+			break;
+		case 1:
+			sql += " AS " + ui.queryEditor->statement();
+			setDirty();
+			break;
+		case 2:
+			sql = ui.textEdit->text();
+	}
 	return sql;
 }
 
@@ -63,11 +82,10 @@ void CreateTableDialog::createButton_clicked()
 	if (creator && creator->checkForPending())
 	{
 		QString sql;
-		// from GUI
-		if (ui.tabWidget->currentIndex() == 0)
-			sql = getSQLfromGUI();
-		else
+		if (ui.tabWidget->currentIndex() == 2)
 			sql = ui.textEdit->text();
+		else
+			sql = getSQLfromGUI();
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
@@ -87,17 +105,20 @@ void CreateTableDialog::createButton_clicked()
 void CreateTableDialog::checkChanges()
 {
 	bool bad = ui.nameEdit->text().trimmed().isEmpty();
-	for(int i = 0; i < ui.columnTable->rowCount(); i++)
+	if (m_tabWidgetIndex == 0)
 	{
-		QLineEdit * name =
-			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
-		if (   (name == 0)
-			|| (name->text().trimmed().isEmpty()))
+		for(int i = 0; i < ui.columnTable->rowCount(); i++)
 		{
-			bad = true;
+			QLineEdit * name =
+				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+			if (   (name == 0)
+				|| (name->text().trimmed().isEmpty()))
+			{
+				bad = true;
+			}
 		}
 	}
-	ui.createButton->setDisabled(bad);
+	m_createButton->setDisabled(bad);
 }
 
 void CreateTableDialog::setDirty()
@@ -107,24 +128,46 @@ void CreateTableDialog::setDirty()
 
 void CreateTableDialog::tabWidget_currentChanged(int index)
 {
-	if (index == 1)
+	if (index == 2)
 	{
-		if (m_dirty)
+		if (m_dirty && (m_tabWidgetIndex != 2))
 		{
+			
 			int com = QMessageBox::question(this, tr("Sqliteman"),
 				tr("Do you want to keep the current content of the SQL editor?."
-				   "\nYes to keep it,\nNo to create from the Design tab"
-				   "\nCancel to return to the Design tab"),
+				   "\nYes to keep it,\nNo to create from the %1 tab"
+				   "\nCancel to return to the %2 tab")
+				.arg((m_tabWidgetIndex ? "AS query" : "(columns)"),
+					 (m_tabWidgetIndex ? "AS query" : "(columns)")),
 				QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
 			if (com == QMessageBox::No)
 				ui.textEdit->setText(getSQLfromGUI());
 			else if (com == QMessageBox::Cancel)
-				ui.tabWidget->setCurrentIndex(0);
+			{
+				ui.tabWidget->setCurrentIndex(m_tabWidgetIndex);
+				return;
+			}
 		}
 		else
 		{
 			ui.textEdit->setText(getSQLfromGUI());
 		}
+		ui.labelDatabase->hide();
+		ui.databaseCombo->hide();
+		ui.labelTable->hide();
+		ui.nameEdit->hide();
+		ui.adviceLabel->hide();
+		m_tabWidgetIndex = index;
+		m_createButton->setEnabled(true);
 	}
-	TableEditorDialog::tabWidget_currentChanged(index);
+	else
+	{
+		ui.labelDatabase->show();
+		ui.databaseCombo->show();
+		ui.labelTable->show();
+		ui.nameEdit->show();
+		ui.adviceLabel->show();
+		m_tabWidgetIndex = index;
+		checkChanges();
+	}
 }

@@ -846,8 +846,8 @@ void LiteManWindow::createTable()
 			if (item->type() == TableTree::TablesItemType)
 				schemaBrowser->tableTree->buildTables(item, item->text(1));
 		}
-		queryEditor->treeChanged();
 		checkForCatalogue();
+		queryEditor->treeChanged();
 	}
 }
 

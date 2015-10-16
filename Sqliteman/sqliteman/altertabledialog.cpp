@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME loses constraints (?)
 	FIXME handle all columns replaced
 	FIXME avoid recreating if sqlite ALTER TABLE can do it
 	FIXME allow reordering columns
@@ -32,15 +31,20 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	creator = parent;
 	m_alteringActive = isActive;
 	updateStage = 0;
+	ui.removeButton->setEnabled(false);
+	setWindowTitle(tr("Alter Table"));
 
 	ui.nameEdit->setText(m_item->text(0));
 	ui.databaseCombo->addItem(m_item->text(1));
 	ui.databaseCombo->setDisabled(true);
+	ui.tabWidget->removeTab(2);
 	ui.tabWidget->removeTab(1);
 	ui.adviceLabel->hide();
-	ui.createButton->setText(tr("Alte&r"));
-	ui.removeButton->setEnabled(false);
-	setWindowTitle(tr("Alter Table"));
+	m_alterButton =
+		ui.buttonBox->addButton("Alte&r", QDialogButtonBox::ApplyRole);
+	m_alterButton->setDisabled(true);
+	connect(m_alterButton, SIGNAL(clicked(bool)),
+			this, SLOT(alterButton_clicked()));
 
 	ui.columnTable->insertColumn(4); // show if it's indexed
 	QTableWidgetItem * captIx = new QTableWidgetItem(tr("Indexed"));
@@ -271,7 +275,7 @@ bool AlterTableDialog::renameTable(QString newTableName)
 	return false;
 }
 
-void AlterTableDialog::createButton_clicked()
+void AlterTableDialog::alterButton_clicked()
 {
 	ui.resultEdit->setHtml("");
 	if (m_alteringActive && !(creator && creator->checkForPending()))
@@ -566,5 +570,5 @@ void AlterTableDialog::checkChanges()
 		}
 	}
 	if (colsLeft == 0) { bad = true; }
-	ui.createButton->setEnabled(changed && !bad);
+	m_alterButton->setEnabled(changed && !bad);
 }

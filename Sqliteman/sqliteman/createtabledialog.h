@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include "litemanwindow.h"
 #include "tableeditordialog.h"
 
+class QPushButton;
 
 /*! \brief A GUI for CREATE TABLE procedure.
 \author Petr Vanek <petr@scribus.info>
@@ -25,12 +26,6 @@ class CreateTableDialog : public TableEditorDialog
 
 		bool updated;
 
-	private slots:
-		void createButton_clicked();
-		void tabWidget_currentChanged(int index);
-		void checkChanges();
-		void setDirty();
-
 	private:
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
@@ -41,6 +36,14 @@ class CreateTableDialog : public TableEditorDialog
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
 		LiteManWindow * creator;
+		QPushButton * m_createButton;
+		int m_tabWidgetIndex;
+
+	private slots:
+		void createButton_clicked();
+		void tabWidget_currentChanged(int index);
+		void checkChanges();
+		void setDirty();
 };
 
 #endif

@@ -200,7 +200,7 @@ void QueryEditorWidget::setItem(QTreeWidgetItem * item)
 QString QueryEditorWidget::statement()
 {
 	QString logicWord;
-	QString sql = "SELECT ";
+	QString sql = "SELECT\n";
 
 	// columns
 	if (selectModel->rowCount() == 0)
@@ -211,7 +211,7 @@ QString QueryEditorWidget::statement()
 	}
 
 	// Add table name
-			sql += (" FROM " + Utils::quote(m_schema) + "." +
+			sql += ("\nFROM " + Utils::quote(m_schema) + "." +
 					Utils::quote(tableList->currentText()));
 
 	// Optionaly add terms
@@ -220,7 +220,7 @@ QString QueryEditorWidget::statement()
 		// But first determine what is the chosen logic word (And/Or)
 		(andButton->isChecked()) ? logicWord = " AND " : logicWord = " OR ";
 
-		sql += " WHERE ";
+		sql += "\nWHERE ";
 
 		for(int i = 0; i < termsTable->rowCount(); i++)
 		{
@@ -277,7 +277,7 @@ QString QueryEditorWidget::statement()
 	// optionally add ORDER BY clauses
 	if (ordersTable->rowCount() > 0)
 	{
-		sql += " ORDER BY ";
+		sql += "\nORDER BY ";
 		for (int i = 0; i < ordersTable->rowCount(); i++)
 		{
 			QComboBox * fields =

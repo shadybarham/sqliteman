@@ -23,8 +23,6 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 	int hh = settings.value("tableeditor/height", QVariant(600)).toInt();
 	int ww = settings.value("tableeditor/width", QVariant(800)).toInt();
 	resize(ww, hh);
-	ui.tableEditorSplitter->restoreState(
-		settings.value("tableeditor/splitter").toByteArray());
 	
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
 
@@ -34,10 +32,6 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 			this, SLOT(fieldSelected()));
 	connect(ui.addButton, SIGNAL(clicked()), this, SLOT(addField()));
 	connect(ui.removeButton, SIGNAL(clicked()), this, SLOT(removeField()));
-	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
-			this, SLOT(tabWidget_currentChanged(int)));
-	connect(ui.createButton, SIGNAL(clicked()),
-			this, SLOT(createButton_clicked()));
 }
 
 TableEditorDialog::~TableEditorDialog()
@@ -45,13 +39,6 @@ TableEditorDialog::~TableEditorDialog()
 	QSettings settings("yarpen.cz", "sqliteman");
     settings.setValue("tableeditor/height", QVariant(height()));
     settings.setValue("tableeditor/width", QVariant(width()));
-	settings.setValue("tableeditor/splitter",
-					  ui.tableEditorSplitter->saveState());
-}
-
-void TableEditorDialog::createButton_clicked()
-{
-	qDebug() << "createButton_clicked() not implemented";
 }
 
 void TableEditorDialog::addField()
@@ -111,14 +98,6 @@ void TableEditorDialog::removeField()
 void TableEditorDialog::fieldSelected()
 {
 	ui.removeButton->setEnabled(ui.columnTable->selectedRanges().count() != 0);
-}
-
-void TableEditorDialog::tabWidget_currentChanged(int index)
-{
-	if (index == 1)
-		ui.createButton->setEnabled(true);
-	else
-		checkChanges();
 }
 
 QString TableEditorDialog::getFullName(const QString & objName)
