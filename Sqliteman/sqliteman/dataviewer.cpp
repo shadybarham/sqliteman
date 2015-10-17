@@ -7,7 +7,6 @@ for which a new license (GPL+exception) is in place.
 	FIXME make query builder work with attached database
 	FIXME handle things better when not in autocommit mode
 	FIXME use explicit string NULL
-	FIXME delete in Item view changes view
 	FIXME messy column widths
 */
 
@@ -477,12 +476,21 @@ void DataViewer::copyRow()
 void DataViewer::removeRow()
 {
 	removeErrorMessage();
-	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
-	if(model)
+	SqlTableModel * model =
+		qobject_cast<SqlTableModel *>(ui.tableView->model());
+	if (model)
 	{
 		int row = ui.tableView->currentIndex().row();
 		model->removeRows(row, 1);
 		ui.tableView->hideRow(row);
+		if (ui.tabWidget->currentIndex() == 1)
+		{
+			if (ui.itemView->rowDeleted())
+			{
+				// no rows left
+				ui.tabWidget->setCurrentIndex(0);
+			}
+		}
 		updateButtons();
 	}
 }

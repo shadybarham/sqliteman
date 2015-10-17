@@ -149,6 +149,25 @@ int SqlItemView::currentColumn()
 	return m_column;
 }
 
+bool SqlItemView::rowDeleted()
+{
+	int row = findUp(m_row);
+	if (row != m_row) 
+	{
+		setCurrentIndex(row, m_column);
+		emit indexChanged();
+		return false;
+	}
+	row = findDown(m_row);
+	if (row != m_row) 
+	{
+		setCurrentIndex(row, m_column);
+		emit indexChanged();
+		return false;
+	}
+	return true;
+}
+
 int SqlItemView::findUp(int row)
 {
 	int r = row;
