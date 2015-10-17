@@ -6,8 +6,9 @@ for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME make query builder work with attached database
 	FIXME handle things better when not in autocommit mode
-	FIXME can't insert row with all non-null values defaulted
 	FIXME use explicit string NULL
+	FIXME delete in Item view changes view
+	FIXME messy column widths
 */
 
 #include <QMessageBox>

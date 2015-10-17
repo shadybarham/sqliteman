@@ -4,9 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
-	FIXME should we allow attaching a database which is already open?
-	      it can cause confusion
-    FIXME allow create view and create table to use query editor
+    FIXME allow create view to use query editor
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -1292,12 +1290,14 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 			contextMenu->addSeparator();
 			contextMenu->addAction(importTableAct);
 			contextMenu->addAction(populateTableAct);
+			contextMenu->addAction(createTriggerAct);
 			break;
 
 		case TableTree::ViewType:
 			contextMenu->addAction(describeViewAct);
 			contextMenu->addAction(alterViewAct);
 			contextMenu->addAction(dropViewAct);
+			contextMenu->addAction(createTriggerAct);
 			break;
 
 		case TableTree::IndexType:
@@ -1520,14 +1520,29 @@ void LiteManWindow::createTrigger()
 {
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	QString table(item->parent()->text(0));
-	QString schema(item->parent()->text(1));
-	CreateTriggerDialog *dia = new CreateTriggerDialog(table, schema,
-											item->parent()->type(), this);
+	QTreeWidgetItem * triggers;
+	if (item->type() == TableTree::TriggersItemType)
+	{
+		triggers = item;
+		item = item->parent();
+	}
+	else
+	{
+		for (int i = 0; i < item->childCount(); ++i)
+		{
+			if (item->child(i)->type() == TableTree::TriggersItemType)
+			{
+				triggers = item->child(i);
+				break;
+			}
+		}
+	}
+	CreateTriggerDialog *dia = new CreateTriggerDialog(item, this);
 	dia->exec();
 	if (dia->update)
 	{
-		schemaBrowser->tableTree->buildTriggers(item, schema, table);
+		schemaBrowser->tableTree->buildTriggers(triggers, triggers->text(1),
+												item->text(0));
 		checkForCatalogue();
 	}
 	delete dia;

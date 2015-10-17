@@ -8,6 +8,7 @@ for which a new license (GPL+exception) is in place.
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QTreeWidgetItem>
 #include <QSettings>
 
 #include "createtriggerdialog.h"
@@ -16,9 +17,7 @@ for which a new license (GPL+exception) is in place.
 #include "tabletree.h"
 #include "utils.h"
 
-CreateTriggerDialog::CreateTriggerDialog(const QString & name,
-										 const QString & schema,
-										 int itemType,
+CreateTriggerDialog::CreateTriggerDialog(QTreeWidgetItem * item,
 										 QWidget * parent)
 	: QDialog(parent),
 	update(false)
@@ -29,27 +28,27 @@ CreateTriggerDialog::CreateTriggerDialog(const QString & name,
 	int ww = settings.value("createtrigger/width", QVariant(600)).toInt();
 	resize(ww, hh);
 
-	if (itemType == TableTree::TableType)
+	if (item->type() == TableTree::TableType)
 	{
 		ui.textEdit->setText(
 			QString("-- sqlite3 simple trigger template\n"
 					"CREATE TRIGGER [IF NOT EXISTS] ")
-			+ Utils::quote(schema)
+			+ Utils::quote(item->text(1))
 			+ ".\"<trigger_name>\"\n[ BEFORE | AFTER ]\n"
 		    + "DELETE | INSERT | UPDATE | UPDATE OF <column-list>\n ON "
-			+ Utils::quote(name)
+			+ Utils::quote(item->text(0))
 			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
 			+ "BEGIN\n<statement-list>\nEND;");
 	}
-	else
+	else // trigger on view
 	{
 		ui.textEdit->setText(
 			QString("-- sqlite3 simple trigger template\n"
 					"CREATE TRIGGER [IF NOT EXISTS] ")
-			+ Utils::quote(schema)
+			+ Utils::quote(item->text(1))
 			+ ".\"<trigger_name>\"\nINSTEAD OF "
 			+ "[DELETE | INSERT | UPDATE | UPDATE OF <column-list>]\nON "
-			+ Utils::quote(name)
+			+ Utils::quote(item->text(0))
 			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
 			 + "BEGIN\n<statement-list>\nEND;");
 	}
