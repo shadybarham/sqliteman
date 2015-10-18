@@ -84,6 +84,10 @@ protected:
 							Qt::Orientation orientation,
 							int role = Qt::DisplayRole) const;
 
+	private slots:
+		//! \brief Called when is new row created in the view (not in the model).
+		void doPrimeInsert(int, QSqlRecord &);
+
 	public slots:
 		bool select();
 };

@@ -7,7 +7,9 @@ for which a new license (GPL+exception) is in place.
 If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
 This is a QT bug.
+
 */
+#include <time.h>
 
 #include <QColor>
 #include <QSqlField>
@@ -35,6 +37,8 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 		case 4: m_readRowsCount = 4096; break;
 		default: m_readRowsCount = 0; break;
 	}
+	connect(this, SIGNAL(primeInsert(int, QSqlRecord &)),
+			this, SLOT(doPrimeInsert(int, QSqlRecord &)));
 }
 
 QVariant SqlTableModel::data(const QModelIndex & item, int role) const
@@ -168,36 +172,59 @@ QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int
 	return QSqlTableModel::headerData(section, orientation, role);
 }
 
-// Workaround for Qt bug creating all-NULL records:
-// use instead of doPrimeInsert()
-void SqlTableModel::initRecord(int row)
+void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 {
 	FieldList fl = Database::tableFields(tableName(), m_schema);
 	bool ok;
 	QString defval;
 	// guess what type is the default value.
-	for (int i = 0; i < fl.count(); ++i)
+	foreach (DatabaseTableField column, fl)
 	{
-		DatabaseTableField column = fl.at(i);
 		if (column.defval.isNull())
 		{
-			setData(index(row, i), QVariant("nothing"));
-			setData(index(row, i), QVariant());
+			// prevent failure on all-null record
+			record.setGenerated(column.name, true);
 		}
 		else
 		{
+			char s[22];
+			time_t dummy;
 			defval = column.defval;
-			defval.toInt(&ok);
-			if (!ok)
+			if (defval.compare("CURRENT_TIMESTAMP", Qt::CaseInsensitive) == 0)
 			{
-				defval.toDouble(&ok);
+				time(&dummy);
+				(void)strftime(s, 20, "%F %T", localtime(&dummy));
+				defval = QString(s);
+			}
+			else if (defval.compare("CURRENT_TIME", Qt::CaseInsensitive) == 0)
+			{
+				time(&dummy);
+				(void)strftime(s, 20, "%T", localtime(&dummy));
+				defval = QString(s);
+			}
+			else if (defval.compare("CURRENT_DATE", Qt::CaseInsensitive) == 0)
+			{
+				time(&dummy);
+				(void)strftime(s, 20, "%F", localtime(&dummy));
+				defval = QString(s);
+			}
+			else
+			{
+				defval.toInt(&ok);
 				if (!ok)
 				{
-					if (defval.left(1) == "'" || defval.left(1) == "\"")
-						defval = defval.mid(1, defval.length()-2);
+					defval.toDouble(&ok);
+					if (!ok)
+					{
+						if (defval.left(1) == "'")
+						{
+							defval = defval.mid(1, defval.length()-2);
+						}
+					}
 				}
+				record.setGenerated(column.name, true);
 			}
-			setData(index(row, i), QVariant(defval));
+			record.setValue(column.name, QVariant(defval));
 		}
 	}
 }
