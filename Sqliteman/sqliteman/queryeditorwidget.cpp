@@ -29,8 +29,8 @@ QStringList QueryEditorWidget::getColumns()
 	bool rowid = true;
 	bool _rowid_ = true;
 	bool oid = true;
-	FieldList fields = Database::tableFields(m_table, m_schema);
-	foreach (DatabaseTableField i, fields)
+	QList<FieldInfo> fields = Database::tableFields(m_table, m_schema);
+	foreach (FieldInfo i, fields)
 	{
 		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
 			{ rowid = false; }
@@ -46,7 +46,7 @@ QStringList QueryEditorWidget::getColumns()
 	else if (oid)
 		{ columns << QString("oid"); m_rowid = "oid"; }
 
-	foreach (DatabaseTableField i, fields) { columns << i.name; }
+	foreach (FieldInfo i, fields) { columns << i.name; }
 	return columns;
 }
 

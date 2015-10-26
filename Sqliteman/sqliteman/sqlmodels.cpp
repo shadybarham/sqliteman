@@ -8,6 +8,8 @@ If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
 This is a QT bug.
 
+FIXME column default (expression) still not done correctly
+
 */
 #include <time.h>
 
@@ -174,57 +176,74 @@ QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int
 
 void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 {
-	FieldList fl = Database::tableFields(tableName(), m_schema);
+	QList<FieldInfo> fl = Database::tableFields(tableName(), m_schema);
 	bool ok;
 	QString defval;
 	// guess what type is the default value.
-	foreach (DatabaseTableField column, fl)
+	foreach (FieldInfo column, fl)
 	{
-		if (column.defval.isNull())
+		if (column.defaultValue.isEmpty())
 		{
+			// prevent integer type being displayed as 0
+			record.setValue(column.name, QVariant());
 			// prevent failure on all-null record
 			record.setGenerated(column.name, true);
+		}
+		else if (column.defaultisQuoted)
+		{
+			record.setValue(column.name, QVariant(column.defaultValue));
+			record.setGenerated(column.name, true);
+		}
+		else if (column.defaultIsExpression)
+		{
+			record.setValue(column.name, QVariant(column.defaultValue));
 		}
 		else
 		{
 			char s[22];
 			time_t dummy;
-			defval = column.defval;
+			defval = column.defaultValue;
 			if (defval.compare("CURRENT_TIMESTAMP", Qt::CaseInsensitive) == 0)
 			{
 				time(&dummy);
 				(void)strftime(s, 20, "%F %T", localtime(&dummy));
-				defval = QString(s);
+				record.setValue(column.name, QVariant(s));
 			}
 			else if (defval.compare("CURRENT_TIME", Qt::CaseInsensitive) == 0)
 			{
 				time(&dummy);
 				(void)strftime(s, 20, "%T", localtime(&dummy));
-				defval = QString(s);
+				record.setValue(column.name, QVariant(s));
 			}
 			else if (defval.compare("CURRENT_DATE", Qt::CaseInsensitive) == 0)
 			{
 				time(&dummy);
 				(void)strftime(s, 20, "%F", localtime(&dummy));
-				defval = QString(s);
+				record.setValue(column.name, QVariant(s));
 			}
 			else
 			{
-				defval.toInt(&ok);
-				if (!ok)
+				int i = defval.toInt(&ok);
+				if (ok)
 				{
-					defval.toDouble(&ok);
-					if (!ok)
+					record.setValue(column.name, QVariant(i));
+					record.setGenerated(column.name, true);
+				}
+				else
+				{
+					double d = defval.toDouble(&ok);
+					if (ok)
 					{
-						if (defval.left(1) == "'")
-						{
-							defval = defval.mid(1, defval.length()-2);
-						}
+						record.setValue(column.name, QVariant(d));
+						record.setGenerated(column.name, true);
+					}
+					else
+					{
+						record.setValue(column.name, QVariant(defval));
+						record.setGenerated(column.name, true);
 					}
 				}
-				record.setGenerated(column.name, true);
 			}
-			record.setValue(column.name, QVariant(defval));
 		}
 	}
 }
@@ -258,22 +277,27 @@ void SqlTableModel::setTable(const QString &tableName)
 {
 	m_header.clear();
 	QStringList indexes = Database::getSysIndexes(tableName, m_schema);
-	FieldList columns = Database::tableFields(tableName, m_schema);
+	QList<FieldInfo> columns = Database::tableFields(tableName, m_schema);
 
-	foreach (DatabaseTableField c, columns)
+	int colnum = 0;
+	foreach (FieldInfo c, columns)
 	{
-		if (c.pk)
+		if (c.isPartOfPrimaryKey)
 		{
-			m_header[c.cid] = (c.type == "INTEGER PRIMARY KEY AUTOINCREMENT") ? SqlTableModel::Auto : SqlTableModel::PK;
+			m_header[colnum] =
+				(c.isAutoIncrement) ? SqlTableModel::Auto : SqlTableModel::PK;
+			++colnum;
 			continue;
 		}
 		// show has default icon
-		if (!c.defval.isEmpty())
+		if (!c.defaultValue.isEmpty())
 		{
-			m_header[c.cid] = SqlTableModel::Default;
+			m_header[colnum] = SqlTableModel::Default;
+			++colnum;
 			continue;
 		}
-		m_header[c.cid] = SqlTableModel::None;
+		m_header[colnum] = SqlTableModel::None;
+		++colnum;
 	}
 
 	QSqlTableModel::setTable(tableName);
@@ -301,8 +325,6 @@ void SqlTableModel::setPendingTransaction(bool pending)
 {
 	m_pending = pending;
 
-	// TODO: examine the better way to get only shown/changed lines.
-	// If there is one...
 	if (!pending)
 	{
 		for (int i = 0; i < m_deleteCache.size(); ++i)

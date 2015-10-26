@@ -37,9 +37,9 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 	QStringList deletes;
 	QStringList nnCols;
 	QString stmt;
-	foreach (DatabaseTableField column, Database::tableFields(tabName, schema))
+	foreach (FieldInfo column, Database::tableFields(tabName, schema))
 	{
-		if (!column.notnull)
+		if (!column.isNotNull)
 			continue;
 		nnCols << column.name;
 		stmt = QString("SELECT RAISE(ABORT, 'New ")

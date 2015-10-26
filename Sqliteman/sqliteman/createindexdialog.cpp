@@ -28,7 +28,7 @@ CreateIndexDialog::CreateIndexDialog(const QString & tabName,
 	ui.tableNameLabel->setText(tabName);
 	ui.schemaLabel->setText(m_schema);
 
-	FieldList columns = Database::tableFields(tabName, schema);
+	QList<FieldInfo> columns = Database::tableFields(tabName, schema);
 	ui.tableColumns->setRowCount(columns.size());
 	ui.createButton->setDisabled(true);
 
@@ -40,7 +40,7 @@ CreateIndexDialog::CreateIndexDialog(const QString & tabName,
 		useItem->setCheckState(Qt::Unchecked);
 
 		ui.tableColumns->setItem(i, 0, nameItem);
-		if (columns[i].pk)
+		if (columns[i].isPartOfPrimaryKey)
 			nameItem->setIcon(Utils::getIcon("key.png"));
 
 		ui.tableColumns->setItem(i, 1, useItem);

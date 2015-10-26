@@ -31,7 +31,7 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 	resize(ww, hh);
 	columnTable->horizontalHeader()->setStretchLastSection(true);
 
-	FieldList fields = Database::tableFields(m_table, m_schema);
+	QList<FieldInfo> fields = Database::tableFields(m_table, m_schema);
 	columnTable->clearContents();
 	columnTable->setRowCount(fields.size());
 	QRegExp sizeExp("\\(\\d+\\)");
@@ -40,7 +40,7 @@ PopulatorDialog::PopulatorDialog(QWidget * parent, const QString & table, const 
 		Populator::PopColumn col;
 		col.name = fields[i].name;
 		col.type = fields[i].type;
-		col.pk = fields[i].pk;
+		col.pk = fields[i].isPartOfPrimaryKey;
 // 		col.action has to be set in PopulatorColumnWidget instance!
 		if (sizeExp.indexIn(col.type) != -1)
 		{

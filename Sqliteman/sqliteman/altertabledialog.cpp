@@ -3,9 +3,14 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME handle all columns replaced
-	FIXME avoid recreating if sqlite ALTER TABLE can do it
 	FIXME allow reordering columns
+	FIXME loses some constraints
+	mulptiple primary key are not allowed
+	multiple not null are allowed
+	multiple unique are allowed if any on conflict clauses are the same
+	multiple different checks are allowed
+	multiple default are possible, last one is used
+	multiple collate are possible even with different collation names
 */
 
 #include <QCheckBox>
@@ -17,16 +22,13 @@ for which a new license (GPL+exception) is in place.
 
 #include "altertabledialog.h"
 #include "utils.h"
-#include "preferences.h"
 
 
 AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 								   QTreeWidgetItem * item,
 								   const bool isActive)
 	: TableEditorDialog(parent),
-	m_item(item),
-	m_protectedRows(0),
-	m_dropColumns(0)
+	m_item(item)
 {
 	creator = parent;
 	m_alteringActive = isActive;
@@ -71,85 +73,34 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 
 void AlterTableDialog::resetStructure()
 {
-	Preferences * prefs = Preferences::instance();
-	bool useNull = prefs->nullHighlight();
-	QString nullText = prefs->nullHighlightText();
-
 	// obtain all indexed columns for DROP COLUMN checks
+	QMap<QString,QStringList> columnIndexMap;
 	foreach(QString index,
 		Database::getObjects("index", m_item->text(1)).values(m_item->text(0)))
 	{
 		foreach(QString indexColumn,
 			Database::indexFields(index, m_item->text(1)))
 		{
-			m_columnIndexMap[indexColumn].append(index);
+			columnIndexMap[indexColumn].append(index);
 		}
 	}
 
 	// Initialize fields
 	m_fields = Database::tableFields(m_item->text(0), m_item->text(1));
 	ui.columnTable->clearContents();
-	ui.columnTable->setRowCount(m_fields.size());
-	for(int i = 0; i < m_fields.size(); i++)
+	ui.columnTable->setRowCount(0);
+	for (int i = 0; i < m_fields.size(); i++)
 	{
-		QLineEdit * name = new QLineEdit(this);
-		name->setText(m_fields[i].name);
-		name->setFrame(false);
-		connect(name, SIGNAL(textEdited(const QString &)),
-				this, SLOT(checkChanges()));
-		ui.columnTable->setCellWidget(i, 0, name);
+		int x = m_fields[i].isNotNull ? 1 : 0;
+		x += m_fields[i].isAutoIncrement ? 4 :
+				(m_fields[i].isPartOfPrimaryKey ? 2 : 0);
 
-		QComboBox * box = new QComboBox(this);
-		box->setEditable(true);
-		box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-		QStringList types;
-		if (useNull && !nullText.isEmpty()) { types << nullText; }
-		else { types << "Null"; }
-		types << "Text" << "PK Integer"  << "PK Autoincrement"
-			  << "Integer" << "Real" << "Blob";
-		box->addItems(types);
-		int n;
-		QString s = m_fields[i].type;
-		if (s.isEmpty())
-		{
-			n = 0;
-		}
-		else
-		{
-			n = box->findText(s, Qt::MatchFixedString | Qt::MatchCaseSensitive);
-			if (n <= 0)
-			{
-				n = box->count();
-				box->addItem(s);
-			}
-		}
-		box->setCurrentIndex(n);
-		connect(box, SIGNAL(currentIndexChanged(int)),
-				this, SLOT(checkChanges()));
-		connect(box, SIGNAL(editTextChanged(const QString &)),
-				this, SLOT(checkChanges()));
-		ui.columnTable->setCellWidget(i, 1, box);
-
-		QCheckBox *nn = new QCheckBox(this);
-		nn->setCheckState(m_fields[i].notnull ? Qt::Checked : Qt::Unchecked);
-		connect(nn, SIGNAL(stateChanged(int)), this, SLOT(checkChanges()));
-		ui.columnTable->setCellWidget(i, 2, nn);
-
-		QLineEdit * defval = new QLineEdit(this);
-		s = m_fields[i].defval;
-		defval->setText(s);
-		if (useNull && s.isNull())
-		{
-			defval->setPlaceholderText(nullText);
-		}
-		defval->setFrame(false);
-		connect(defval, SIGNAL(textEdited(const QString &)),
-				this, SLOT(checkChanges()));
-		ui.columnTable->setCellWidget(i, 3, defval);
+		TableEditorDialog::addField(m_fields[i].name, m_fields[i].type, x,
+									SqlParser::defaultToken(m_fields[i]));
 
 		QTableWidgetItem * ixItem = new QTableWidgetItem();
-		ixItem->setFlags(Qt::ItemIsSelectable);
-		if (m_columnIndexMap.contains(m_fields[i].name))
+		ixItem->setFlags(Qt::NoItemFlags);
+		if (columnIndexMap.contains(m_fields[i].name))
 		{
 			ixItem->setIcon(Utils::getIcon("index.png"));
 			ixItem->setText(tr("Yes"));
@@ -159,23 +110,17 @@ void AlterTableDialog::resetStructure()
 
 		QCheckBox * dropItem = new QCheckBox(this);
 		connect(dropItem, SIGNAL(stateChanged(int)),
-				this, SLOT(dropItem_stateChanged(int)));
+				this, SLOT(checkChanges()));
 		ui.columnTable->setCellWidget(i, 5, dropItem);
 	}
 
-	m_protectedRows = ui.columnTable->rowCount();
-	m_dropColumns = 0;
-// 	ui.columnTable->resizeColumnsToContents();
+	m_keptColumns.clear();
+
 	checkChanges();
 }
 
-void AlterTableDialog::dropItem_stateChanged(int state)
-{
-	state == Qt::Checked ? ++m_dropColumns : --m_dropColumns;
-	checkChanges();
-}
-
-bool AlterTableDialog::execSql(const QString & statement, const QString & message)
+bool AlterTableDialog::execSql(const QString & statement,
+							   const QString & message)
 {
 	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
 	if(query.lastError().isValid())
@@ -191,29 +136,30 @@ bool AlterTableDialog::execSql(const QString & statement, const QString & messag
 	return true;
 }
 
-void AlterTableDialog::doRollback(QString message)
+bool AlterTableDialog::doRollback(QString message)
 {
-	if (execSql("ROLLBACK TO ALTER_TABLE;", message))
+	bool result = execSql("ROLLBACK TO ALTER_TABLE;", message);
+	if (result)
 	{
 		// rollback does not cancel the savepoint
 		if (execSql("RELEASE ALTER_TABLE;", QString("")))
 		{
-			return;
+			return true;
 		}
 	}
 	resultAppend(tr("Database may be left with a pending savepoint."));
+	return result;
 }
 
-QStringList AlterTableDialog::originalSource()
+QStringList AlterTableDialog::originalSource(QString tableName)
 {
 	QString ixsql = QString("select sql from ")
-					+ Utils::quote(m_item->text(1))
-					+ ".sqlite_master where type in ('index', 'trigger') "
+					+ Database::getMaster(m_item->text(1))
+					+ " where type in ('index', 'trigger') "
 					+ "and tbl_name = "
-					+ Utils::quote(m_item->text(0))
+					+ Utils::quote(tableName)
 					+ ";";
 	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
-	QStringList ret;
 
 	if (query.lastError().isValid())
 	{
@@ -226,58 +172,28 @@ QStringList AlterTableDialog::originalSource()
 		resultAppend(errtext);
 		return QStringList();
 	}
-	while(query.next())
-		ret.append(query.value(0).toString());
+	QStringList ret;
+	while (query.next())
+		{ ret.append(query.value(0).toString()); }
 	return ret;
 }
 
-bool AlterTableDialog::renameTable(QString newTableName)
+bool AlterTableDialog::renameTable(QString oldTableName, QString newTableName)
 {
-	QString oldName = m_item->text(0);
-	if (oldName.compare(newTableName, Qt::CaseInsensitive) == 0)
-	{
-		if (oldName.compare(newTableName, Qt::CaseSensitive) == 0)
-		{
-			return true;
-		}
-		else
-		{
-			// sqlite won't rename if only case changes,
-			// so we rename via a temporary name
-			QString tmpName = Database::getTempName(m_item->text(1));
-			QString sql = QString("ALTER TABLE ")
-						  + Utils::quote(m_item->text(1))
-						  + "."
-						  + Utils::quote(oldName)
-						  + " RENAME TO "
-						  + Utils::quote(tmpName)
-						  + ";";
-			QString message = tr("Cannot rename table ")
-							  + oldName
-							  + tr(" to ")
-							  + tmpName;
-			if (!execSql(sql, message))
-			{
-				return false;
-			}
-			oldName = tmpName;
-		}
-	}
 	QString sql = QString("ALTER TABLE ")
 				  + Utils::quote(m_item->text(1))
 				  + "."
-				  + Utils::quote(oldName)
+				  + Utils::quote(oldTableName)
 				  + " RENAME TO "
 				  + Utils::quote(newTableName)
 				  + ";";
 	QString message = tr("Cannot rename table ")
-					  + oldName
+					  + oldTableName
 					  + tr(" to ")
 					  + newTableName;
 	if (execSql(sql, message))
 	{
 		updateStage = 1;
-		m_item->setText(0, newTableName);
 		return true;
 	}
 	return false;
@@ -290,8 +206,9 @@ void AlterTableDialog::alterButton_clicked()
 	{
 		return;
 	}
-	// rename table if it's required
+
 	QString newTableName(ui.nameEdit->text().trimmed());
+	QString oldTableName(m_item->text(0));
 	if (newTableName.contains(QRegExp
 		("\\s|-|\\]|\\[|[`!\"%&*()+={}:;@'~#|\\\\<,>.?/^]")))
 	{
@@ -308,133 +225,148 @@ void AlterTableDialog::alterButton_clicked()
 	{
 		return;
 	}
-	if (!renameTable(newTableName)) {
-		doRollback(tr("Cannot roll back after error"));
+	if (newTableName.compare(oldTableName, Qt::CaseInsensitive) && !m_altered)
+	{
+		// only need to rename
+		if (!renameTable(oldTableName, newTableName))
+		{
+			doRollback(tr("Cannot roll back after error"));
+			return;
+		}
+		if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
+		{
+			doRollback(tr("Cannot roll back either"));
+			return;
+		}
+		m_item->setText(0, newTableName);
 		return;
 	}
 
-	// drop columns first
-// 	if (m_dropColumns > 0)
+	if (newTableName.compare(oldTableName, Qt::CaseInsensitive) == 0)
 	{
-        FieldList oldColumns =
-	        Database::tableFields(m_item->text(0), m_item->text(1));
-		// indexes and triggers on the original table
-		QStringList originalSrc = originalSource();
-
 		// generate unique temporary tablename
 		QString tmpName = Database::getTempName(m_item->text(1));
-
-		// create temporary table without selected columns
-		FieldList newColumns;
-        QStringList tmpSelectColumns;
-		for(int i = 0; i < m_protectedRows; ++i)
-		{
-			if (!qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5))->isChecked())
-            {
-				newColumns.append(getColumn(i));
-                tmpSelectColumns.append(oldColumns[i].name);
-            }
-		}
-
-		QString sql = QString("ALTER TABLE ")
-					  + Utils::quote(m_item->text(1))
-					  + "."
-					  + Utils::quote(m_item->text(0))
-					  + " RENAME TO "
-					  + Utils::quote(tmpName)
-					  + ";";
-		QString message = tr("Cannot rename table ")
-						  + m_item->text(0)
-						  + tr(" to ")
-						  + tmpName;
-		if (!execSql(sql, message))
+		if (!renameTable(oldTableName, tmpName))
 		{
 			doRollback(tr("Cannot roll back after error"));
 			return;
 		}
-		updateStage = 1;
-
-		sql = QString("CREATE TABLE ")
-			  + Utils::quote(m_item->text(1))
-			  + "."
-			  + Utils::quote(m_item->text(0))
-			  + " (";
-		QStringList tmpInsertColumns;
-		foreach (DatabaseTableField f, newColumns)
+		oldTableName = tmpName;
+		if (!m_altered)
 		{
-			sql += getColumnClause(f);
-			tmpInsertColumns.append(f.name);
-		}
-		sql = sql.remove(sql.size() - 2, 2); // cut the extra ", "
-		sql += "\n);\n";
-
-		message = tr("Cannot create table ")
-				  + m_item->text(0);
-		if (!execSql(sql, message))
-		{
-			doRollback(tr("Cannot roll back after error"));
-			return;
-		}
-
-		// insert old data
-		sql = QString("INSERT INTO ")
-			  + Utils::quote(m_item->text(1))
-			  + "."
-			  + Utils::quote(m_item->text(0))
-			  + " ("
-			  + Utils::quote(tmpInsertColumns)
-			  + ") SELECT "
-			  + Utils::quote(tmpSelectColumns)
-			  + " FROM "
-			  + Utils::quote(m_item->text(1))
-			  + "."
-			  + Utils::quote(tmpName)
-			  + ";";
-		message = tr("Cannot insert data into ")
-				  + tmpName;
-		if (!execSql(sql, message))
-		{
-			doRollback(tr("Cannot roll back after error"));
-			return;
-		}
-		updateStage = 2;
-		
-		// drop old table
-		sql = QString("DROP TABLE ")
-			  + Utils::quote(m_item->text(1))
-			  + "."
-			  + Utils::quote(tmpName)
-			  + ";";
-		message = tr("Cannot drop table ")
-				  + tmpName;
-		if (!execSql(sql, message))
-		{
-			doRollback(tr("Cannot roll back after error"));
-			return;
-		}
-
-		// restoring original indexes
-		foreach (QString restoreSql, originalSrc)
-		{
-			if (!execSql(restoreSql,
-				tr("Cannot recreate original index/trigger")))
+			// only need to rename again (case changed)
+			if (!renameTable(oldTableName, newTableName))
 			{
-				doRollback(tr("Cannot roll back after error"));
+				if (!doRollback(tr("Cannot roll back after error")))
+				{
+					m_item->setText(0, oldTableName);
+				}
 				return;
 			}
+			if (!execSql("RELEASE ALTER_TABLE;",
+						 tr("Cannot release savepoint")))
+			{
+				if (doRollback(tr("Cannot roll back either")))
+				{
+					return;
+				}
+			}
+			m_item->setText(0, newTableName);
+			return;
 		}
 	}
 
-	// handle add columns
-	if (!addColumns())
+	// Here newTableName differs from oldTableName in more than case,
+	// and we have column changes to make
+    QList<FieldInfo> oldColumns =
+        Database::tableFields(oldTableName, m_item->text(1));
+	// indexes and triggers on the original table
+	QStringList originalSrc = originalSource(oldTableName);
+
+	m_keptColumns.clear();
+	QString message(tr("Cannot create table ") + newTableName);
+	if (!execSql(getSQLfromGUI(), message))
 	{
-		doRollback(tr("Cannot roll back after error"));
+		if (!doRollback(tr("Cannot roll back after error")))
+		{
+			m_item->setText(0, oldTableName);
+		}
 		return;
+	}
+
+	// insert old data
+	if (m_keptColumns.count() > 0)
+	{
+		QString insert("INSERT INTO ");
+		insert += Utils::quote(m_item->text(1))
+				  + "."
+				  + Utils::quote(newTableName)
+				  + " (";
+
+	    QString select(" ) SELECT ");
+		bool first = true;
+		foreach (int i, m_keptColumns)
+		{
+			if (first) { first = false; }
+			else
+			{
+				insert += ", ";
+				select += ", ";
+			}
+			QLineEdit * nameItem =
+				qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
+			insert += Utils::quote(nameItem->text());
+	        select += Utils::quote(oldColumns[i].name);
+		}
+		select += " FROM "
+				  + Utils::quote(m_item->text(1))
+				  + "."
+				  + Utils::quote(oldTableName)
+				  + ";";
+		message = tr("Cannot insert data into ")
+				  + newTableName;
+		if (!execSql(insert + select, message))
+		{
+			if (!doRollback(tr("Cannot roll back after error")))
+			{
+				m_item->setText(0, oldTableName);
+			}
+			return;
+		}
+	}
+	updateStage = 2;
+	
+	// drop old table
+	QString drop("DROP TABLE ");
+	drop += Utils::quote(m_item->text(1))
+			+ "."
+			+ Utils::quote(oldTableName)
+			+ ";";
+	message = tr("Cannot drop table ")
+			  + oldTableName;
+	if (!execSql(drop, message))
+	{
+		if (!doRollback(tr("Cannot roll back after error")))
+		{
+			m_item->setText(0, oldTableName);
+		}
+		return;
+	}
+
+	// restoring original indexes and triggers
+	// FIXME fix up if columns dropped or renamed
+	foreach (QString restoreSql, originalSrc)
+	{
+		// continue after failure here
+		(void)execSql(restoreSql, tr("Cannot recreate original index/trigger"));
 	}
 
 	if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
 	{
-		doRollback(tr("Cannot roll back either"));
+		if (!doRollback(tr("Cannot roll back either")))
+		{
+			m_item->setText(0, newTableName);
+		}
 		return;
 	}
 	if (updateStage > 0)
@@ -444,64 +376,28 @@ void AlterTableDialog::alterButton_clicked()
 	}
 }
 
-bool AlterTableDialog::addColumns()
+void AlterTableDialog::addField()
 {
-	// handle new columns
-	DatabaseTableField f;
-	QString sql = QString("ALTER TABLE ")
-				  + Utils::quote(ui.databaseCombo->currentText())
-				  + "."
-				  + Utils::quote(m_item->text(0))
-				  + " ADD COLUMN ";
-	QString fullSql;
-
-	// only if it's required to do
-	if (m_protectedRows == ui.columnTable->rowCount())
-		return true;
-	
-	for(int i = m_protectedRows; i < ui.columnTable->rowCount(); i++)
-	{
-		f = getColumn(i);
-		if (f.cid == -1)
-			continue;
-
-		fullSql = sql
-				  + Utils::quote(f.name)
-				  + f.type
-				  + (f.notnull ? " NOT NULL" : "")
-				  + getDefaultClause(f.defval)
-				  + ";";
-
-		QSqlQuery query(fullSql, QSqlDatabase::database(SESSION_NAME));
-		if(query.lastError().isValid())
-		{
-			QString errtext = tr("Cannot add column ")
-							  + f.name
-							  + tr(" to ")
-							  + m_item->text(0)
-							  + ":<br/><span style=\" color:#ff0000;\">"
-							  + query.lastError().text()
-							  + "<br/></span>" + tr("using sql statement:")
-							  + "<br/><tt>" + fullSql;
-			resultAppend(errtext);
-			return false;
-		}
-		updateStage = 2;
-	}
-	resultAppend(tr("Columns added successfully"));
-	return true;
+	int i = ui.columnTable->rowCount();
+	TableEditorDialog::addField();
+	QTableWidgetItem * wi = new QTableWidgetItem(0);
+	wi->setFlags(Qt::NoItemFlags);
+	ui.columnTable->setItem(i, 4, wi);
+	wi = new QTableWidgetItem(0);
+	wi->setFlags(Qt::NoItemFlags);
+	ui.columnTable->setItem(i, 5, wi);
 }
 
 void AlterTableDialog::removeField()
 {
-	if (ui.columnTable->currentRow() < m_protectedRows)
+	if (ui.columnTable->currentRow() < m_fields.count())
 		return;
 	TableEditorDialog::removeField();
 }
 
 void AlterTableDialog::fieldSelected()
 {
-	if (ui.columnTable->currentRow() < m_protectedRows)
+	if (ui.columnTable->currentRow() < m_fields.count())
 	{
 		ui.removeButton->setEnabled(false);
 		return;
@@ -511,7 +407,7 @@ void AlterTableDialog::fieldSelected()
 
 void AlterTableDialog::cellClicked(int row, int)
 {
-	if (row < m_protectedRows)
+	if (row < m_fields.count())
 	{
 		ui.removeButton->setEnabled(false);
 		return;
@@ -519,64 +415,84 @@ void AlterTableDialog::cellClicked(int row, int)
 	TableEditorDialog::fieldSelected();
 }
 
-void AlterTableDialog::checkChanges()
+bool AlterTableDialog::checkRetained(int i)
 {
-	Preferences * prefs = Preferences::instance();
-	bool useNull = prefs->nullHighlight();
-	QString nullText = prefs->nullHighlightText();
-
-	QString newName = ui.nameEdit->text().trimmed();
-	int cols = ui.columnTable->rowCount();
-	int colsLeft = cols;
-	bool changed =   (m_dropColumns != 0)
-				  || (m_item->text(0).compare(newName, Qt::CaseSensitive))
-				  || (m_protectedRows != cols);
-
-	bool bad = newName.isEmpty();
-	
-	for (int i = 0; i < cols; i++)
+	if (i < m_fields.count())
 	{
-		QLineEdit * name =
-			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
-		if (name->text().isEmpty())
+		QCheckBox * drop =
+			qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5));
+		if (drop->checkState() == Qt::Checked) { return false; }
+		m_keptColumns.append(i);
+	}
+	return true;
+}
+
+bool AlterTableDialog::checkColumn(int i, QString cname,
+								   QString ctype, QString cextra)
+{
+	if (!checkRetained(i))
+	{
+		m_altered = true;
+		return true;
+	}
+	if (i < m_fields.count())
+	{
+		bool useNull = m_prefs->nullHighlight();
+		QString nullText = m_prefs->nullHighlightText();
+
+		QString ftype(m_fields[i].type);
+		if (ftype.isEmpty())
 		{
-			bad = true;
-			break;
+			if (useNull && !nullText.isEmpty())
+			{
+				ftype = nullText;
+			}
+			else
+			{
+				ftype = "NULL";
+			}
 		}
-		if (i < m_fields.count())
+		QString fextra;
+		if (m_fields[i].isAutoIncrement)
 		{
-			QComboBox * type =
-				qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
-			QString ftype = m_fields[i].type;
-			if (ftype.isEmpty())
+			if (!fextra.isEmpty()) { fextra.append(" "); }
+			fextra.append("AUTOINCREMENT");
+		}
+		if (m_fields[i].isPartOfPrimaryKey)
+		{
+			if (!m_fields[i].isAutoIncrement)
 			{
-				if (useNull && !nullText.isEmpty())
-				{
-					ftype = nullText;
-				}
-				else
-				{
-					ftype = "Null";
-				}
+				if (!fextra.isEmpty()) { fextra.append(" "); }
+				fextra.append("PRIMARY KEY");
 			}
-			QString ctype = type->currentText();
-			QCheckBox * nn =
-				qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 2));
-			QLineEdit * defval =
-				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 3));
-			QCheckBox * drop =
-				qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5));
-			if (   (name->text() != m_fields[i].name)
-				|| (ftype != ctype)
-				|| (defval->text() != m_fields[i].defval)
-				|| (nn->checkState() !=
-					(m_fields[i].notnull ? Qt::Checked : Qt::Unchecked)))
-			{
-				changed = true;
-			}
-			if (drop->checkState() == Qt::Checked) { --colsLeft; }
+		}
+		if (m_fields[i].isNotNull)
+		{
+			if (!fextra.isEmpty()) { fextra.append(" "); }
+			fextra.append("NOT NULL");
+		}
+		QLineEdit * defval =
+			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 3));
+		if (   (cname != m_fields[i].name)
+			|| (ctype != ftype)
+			|| (fextra != cextra)
+			|| (defval->text() != SqlParser::defaultToken(m_fields[i])))
+		{
+			m_altered = true;
 		}
 	}
-	if (colsLeft == 0) { bad = true; }
-	m_alterButton->setEnabled(changed && !bad);
+	else
+	{
+		m_altered = true;
+	}
+	return false;
+}
+
+void AlterTableDialog::checkChanges()
+{
+	m_keptColumns.clear();
+	QString newName(ui.nameEdit->text().trimmed());
+	m_altered = newName != m_item->text(0);
+	bool ok = checkOk(newName); // side-effect on m_altered
+	m_alterButton->setEnabled(m_altered && ok);
 }

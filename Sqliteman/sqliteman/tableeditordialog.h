@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "database.h"
 #include "ui_tableeditordialog.h"
+#include "preferences.h"
 
 /*! \brief A base dialog for creating and editing tables.
 This dialog is taken as a inheritance parent for AlterTableDialog
@@ -28,25 +29,22 @@ class TableEditorDialog : public QDialog
 
 		Ui::TableEditorDialog ui;
 
-		QString getFullName(const QString & objName);
-
-		DatabaseTableField getColumn(int row);
-
-		/*! \brief Gues what default value should be set.
-		If there is a successful conversion to the number,
-		default(foo) is used = no change for string.
-		If there is a "'" at the first place - default(foo)
-		is used = no change for string.
-		Else use default('foo') = add SQL string mark.
-		*/
-		QString getDefaultClause(const QString & defVal);
-
-		QString getColumnClause(DatabaseTableField column);
-
 		void resultAppend(QString text);
+
+		void addField(QString oldName, QString oldType,
+					  int x, QString oldDefault);
+
+		bool checkOk(QString newName);
+
+		Preferences * m_prefs;
 
 	protected:
 		virtual void checkChanges() = 0;
+		virtual bool checkRetained(int i) = 0;
+		virtual bool checkColumn(int i, QString cname,
+								 QString type, QString cextra) = 0;
+		QString getSQLfromGUI();
+		QString getFullName();
 
 	public slots:
 		virtual void addField();

@@ -54,32 +54,15 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
 
 QString CreateTableDialog::getSQLfromGUI()
 {
-	QString sql = QString("CREATE TABLE ")
-				  + Utils::quote(ui.databaseCombo->currentText())
-				  + "."
-				  + Utils::quote(ui.nameEdit->text());
+	QString sql;
 	switch (m_tabWidgetIndex)
 	{
 		case 0:
-			{
-				sql += " (\n";
-				QString nn;
-				QString def;
-				DatabaseTableField f;
-
-				for(int i = 0; i < ui.columnTable->rowCount(); i++)
-				{
-					f = getColumn(i);
-					sql += getColumnClause(f);
-				}
-				sql = sql.remove(sql.size() - 2, 2); 	// cut the extra ", "
-				sql += "\n);\n";
-				setDirty();
-			}
+			sql = TableEditorDialog::getSQLfromGUI();
 			break;
 		case 1:
+			sql = getFullName();
 			sql += " AS " + ui.queryEditor->statement();
-			setDirty();
 			break;
 		case 2:
 			sql = ui.textEdit->text();
@@ -92,11 +75,7 @@ void CreateTableDialog::createButton_clicked()
 	ui.resultEdit->setHtml("");
 	if (creator && creator->checkForPending())
 	{
-		QString sql;
-		if (ui.tabWidget->currentIndex() == 2)
-			sql = ui.textEdit->text();
-		else
-			sql = getSQLfromGUI();
+		QString sql(getSQLfromGUI());
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if(query.lastError().isValid())
@@ -113,23 +92,21 @@ void CreateTableDialog::createButton_clicked()
 	}
 }
 
+bool CreateTableDialog::checkRetained(int i)
+{
+	return true;
+}
+
+bool CreateTableDialog::checkColumn(int i, QString cname,
+								   QString ctype, QString cextra)
+{
+	return false;
+}
+
 void CreateTableDialog::checkChanges()
 {
-	bool bad = ui.nameEdit->text().trimmed().isEmpty();
-	if (m_tabWidgetIndex == 0)
-	{
-		for(int i = 0; i < ui.columnTable->rowCount(); i++)
-		{
-			QLineEdit * name =
-				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
-			if (   (name == 0)
-				|| (name->text().trimmed().isEmpty()))
-			{
-				bad = true;
-			}
-		}
-	}
-	m_createButton->setDisabled(bad);
+	QString newName(ui.nameEdit->text().trimmed());
+	m_createButton->setEnabled(checkOk(newName));
 }
 
 void CreateTableDialog::setDirty()
@@ -162,6 +139,7 @@ void CreateTableDialog::tabWidget_currentChanged(int index)
 		else
 		{
 			ui.textEdit->setText(getSQLfromGUI());
+			setDirty();
 		}
 		ui.labelDatabase->hide();
 		ui.databaseCombo->hide();

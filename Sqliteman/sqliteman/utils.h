@@ -8,10 +8,18 @@ for which a new license (GPL+exception) is in place.
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <QCoreApplication>
+
+#include "sqlparser.h"
+
 class QComboBox;
 class QItemSelection;
 class QTreeWidgetItem;
 class QTextEdit;
+class QIcon;
+class QPixmap;
+class QSqlRecord;
+class QLineEdit;
 
 //! Various helper functions
 namespace Utils {
@@ -42,15 +50,23 @@ QString unQuote(QString s);
 QString like(QString s);
 
 //debugging hacks
+void dump(QString s);
 void dump(QItemSelection selection);
 void dump(QTreeWidgetItem & item);
 void dump(QTreeWidgetItem * item);
 void dump(QComboBox & box);
 void dump(QComboBox *box);
 void dump(QStringList sl);
+void dump(QList<int> il);
 void dump(QTextEdit & te);
 void dump(QTextEdit * te);
+QString variantToString(QVariant x);
 void dump(QVariant x);
+void dump(FieldInfo f);
+void dump(QList<FieldInfo> fl);
+void dump(QSqlRecord & rec);
+void dump(QLineEdit & le);
+void dump(QLineEdit * le);
 };
 
 #endif

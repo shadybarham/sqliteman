@@ -129,7 +129,7 @@ void TableTree::buildIndexes(QTreeWidgetItem *indexesItem, const QString & schem
 void TableTree::buildColumns(QTreeWidgetItem * columnsItem, const QString & schema, const QString & table)
 {
 	deleteChildren(columnsItem);
-	FieldList values = Database::tableFields(table, schema);
+	QList<FieldInfo> values = Database::tableFields(table, schema);
 	columnsItem->setText(0, trLabel(trCols).arg(values.size()));
 	columnsItem->setIcon(0, Utils::getIcon("column.png"));
 // 	columnsItem->setText(1, schema);
@@ -137,7 +137,7 @@ void TableTree::buildColumns(QTreeWidgetItem * columnsItem, const QString & sche
 	{
 		QTreeWidgetItem *columnItem = new QTreeWidgetItem(columnsItem, ColumnType);
 		columnItem->setText(0, values.at(i).name);
-		if (values.at(i).pk)
+		if (values.at(i).isPartOfPrimaryKey)
 			columnItem->setIcon(0, Utils::getIcon("key.png"));
 // 		indexItem->setText(1, schema);
 	}

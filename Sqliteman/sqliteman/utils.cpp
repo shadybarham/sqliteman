@@ -13,9 +13,11 @@ for which a new license (GPL+exception) is in place.
 #include <QTime>
 #include <QUrl>
 #include <QTextEdit>
+#include <QSqlRecord>
+#include <QVariant>
+#include <QLineEdit>
 
 #include "utils.h"
-
 
 QIcon Utils::getIcon(const QString & fileName)
 {
@@ -113,6 +115,7 @@ QString Utils::like(QString s)
 }
 
 // debugging hacks
+void Utils::dump(QString s) { qDebug("%s", s.toUtf8().data()); }
 void Utils::dump(QItemSelection selection)
 {
 	QModelIndexList list = selection.indexes();
@@ -129,8 +132,7 @@ void Utils::dump(QItemSelection selection)
 }
 void Utils::dump(QTreeWidgetItem & item)
 {
-	qDebug("text(0) \"%s\", text(1) \"%s\"",
-		   item.text(0).toUtf8().data(), item.text(1).toUtf8().data());
+	dump(QString("text(0) %1, text(1) %2").arg(item.text(0), item.text(1)));
 }
 void Utils::dump(QTreeWidgetItem * item)
 {
@@ -145,39 +147,49 @@ void Utils::dump(QComboBox & box)
 	}
 	else
 	{
-		QString s;
+		QStringList sl;
 		for (int i = 0; i < n; ++i)
 		{
-			if (i > 0) { s.append(", "); }
-			s.append(box.itemText(i));
+			sl.append(box.itemText(i));
 		}
-		qDebug("%s", s.toUtf8().data());
+		dump(sl);
 	}
 }
 void Utils::dump(QComboBox * box)
 {
 	box ? dump(*box) : qDebug("Null QComboBox");
 }
-void Utils::dump(QStringList sl)
+void Utils::dump(QStringList sl) { dump(sl.join(", ")); }
+void Utils::dump(QList<int> il)
 {
-	qDebug("%s", sl.join(", ").toUtf8().data());
+	if (il.count() == 0)
+	{
+		qDebug("Empty QList<int>");
+	}
+	else
+	{
+		QString s;
+		foreach (int i, il)
+		{
+			if (i != 0) { s.append(", "); }
+			s.append(QString("%1").arg(i));
+		}
+		dump(s);
+	}
 }
-void Utils::dump(QTextEdit & te)
-{
-	qDebug("%s", te.toHtml().toUtf8().data());
-}
+void Utils::dump(QTextEdit & te) { dump(te.toPlainText()); }
 void Utils::dump(QTextEdit * te)
 {
-	qDebug("%s", te->toHtml().toUtf8().data());
+	te ? dump(*te) : qDebug("Null QTextEdit");
 }
-void Utils::dump(QVariant x)
+QString Utils::variantToString(QVariant x)
 {
 	switch(x.type())
 	{
-		case QVariant::Invalid: qDebug("Invalid QVariant"); break;
-		case QVariant::BitArray:
-		case QVariant::Bitmap:
-		case QVariant::Bool: qDebug(x.toBool() ? "true" : "false"); break;
+		case QVariant::Invalid: return QString("Invalid QVariant");
+		case QVariant::BitArray: return QString("BitArray");
+		case QVariant::Bitmap: return QString("Bitmap");
+		case QVariant::Bool: return QString(x.toBool() ? "true" : "false");
 		case QVariant::ByteArray:
 		case QVariant::Char:
 		case QVariant::Date:
@@ -188,120 +200,139 @@ void Utils::dump(QVariant x)
 		case QVariant::String:
 		case QVariant::StringList:
 		case QVariant::UInt:
-		case QVariant::ULongLong:
-			qDebug("%s", x.toString().toUtf8().data()); break;
-		case QVariant::Brush: qDebug("Brush"); break;
+		case QVariant::ULongLong: return x.toString();
+		case QVariant::Brush: return QString("Brush");
 		case QVariant::Color:
 		{
 			QColor c = x.value<QColor>();
-			qDebug("Red %d, Blue %d, Green %d", c.red(), c.blue(), c.green());
-			break;
+			return QString("Red %1, Blue %2, Green %3")
+					.arg(c.red()).arg(c.blue()).arg(c.green());
 		}
-		case QVariant::Cursor: qDebug("Cursor"); break;
-		case QVariant::EasingCurve: qDebug("EasingCurve"); break;
+		case QVariant::Cursor: return QString("Cursor");
+		case QVariant::EasingCurve: return QString("EasingCurve");
 		case QVariant::Font:
 		{
 			QFont f = x.value<QFont>();
-			qDebug("Font %s", f.key().toUtf8().data());
-			break;
+			return QString("Font %1").arg(f.key());
 		}
-		case QVariant::Hash: qDebug("Hash"); break;
-		case QVariant::Icon: qDebug("Icon"); break;
-		case QVariant::Image: qDebug("Image"); break;
+		case QVariant::Hash:return QString("Hash");
+		case QVariant::Icon: return QString("Icon");
+		case QVariant::Image: return QString("Image");
 		case QVariant::KeySequence:
 		{
 			QKeySequence k = x.value<QKeySequence>();
-			qDebug("%s", k.toString().toUtf8().data());
-			break;
+			return k.toString();
 		}
 		case QVariant::Line:
 		{
 			QLine l = x.value<QLine>();
-			qDebug("Line from (%d, %d) to (%d, %d)",
-				   l.x1(), l.y1(), l.x2(), l.y2());
-			break;
+			return QString("Line from (%1, %2) to (%3, %4)")
+				   .arg(l.x1()).arg(l.y1()).arg(l.x2()).arg(l.y2());
 		}
 		case QVariant::LineF:
 		{
 			QLineF l = x.value<QLineF>();
-			qDebug("Line from (%f, %f) to (%f, %f)",
-				   l.x1(), l.y1(), l.x2(), l.y2());
-			break;
+			return QString("Line from (%1, %2) to (%3, %4)")
+				   .arg(l.x1()).arg(l.y1()).arg(l.x2()).arg(l.y2());
 		}
 		case QVariant::List:
-			qDebug("List of length %d", x.toList().count()); break;
+			return QString("List of length %1").arg(x.toList().count());
 		case QVariant::Locale:
 		{
 			QLocale l = x.value<QLocale>();
-			qDebug("%s", l.bcp47Name().toUtf8().data());
-			break;
+			return l.bcp47Name();
 		}
-		case QVariant::Map: qDebug("Map"); break;
-		case QVariant::Matrix: qDebug("Matrix"); break;
-		case QVariant::Transform: qDebug("Transform"); break;
-		case QVariant::Matrix4x4: qDebug("Matrix4x4"); break;
-		case QVariant::Palette: qDebug("Palette"); break;
-		case QVariant::Pen: qDebug("Pen"); break;
-		case QVariant::Pixmap: qDebug("Pixmap"); break;
+		case QVariant::Map: return QString("Map");
+		case QVariant::Matrix: return QString("Matrix");
+		case QVariant::Transform: return QString("Transform");
+		case QVariant::Matrix4x4: return QString("Matrix4x4");
+		case QVariant::Palette: return QString("Palette");
+		case QVariant::Pen: return QString("Pen");
+		case QVariant::Pixmap: return QString("Pixmap");
 		case QVariant::Point:
 		{
 			QPoint p = x.value<QPoint>();
-			qDebug("(%d, %d)", p.x(), p.y());
-			break;
+			return QString("(%1, %2)").arg(p.x()).arg(p.y());
 		}
 		case QVariant::PointF:
 		{
 			QPointF p = x.value<QPointF>();
-			qDebug("(%f, %f)", p.x(), p.y());
-			break;
+			return QString("(%1, %2)").arg(p.x()).arg(p.y());
 		}
 		case QVariant::Polygon:
 		{
 			QPolygon p = x.value<QPolygon>();
-			qDebug("Array of %d points", p.count());
-			break;
+			return QString("Array of %1 points").arg(p.count());
 		}
-		case QVariant::Quaternion: qDebug("Quaternion"); break;
+		case QVariant::Quaternion: return QString("Quaternion");
 		case QVariant::Rect:
 		{
 			QRect r = x.value<QRect>();
-			qDebug("Rect from (%d, %d) to (%d, %d)",
-				   r.left(), r.bottom(), r.right(), r.top());
-			break;
+			return QString("Rect from (%1, %2) to (%3, %4)")
+				   .arg(r.left()).arg(r.bottom()).arg(r.right()).arg(r.top());
 		}
 		case QVariant::RectF:
 		{
 			QRectF r = x.value<QRectF>();
-			qDebug("Rect from (%f, %f) to (%f, %f)",
-				   r.left(), r.bottom(), r.right(), r.top());
-			break;
+			return QString("Rect from (%1, %2) to (%3, %4)")
+				   .arg(r.left()).arg(r.bottom()).arg(r.right()).arg(r.top());
 		}
-		case QVariant::RegExp:
-			qDebug("%s", x.toRegExp().pattern().toUtf8().data()); break;
-		case QVariant::Region: qDebug("Region"); break;
+		case QVariant::RegExp: return QString(x.toRegExp().pattern());
+		case QVariant::Region: return QString("Region");
 		case QVariant::Size:
 		{
 			QSize s = x.value<QSize>();
-			qDebug("Width %d, height %d", s.width(), s.height());
-			break;
+			return QString("Width %1, height %2").arg(s.width(), s.height());
 		}
 		case QVariant::SizeF:
 		{
 			QSizeF s = x.value<QSizeF>();
-			qDebug("Width %f, height %f", s.width(), s.height());
-			break;
+			return QString("Width %1, height %2")
+					.arg(s.width()).arg(s.height());
 		}
-		case QVariant::SizePolicy: qDebug("SizePolicy"); break;
-		case QVariant::TextFormat: qDebug("TextFormat"); break;
-		case QVariant::TextLength: qDebug("TextLength"); break;
-		case QVariant::Time:
-			qDebug("%s", x.toTime().toString().toUtf8().data()); break;
-		case QVariant::Url:
-			qDebug("%s", x.toUrl().toString().toUtf8().data()); break;
-		case QVariant::Vector2D: qDebug("Vector2D"); break;
-		case QVariant::Vector3D: qDebug("Vector3D"); break;
-		case QVariant::Vector4D: qDebug("Vector4D"); break;
-		case QVariant::UserType: qDebug("UserType"); break;
-		default: qDebug("Unknown type"); break;
+		case QVariant::SizePolicy: return QString("SizePolicy");
+		case QVariant::TextFormat: return QString("TextFormat");
+		case QVariant::TextLength: return QString("TextLength");
+		case QVariant::Time: return x.toTime().toString();
+		case QVariant::Url: return x.toUrl().toString();
+		case QVariant::Vector2D: return QString("Vector2D");
+		case QVariant::Vector3D: return QString("Vector3D");
+		case QVariant::Vector4D: return QString("Vector4D");
+		case QVariant::UserType: return QString("UserType");
+		default: return QString("Unknown type QVariant");
 	}
+}
+void Utils::dump(QVariant x) { dump(variantToString(x)); }
+void Utils::dump(FieldInfo f)
+{
+	QString s("name ");
+	s.append(f.name);
+	if (!f.type.isEmpty()) { s.append(", type "); s.append(f.type); }
+	if (!f.defaultValue.isEmpty())
+		{ s.append(", default "); s.append(f.defaultValue); }
+	if (f.isPartOfPrimaryKey) { s.append(", PRIMARY KEY"); }
+	if (f.isAutoIncrement) { s.append(", AUTOINCREMENT"); }
+	if (f.isNotNull) { s.append(", NOT NULL"); }
+	dump(s);
+}
+void Utils::dump(QList<FieldInfo> fl)
+{
+	if (fl.count() == 0) { qDebug("Empty QList<FieldInfo>"); }
+	else { foreach (FieldInfo f, fl) { dump(f); } }
+}
+void Utils::dump(QSqlRecord & rec)
+{
+	QStringList sl;
+	for (int i = 0; i < rec.count(); ++i)
+	{
+		sl.append(rec.fieldName(i) + " ("
+				  + rec.value(i).typeName() + "): "
+				  + variantToString(rec.value(i)));
+	}
+	dump(sl);
+}
+void Utils::dump(QLineEdit & le) { dump(le.text()); }
+void Utils::dump(QLineEdit * le)
+{
+	le ? dump(*le) : qDebug("Null QLineEdit");
 }

@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME Handling of table defaults isn't right.
 */
 
 #include <QTableWidget>
@@ -14,7 +13,6 @@ for which a new license (GPL+exception) is in place.
 
 #include "tableeditordialog.h"
 #include "utils.h"
-#include "preferences.h"
 
 TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QString & tableName): QDialog(parent)
 {
@@ -24,7 +22,8 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 	int hh = settings.value("tableeditor/height", QVariant(600)).toInt();
 	int ww = settings.value("tableeditor/width", QVariant(800)).toInt();
 	resize(ww, hh);
-	
+	m_prefs = Preferences::instance();
+
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
 
 	ui.columnTable->setColumnWidth(0, 150);
@@ -42,36 +41,65 @@ TableEditorDialog::~TableEditorDialog()
     settings.setValue("tableeditor/width", QVariant(width()));
 }
 
-void TableEditorDialog::addField()
+void TableEditorDialog::addField(QString oldName, QString oldType,
+								 int x, QString oldDefault)
 {
-	Preferences * prefs = Preferences::instance();
-	bool useNull = prefs->nullHighlight();
-	QString nullText = prefs->nullHighlightText();
+	bool useNull = m_prefs->nullHighlight();
+	QString nullText = m_prefs->nullHighlightText();
 
 	int rc = ui.columnTable->rowCount();
 	ui.columnTable->setRowCount(rc + 1);
 
 	QLineEdit * name = new QLineEdit(this);
+	name->setText(oldName);
 	name->setFrame(false);
 	connect(name, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
 	ui.columnTable->setCellWidget(rc, 0, name);
 
-	QComboBox * box = new QComboBox(this);
+	QComboBox * typeBox = new QComboBox(this);
 	QStringList types;
 	if (useNull && !nullText.isEmpty()) { types << nullText; }
-	else { types << "Null"; }
-	types << "Text" << "PK Integer"  << "PK Autoincrement"
-		  << "Integer" << "Real" << "Blob";
-	box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-	box->addItems(types);
-	box->setEditable(true);
-	ui.columnTable->setCellWidget(rc, 1, box);
+	else { types << "NULL"; }
+	types << "TEXT" << "INTEGER" << "REAL" << "BLOB";
+	typeBox->addItems(types);
+	typeBox->setEditable(true);
+	int n;
+	if (oldType.isEmpty())
+	{
+		n = 0;
+	}
+	else
+	{
+		n = typeBox->findText(oldType, Qt::MatchFixedString
+									   | Qt::MatchCaseSensitive);
+		if (n <= 0)
+		{
+			n = typeBox->count();
+			typeBox->addItem(oldType);
+		}
+	}
+	typeBox->setCurrentIndex(n);
+	connect(typeBox, SIGNAL(currentIndexChanged(int)),
+			this, SLOT(checkChanges()));
+	connect(typeBox, SIGNAL(editTextChanged(const QString &)),
+			this, SLOT(checkChanges()));
+	ui.columnTable->setCellWidget(rc, 1, typeBox);
 
-	ui.columnTable->setCellWidget(rc, 2, new QCheckBox(this));
+	QComboBox * extraBox = new QComboBox(this);
+	QStringList extras;
+	extras << "" << "NOT NULL" << "PRIMARY KEY" << "PRIMARY KEY NOT NULL"
+		   << "AUTOINCREMENT" << "AUTOINCREMENT NOT NULL";
+	extraBox->addItems(extras);
+	extraBox->setCurrentIndex(x);
+	extraBox->setEditable(false);
+	ui.columnTable->setCellWidget(rc, 2, extraBox);
+	connect(extraBox, SIGNAL(currentIndexChanged(const QString &)),
+			this, SLOT(checkChanges()));
 
 	QLineEdit * defval = new QLineEdit(this);
-	if (useNull)
+	defval->setText(oldDefault);
+	if (useNull && oldDefault.isNull())
 	{
 		defval->setPlaceholderText(nullText);
 	}
@@ -79,7 +107,81 @@ void TableEditorDialog::addField()
 	connect(defval, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
 	ui.columnTable->setCellWidget(rc, 3, defval);
+}
 
+QString TableEditorDialog::getFullName()
+{
+	return QString("CREATE TABLE ")
+		   + Utils::quote(ui.databaseCombo->currentText())
+		   + "."
+		   + Utils::quote(ui.nameEdit->text());
+}
+
+QString TableEditorDialog::getSQLfromGUI()
+{
+	QString sql = getFullName();
+	bool first = true;
+	QStringList primaryKeys;
+	for (int i = 0; i < ui.columnTable->rowCount(); i++)
+	{
+		if (checkRetained(i))
+		{
+			if (first)
+			{
+				sql += " (\n";
+				first = false;
+			}
+			else
+			{
+				sql += ",\n";
+			}
+			QLineEdit * ed =
+				qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
+			QString name(ed->text());
+			sql += Utils::quote(name);
+			QComboBox * box =
+				qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 1));
+			QString type(box->currentText());
+			if (box->currentIndex())
+			{
+				sql += " " + Utils::quote(type);
+			}
+			box = qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 2));
+			QString extra(box->currentText());
+			if (extra.contains("AUTOINCREMENT"))
+			{
+				sql += " PRIMARY KEY AUTOINCREMENT";
+			}
+			else if (extra.contains("PRIMARY KEY"))
+			{
+				primaryKeys.append(name);
+			}
+			if (extra.contains("NOT NULL"))
+			{
+				sql += " NOT NULL";
+			}
+			ed = qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 3));
+			QString defval(ed->text());
+			if (!defval.isEmpty())
+			{
+				sql += " DEFAULT " + defval;
+			}
+		}
+	}
+	if (primaryKeys.count() > 0)
+	{
+		sql += ",\nPRIMARY KEY ( ";
+		sql += Utils::quote(primaryKeys);
+		sql += " )";
+	}
+	//FIXME check for WITHOUT ROWID here
+	sql += "\n);";
+	return sql;
+}
+
+void TableEditorDialog::addField()
+{
+	addField(QString(), QString(), 0, QString());
 	checkChanges();
 }
 
@@ -101,90 +203,51 @@ void TableEditorDialog::fieldSelected()
 	ui.removeButton->setEnabled(ui.columnTable->selectedRanges().count() != 0);
 }
 
-QString TableEditorDialog::getFullName(const QString & objName)
+bool TableEditorDialog::checkOk(QString newName)
 {
-	return Utils::quote(ui.databaseCombo->currentText())
-		   + "."
-		   + Utils::quote(objName);
-}
-
-DatabaseTableField TableEditorDialog::getColumn(int row)
-{
-	Preferences * prefs = Preferences::instance();
-	bool useNull = prefs->nullHighlight();
-	QString nullText = prefs->nullHighlightText();
-
-	DatabaseTableField field;
-	QLineEdit * nameItem =
-		qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(row, 0));
-
-	QString type;
-	QComboBox * box =
-		qobject_cast<QComboBox *>(ui.columnTable->cellWidget(row, 1));
-	type = box->currentText();
-	if (useNull && !nullText.isEmpty())
+	int cols = ui.columnTable->rowCount();
+	int colsLeft = cols;
+	bool ok = !newName.isEmpty();
+	int pkCount = 0;
+	bool autoSeen = false;
+	for (int i = 0; i < cols; i++)
 	{
-		if (type == nullText) { type = QString(""); }
+		QLineEdit * edit =
+			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+		QString cname(edit->text());
+		QComboBox * types =
+			qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
+		QString ctype(types->currentText());
+		QComboBox * extras =
+			qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 2));
+		QString cextra(extras->currentText());
+		if (checkColumn(i, cname, ctype, cextra))
+		{
+			--colsLeft;
+			continue;
+		}
+		if (cname.isEmpty())
+		{
+			ok = false;
+			break;
+		}
+		if (cextra.contains("AUTOINCREMENT"))
+		{
+			if (ctype.compare("INTEGER", Qt::CaseInsensitive))
+			{
+				ok = false;
+				break;
+			}
+			autoSeen = true;
+		}
+		if (cextra.contains("PRIMARY KEY"))
+		{
+			++pkCount;
+		}
 	}
-	else
-	{
-		if (type == "Null") { type = QString(""); }
-	}
-
-	QCheckBox * cb =
-		qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(row, 2));
-	bool nn = cb->checkState() == Qt::Checked;
-
-	QLineEdit * defBox =
-		qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(row, 3));
-
-	// For user convenience reasons, the type "INTEGER PRIMARY KEY" is presented to the user
-	// as "Primary Key" alone. Therefor, untill there is a more robust solution (which will
-	// support translation of type names as well) the primary key type needs to be corrected
-	// at update time.
-	bool pk = false;
-	if (type == "PK Integer")
-	{
-		type = "Integer Primary Key";
-		pk = true;
-	}
-
-	if (type == "PK Autoincrement")
-	{
-		type = "Integer Primary Key Autoincrement";
-		pk = true;
-	}
-
-	field.cid = 0;
-	field.name = nameItem->text();
-	field.type = type;
-	field.notnull = nn;
-	field.defval = defBox->text();
-	field.pk = pk;
-	field.comment = "";
-
-	return field;
-}
-
-QString TableEditorDialog::getDefaultClause(const QString & defVal)
-{
-	if (defVal.isNull() || defVal.isEmpty())
-		return "";
-	bool ok;
-	defVal.toDouble(&ok);
-	if (ok)
-		return QString(" DEFAULT (%1)").arg(defVal);
-	else
-		return QString(" DEFAULT (%1)").arg(Utils::literal(defVal));
-}
-
-QString TableEditorDialog::getColumnClause(DatabaseTableField column)
-{
-	QString nn(column.notnull ? " NOT NULL" : "");
-	QString tt = column.type.isEmpty() ? "" : Utils::literal(column.type);
-	QString def(getDefaultClause(column.defval));
-	return " " + Utils::quote(column.name)
-		       + " " + tt + nn + def + ",\n";
+	if (autoSeen && (pkCount > 0)) { ok = false; }
+	if (colsLeft == 0) { ok = false; }
+	return ok;
 }
 
 void TableEditorDialog::resultAppend(QString text)

@@ -17,7 +17,7 @@ for which a new license (GPL+exception) is in place.
 #include "preferences.h"
 #include "shell.h"
 #include "utils.h"
-#include "sqlitesyntax.h"
+#include "sqlparser.h"
 
 void Database::exception(const QString & message)
 {
@@ -56,60 +56,8 @@ DbAttach Database::getDatabases()
 	return ret;
 }
 
-#if 0
-// This version isn't in use yet, but will be used when ALTER TABLE has
-// been rewritten
-FieldList Database::tableFields(const QString & table, const QString & schema)
+QList<FieldInfo> Database::tableFields(const QString & table, const QString & schema)
 {
-	FieldList fields;
-	QString sql = QString("PRAGMA ")
-				  + Utils::quote(schema)
-				  + ".TABLE_INFO("
-				  + Utils::quote(table)
-				  + ");";
-	QSqlQuery info(sql, QSqlDatabase::database(SESSION_NAME));
-	if (info.lastError().isValid())
-	{
-		exception(tr("Error while getting the fields of ")
-				  + table
-				  + ": "
-				  + info.lastError().text());
-		return fields;
-	}
-	info.first();
-
-	while (info.next())
-	{
-			DatabaseTableField field;
-			field.cid = info.value(0).toInt();
-			field.name = info.value(1).toString();
-			field.type = info.value(2).toString();
-			field.notnull = info.value(3).toBool();
-			field.defval = Utils::unQuote(info.value(4).toString());
-			field.pk = info.value(5).toBool();
-			field.comment = "";
-			fields.append(field);
-			info.next();
-		}
-	}
-	return fields;
-}
-#else // current version, slow
-FieldList Database::tableFields(const QString & table, const QString & schema)
-{
-	FieldList fields;
-	QString sql = QString("PRAGMA ")
-				  + Utils::quote(schema)
-				  + ".TABLE_INFO("
-				  + Utils::quote(table)
-				  + ");";
-	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-	if (query.lastError().isValid())
-	{
-		exception(tr("Error while getting the fields of %1: %2.").arg(table).arg(query.lastError().text()));
-		return fields;
-	}
-
 	// Build a query string to SELECT the CREATE statement from sqlite_master
 	QString createSQL = QString("SELECT sql FROM ")
 						+ getMaster(schema)
@@ -117,6 +65,7 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 						+ Utils::quote(table).toLower()
 						+ ";";
 	// Run the query
+
 	QSqlQuery createQuery(createSQL, QSqlDatabase::database(SESSION_NAME));
 	// Make sure the query ran successfully
 	if(createQuery.lastError().isValid()) {
@@ -129,88 +78,37 @@ FieldList Database::tableFields(const QString & table, const QString & schema)
 	createQuery.first();
 	// Grab the complete CREATE statement
 	QString createStatement = createQuery.value(0).toString();
-	QString fieldList = createStatement;
-	fieldList.replace(QRegExp(sqlSimpleCreate, Qt::CaseInsensitive), "\\1");
-	if (fieldList == createStatement)
-	{
-		fieldList.replace(QRegExp(sqlCreate, Qt::CaseInsensitive), "\\1");
-		if (fieldList == createStatement)
-		{
-			exception(tr("Cannot parse CREATE statement: %1").arg(createStatement));
-		}
-	}
-	// Make a list with all of the individual field statements
-	// Initialize ourselves a Field Map -- keys and vals are QStrings
-	QRegExp matcher(sqlField, Qt::CaseInsensitive);
-	while (!fieldList.isEmpty())
-	{
-		QString fieldName = fieldList;
-		QString fieldType = fieldList;
-		QString newFieldList = fieldList;
-		fieldName.replace(matcher, "\\1");
-		fieldType.replace(matcher, "\\2\\3");
-		fieldType = Utils::unQuote(fieldType);
-		newFieldList.replace(matcher, "\\4");
-		if (newFieldList == fieldList)
-		{
-			exception(tr("Cannot extract next field: %1").arg(fieldList));
-			break;
-		}
-		fieldList = newFieldList;
-		fieldName = Utils::unQuote(fieldName);
-	}
 
-	while (query.next())
+	// Parse the CREATE statement
+	SqlParser parsed(createStatement);
+#if 0 // this code only used for testing new parser
+	qDebug("Parsing %s:", createStatement.toUtf8().data());
+	qDebug("  m_isValid = %s", parsed.m_isValid ? "true" : "false");
+	qDebug("  m_database = %s", parsed.m_database.toUtf8().data());
+	qDebug("  m_name = %s", parsed.m_name.toUtf8().data());
+	qDebug("  m_hasRowid = %s", parsed.m_hasRowid ? "true" : "false");
+	qDebug("  m_isTable = %s", parsed.m_isTable ? "true" : "false");
+	foreach (FieldInfo f, parsed.m_fields)
 	{
-		DatabaseTableField field;
-		field.cid = query.value(0).toInt();
-		field.name = query.value(1).toString();
-		field.type  = query.value(2).toString();
-		field.notnull = query.value(3).toBool();
-		QVariant defval = query.value(4);
-		if (defval.isNull())
-		{
-			field.defval = QString();
-		}
-		else
-		{
-			QString s = defval.toString();
-			if (s.toUpper().compare("NULL") == 0)
-			{
-				field.defval = QString();
-			}
-			else
-			{
-				field.defval = Utils::unQuote(s);
-			}
-		}
-		field.pk = query.value(5).toBool();
-		if (field.pk) {
-			field.type += " PRIMARY KEY";
-			// autoincrement keyword?
-			// adapted from http://stackoverflow.com/questions/16724409/how-to-programmatically-determine-whether-a-column-is-set-to-autoincrement-in-sq
-            QString autoincSql = QString("SELECT 1 FROM ")
-            					 + getMaster(schema)
-            					 + " WHERE lower(name) = "
-            					 + Utils::quote(table).toLower()
-            					 + " AND sql LIKE "
-            					 + Utils::literal(QString("%")
-            					 				  + field.name
-            					 				  + " "
-            					 				  + field.type
-            					 				  + "AUTOINCREMENT%")
-            					 + ";";
-			QSqlQuery autoincQuery(autoincSql, QSqlDatabase::database(SESSION_NAME));
-			if (!autoincQuery.lastError().isValid() && autoincQuery.first())
-				field.type += " AUTOINCREMENT";
-		}
-		field.comment = "";
-		fields.append(field);
+		qDebug("  Field %s%s%s", f.name.toUtf8().data(),
+			   f.type.isEmpty() ? "" : " type ",
+			   f.type.toUtf8().data());
+		qDebug("    %sDefault %s%s%s",
+			   f.defaultValue.isEmpty() ? "No " : "",
+			   f.defaultisQuoted ? "'" : "",
+			   f.defaultValue.toUtf8().data(),
+			   f.defaultisQuoted ? "'" : "");
+		qDebug("    isPartOfPrimaryKey = %s",
+			   f.isPartOfPrimaryKey ? "true" : "false");
+		qDebug("    isAutoIncrement = %s",
+			   f.isAutoIncrement ? "true" : "false");
+		qDebug("    isNotNull = %s",
+			   f.isNotNull ? "true" : "false");
 	}
-
-	return fields;
-}
 #endif
+
+	return parsed.m_fields;
+}
 
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
@@ -392,7 +290,7 @@ bool Database::exportSql(const QString & fileName)
 	return true;
 }
 
-// TODO/FIXME: it definitelly requires worker thread - to unfreeze GUI
+// TODO/FIXME: it definitely requires worker thread - to unfreeze GUI
 bool Database::dumpDatabase(const QString & fileName)
 {
 	char * fname = fileName.toUtf8().data();

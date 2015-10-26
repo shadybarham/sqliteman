@@ -102,40 +102,43 @@ void SqlItemView::setCurrentIndex(int row, int column)
 {
 	m_column = column;
 	m_row = row;
-	m_changing = true;
-	bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
-	for (int i = 0; i < m_count; ++i)
+	if ((row >= 0) && (column >= 0))
 	{
-		QWidget * w = m_gridLayout->itemAtPosition(i, 1)->widget();
-		QTextEdit * te = qobject_cast<QTextEdit *>(w);
-		if (te)
+		m_changing = true;
+		bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
+		for (int i = 0; i < m_count; ++i)
 		{
-			QColor color =
-				m_model->data(m_model->index(row, i),
-							  Qt::BackgroundColorRole).value<QColor>();
-			QPalette p(te->palette());
-			p.setColor(QPalette::Active, QPalette::Base, color);
-			p.setColor(QPalette::Inactive, QPalette::Base, color);
-			te->setPalette(p);
-			QVariant rawdata = m_model->data(
-				m_model->index(row, i), Qt::EditRole);
-			if (rawdata.type() == QVariant::ByteArray)
+			QWidget * w = m_gridLayout->itemAtPosition(i, 1)->widget();
+			QTextEdit * te = qobject_cast<QTextEdit *>(w);
+			if (te)
 			{
-				te->setText(m_model->data(
-					m_model->index(row, i), Qt::DisplayRole).toString());
-				te->setReadOnly(true);
-			}
-			else
-			{
-				te->setReadOnly(!writeable);
-				Qt::ItemDataRole role = (writeable && (i == column)) ?
-					Qt::EditRole : Qt::DisplayRole;
-				te->setText(m_model->data(
-					m_model->index(row, i), role).toString());
+				QColor color =
+					m_model->data(m_model->index(row, i),
+								  Qt::BackgroundColorRole).value<QColor>();
+				QPalette p(te->palette());
+				p.setColor(QPalette::Active, QPalette::Base, color);
+				p.setColor(QPalette::Inactive, QPalette::Base, color);
+				te->setPalette(p);
+				QVariant rawdata = m_model->data(
+					m_model->index(row, i), Qt::EditRole);
+				if (rawdata.type() == QVariant::ByteArray)
+				{
+					te->setText(m_model->data(
+						m_model->index(row, i), Qt::DisplayRole).toString());
+					te->setReadOnly(true);
+				}
+				else
+				{
+					te->setReadOnly(!writeable);
+					Qt::ItemDataRole role = (writeable && (i == column)) ?
+						Qt::EditRole : Qt::DisplayRole;
+					te->setText(m_model->data(
+						m_model->index(row, i), role).toString());
+				}
 			}
 		}
+		m_changing = false;
 	}
-	m_changing = false;
 	updateButtons(row);
 }
 

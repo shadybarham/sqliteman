@@ -45,33 +45,19 @@ class AlterTableDialog : public TableEditorDialog
 		int updateStage;
 
 	private:
-		/*! \brief Mappings of the columns to their indexes
-		E.g. "id" -- "mytab_ix1" etc.
-		It's used in the simulated DROP COLUMN checking */
-		QMap<QString,QStringList> m_columnIndexMap;
-
 		QTreeWidgetItem * m_item;
-		int m_protectedRows;
 		QPushButton * m_alterButton;
 		
-		FieldList m_fields;
-
-		//! \brief Indicate how much protected colums are marked for DROPping.
-		int m_dropColumns;
+		QList<FieldInfo> m_fields;
 
 		//! \brief Fill the GUI with table structure.
 		void resetStructure();
-
-		/*! \brief Analyze user changes and performs the ALTER TABLE ADD COLUM sqls
-		\retval bool true on succes, false on error
-		 */
-		bool addColumns();
 
 		/*! \brief Perform a rename table action if it's required.
 		This is done if user edits table name widget.
 		\retval true on success.
 		*/
-		bool renameTable(QString newTableName);
+		bool renameTable(QString oldTableName, QString newTableName);
 
 		/*! \brief Execute statement, handle its errors and outputs message to the GUI.
 		\param statement a SQL statement as QString
@@ -79,10 +65,14 @@ class AlterTableDialog : public TableEditorDialog
 		\retval bool true on SQL succes
 		*/
 		bool execSql(const QString & statement, const QString & message);
-		void doRollback(QString message);
+		bool doRollback(QString message);
+
+		bool checkRetained(int i);
+		bool checkColumn(int i, QString cname,
+						 QString ctype, QString cextra);
 
 		//! \brief Returns a list of DDL statements to recreate reqired obejcts after all.
-		QStringList originalSource();
+		QStringList originalSource(QString tableName);
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
@@ -91,13 +81,18 @@ class AlterTableDialog : public TableEditorDialog
 		// true if altering currently active table
 		bool m_alteringActive;
 
+		// something changed other than the name
+		bool m_altered;
+
+		// list of column names not dropped
+		QList<int> m_keptColumns;
+
 	private slots:
+		void addField();
 		void removeField();
 		void fieldSelected();
 		//! \brief Check if to allow user changes in the table column (qtable row).
 		void cellClicked(int, int);
-
-		void dropItem_stateChanged(int);
 
 		void alterButton_clicked();
 

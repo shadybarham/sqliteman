@@ -50,6 +50,7 @@ SET( SQLITEMAN_SRC
     sqlitemview.cpp
     sqlkeywords.cpp
     sqlmodels.cpp
+    sqlparser.cpp
     tableeditordialog.cpp
     tabletree.cpp
     vacuumdialog.cpp
@@ -114,6 +115,7 @@ SET( SQLITEMAN_MOC
 #    sqliteprocess.h
     sqlitemview.h
     sqlmodels.h
+    sqlparser.h
     sqltableview.h
     tableeditordialog.h
     tabletree.h

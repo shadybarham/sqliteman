@@ -13,6 +13,7 @@ for which a new license (GPL+exception) is in place.
 #include <QStringList>
 
 #include "sqlite3.h"
+#include "sqlparser.h"
 
 
 #define SESSION_NAME "sqliteman-db"
@@ -34,9 +35,6 @@ DatabaseTableField;
 /*! \brief List of the attached databases ("schemas").
 Mapping name/filename */
 typedef QMap<QString,QString> DbAttach;
-
-//! \brief Table columns list.
-typedef QList<DatabaseTableField> FieldList;
 
 //! \brief A map with "object name"/"its parent" - schema
 typedef QMap<QString,QString> DbObjects;
@@ -118,7 +116,8 @@ class Database
 		\param schema a name of the DB schema
 		@return The list of fields in \a table
 		*/
-		static FieldList tableFields(const QString & table, const QString & schema);
+		static QList<FieldInfo> tableFields(const QString & table,
+											const QString & schema);
 		
 		//! \brief Returns the list of columns in given index
 		static QStringList indexFields(const QString & index, const QString &schema);

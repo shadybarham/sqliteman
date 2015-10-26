@@ -7,6 +7,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME handle things better when not in autocommit mode
 	FIXME use explicit string NULL
 	FIXME messy column widths
+	FIXME integer type column displays null as 0
 */
 
 #include <QMessageBox>

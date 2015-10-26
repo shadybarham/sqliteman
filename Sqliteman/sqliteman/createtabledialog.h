@@ -32,6 +32,9 @@ class CreateTableDialog : public TableEditorDialog
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
 		QString getSQLfromGUI();
+		bool checkRetained(int i);
+		bool checkColumn(int i, QString cname,
+						 QString ctype, QString cextra);
 
 		bool m_dirty; // SQL has been edited
 
