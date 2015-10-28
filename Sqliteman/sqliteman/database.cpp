@@ -302,26 +302,25 @@ bool Database::dumpDatabase(const QString & fileName)
 		return false;
 	}
 
-	struct callback_data p;
-
 	sqlite3 * h = Database::sqlite3handle();
 	Q_ASSERT_X(h!=0, "Database::dumpDatabase", "sqlite3handle is missing");
-	p.db = h;
-	p.mode = MODE_Insert;
-	p.out = f;
-	p.writableSchema = 0;
-	sqlite3_exec(p.db, "PRAGMA writable_schema=ON", 0, 0, 0);
-	fprintf(p.out, "BEGIN TRANSACTION;\n");
-	run_schema_dump_query(&p,
+	ShellState sh;
+	sh.db = h;
+	sh.out = f;
+	sh.nErr = 0;
+	sh.writableSchema = 0;
+
+	sqlite3_exec(sh.db, "PRAGMA writable_schema=ON", 0, 0, 0);
+	fprintf(sh.out, "BEGIN TRANSACTION;\n");
+	run_schema_dump_query(&sh,
         "SELECT name, type, sql FROM sqlite_master "
-        "WHERE sql NOT NULL AND type=='table'", 0
-	);
-	run_table_dump_query(p.out, p.db,
-        "SELECT sql FROM sqlite_master "
-        "WHERE sql NOT NULL AND type IN ('index','trigger','view')"
-	);
-	fprintf(p.out, "COMMIT;\n");
-	sqlite3_exec(p.db, "PRAGMA writable_schema=OFF", 0, 0, 0);
+        "WHERE sql NOT NULL AND type=='table'");
+	run_table_dump_query(&sh,
+		"SELECT sql FROM sqlite_master "
+        "WHERE sql NOT NULL AND type IN ('index','trigger','view')",
+		(const char *)0);
+	fprintf(sh.out, "COMMIT;\n");
+	sqlite3_exec(sh.db, "PRAGMA writable_schema=OFF", 0, 0, 0);
 
 	fclose(f);
 	return true;
