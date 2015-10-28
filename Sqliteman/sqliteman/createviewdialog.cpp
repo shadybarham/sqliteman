@@ -3,70 +3,84 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME allow CREATE VIEW to use Query Builder
 */
 
 #include <QPushButton>
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QSettings>
+#include <QTreeWidgetItem>
+#include <QMessageBox>
+#include <QLineEdit>
 
 #include "createviewdialog.h"
 #include "database.h"
 #include "utils.h"
 
-CreateViewDialog::CreateViewDialog(const QString & schema,
-								   LiteManWindow * parent)
-	: QDialog(parent),
-	update(false)
+CreateViewDialog::CreateViewDialog(LiteManWindow * parent,
+									 QTreeWidgetItem * item)
+	: TableEditorDialog(parent)
 {
 	creator = parent;
-	ui.setupUi(this);
-	QSettings settings("yarpen.cz", "sqliteman");
-	int hh = settings.value("createview/height", QVariant(500)).toInt();
-	int ww = settings.value("createview/width", QVariant(600)).toInt();
-	resize(ww, hh);
+	updated = false;
+	m_dirty = false;
+	ui.labelTable->setText("View Name:");
+	setWindowTitle(tr("Create View"));
 
-	ui.databaseCombo->addItems(Database::getDatabases().keys());
-	int i = ui.databaseCombo->findText(schema,
-		Qt::MatchFixedString | Qt::MatchCaseSensitive);
-	if (i >= 0)
+	if (item)
 	{
-		ui.databaseCombo->setCurrentIndex(i);
+		int i = ui.databaseCombo->findText(item->text(1),
+			Qt::MatchFixedString | Qt::MatchCaseSensitive);
+		if (i >= 0)
+		{
+			ui.databaseCombo->setCurrentIndex(i);
+			ui.databaseCombo->setDisabled(true);
+		}
 	}
 
-	ui.createButton->setDisabled(true);
+	ui.tabWidget->setCurrentIndex(1);
+	ui.tabWidget->removeTab(0);
+	m_tabWidgetIndex = ui.tabWidget->currentIndex();
+	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
+			this, SLOT(tabWidget_currentChanged(int)));
+	m_createButton =
+		ui.buttonBox->addButton("Create", QDialogButtonBox::ApplyRole);
+	m_createButton->setDisabled(true);
 
-	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+	connect(m_createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
 	connect(ui.nameEdit, SIGNAL(textChanged(const QString&)),
-			this, SLOT(nameEdit_textChanged(const QString&)));
+			this, SLOT(checkChanges()));
+
+	ui.textEdit->setText("");
+	ui.queryEditor->setItem(0);
 }
 
-CreateViewDialog::~CreateViewDialog()
+void CreateViewDialog::setText(QString query)
 {
-	QSettings settings("yarpen.cz", "sqliteman");
-    settings.setValue("createview/height", QVariant(height()));
-    settings.setValue("createview/width", QVariant(width()));
+	ui.textEdit->setText(query);
+	setDirty();
 }
 
-void CreateViewDialog::nameEdit_textChanged(const QString& text)
+QString CreateViewDialog::getSQLfromGUI()
 {
-	ui.createButton->setDisabled(text.simplified().isEmpty());
+	QString sql;
+	switch (m_tabWidgetIndex)
+	{
+		case 0:
+			sql = getFullName("VIEW");
+			sql += " AS " + ui.queryEditor->statement();
+			break;
+		case 1:
+			sql = ui.textEdit->text();
+	}
+	return sql;
 }
-
 
 void CreateViewDialog::createButton_clicked()
 {
 	ui.resultEdit->setHtml("");
 	if (creator && creator->checkForPending())
 	{
-		QString sql = QString("CREATE VIEW ")
-					  + Utils::quote(ui.databaseCombo->currentText())
-					  + "."
-					  + Utils::quote(ui.nameEdit->text())
-					  + " AS "
-					  + ui.sqlEdit->text();
-		if (!sql.endsWith(";")) { sql = sql + ";"; }
+		QString sql(getSQLfromGUI());
 
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		
@@ -79,27 +93,76 @@ void CreateViewDialog::createButton_clicked()
 						 + "<br/><tt>" + sql);
 			return;
 		}
+		updated = true;
+		emit rebuildViewTree(ui.databaseCombo->currentText(),
+							 ui.nameEdit->text());
 		resultAppend(tr("View created successfully"));
-		update = true;
-		m_schema = ui.databaseCombo->currentText();
-		m_name = ui.nameEdit->text();
 	}
 }
 
-void CreateViewDialog::resultAppend(QString text)
+bool CreateViewDialog::checkRetained(int i)
 {
-	ui.resultEdit->append(text);
-	int lh = QFontMetrics(ui.resultEdit->currentFont()).lineSpacing();
-	QTextDocument * doc = ui.resultEdit->document();
-	if (doc)
+	return true;
+}
+
+bool CreateViewDialog::checkColumn(int i, QString cname,
+								   QString ctype, QString cextra)
+{
+	return false;
+}
+
+void CreateViewDialog::checkChanges()
+{
+	m_createButton->setEnabled(!ui.nameEdit->text().trimmed().isEmpty());
+}
+
+void CreateViewDialog::setDirty()
+{
+	m_dirty = true;
+}
+
+void CreateViewDialog::tabWidget_currentChanged(int index)
+{
+	if (index == 1)
 	{
-		int h = (int)(doc->size().height());
-		if (h < lh * 2) { h = lh * 2 + lh / 2; }
-		ui.resultEdit->setFixedHeight(h + lh / 2);
+		if (m_dirty && (m_tabWidgetIndex != 1))
+		{
+			
+			int com = QMessageBox::question(this, tr("Sqliteman"),
+				tr("Do you want to keep the current content of the SQL editor?."
+				   "\nYes to keep it,\nNo to create from the %1 tab"
+				   "\nCancel to return to the %2 tab")
+				.arg("AS query", "AS query"),
+				QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+			if (com == QMessageBox::No)
+				ui.textEdit->setText(getSQLfromGUI());
+			else if (com == QMessageBox::Cancel)
+			{
+				ui.tabWidget->setCurrentIndex(m_tabWidgetIndex);
+				return;
+			}
+		}
+		else
+		{
+			ui.textEdit->setText(getSQLfromGUI());
+			setDirty();
+		}
+		ui.labelDatabase->hide();
+		ui.databaseCombo->hide();
+		ui.labelTable->hide();
+		ui.nameEdit->hide();
+		ui.adviceLabel->hide();
+		m_tabWidgetIndex = index;
+		m_createButton->setEnabled(true);
 	}
 	else
 	{
-		int lines = text.split("<br/>").count() + 1;
-		ui.resultEdit->setFixedHeight(lh * lines);
+		ui.labelDatabase->show();
+		ui.databaseCombo->show();
+		ui.labelTable->show();
+		ui.nameEdit->show();
+		ui.adviceLabel->show();
+		m_tabWidgetIndex = index;
+		checkChanges();
 	}
 }

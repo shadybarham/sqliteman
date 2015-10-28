@@ -109,9 +109,9 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	ui.columnTable->setCellWidget(rc, 3, defval);
 }
 
-QString TableEditorDialog::getFullName()
+QString TableEditorDialog::getFullName(QString tableOrView)
 {
-	return QString("CREATE TABLE ")
+	return QString("CREATE %1 ").arg(tableOrView)
 		   + Utils::quote(ui.databaseCombo->currentText())
 		   + "."
 		   + Utils::quote(ui.nameEdit->text());
@@ -119,7 +119,7 @@ QString TableEditorDialog::getFullName()
 
 QString TableEditorDialog::getSQLfromGUI()
 {
-	QString sql = getFullName();
+	QString sql = getFullName("TABLE");
 	bool first = true;
 	QStringList primaryKeys;
 	for (int i = 0; i < ui.columnTable->rowCount(); i++)

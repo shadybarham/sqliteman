@@ -26,6 +26,7 @@ for which a new license (GPL+exception) is in place.
 #include "sqlkeywords.h"
 #include "utils.h"
 #include "database.h"
+#include "queryeditordialog.h"
 
 
 SqlEditor::SqlEditor(LiteManWindow * parent)
@@ -353,12 +354,15 @@ void SqlEditor::actionRun_as_Script_triggered()
 void SqlEditor::actionCreateView_triggered()
 {
 	emit showSqlScriptResult("");
-	CreateViewDialog dia("", creator);
+	CreateViewDialog dia(creator, 0);
 
 	dia.setText(query());
 	dia.exec();
-	if (dia.update)
-		emit rebuildViewTree(dia.schema(), dia.name());
+	if (dia.updated)
+	{
+		creator->checkForCatalogue();
+		creator->queryEditor->treeChanged();
+	}
 }
 
 void SqlEditor::showEvent(QShowEvent * event)

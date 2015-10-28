@@ -11,42 +11,50 @@ for which a new license (GPL+exception) is in place.
 #include <qwidget.h>
 
 #include "litemanwindow.h"
-#include "ui_createviewdialog.h"
+#include "tableeditordialog.h"
 
+class QTreeWidgetItem;
+class QPushButton;
 
 /*! \brief GUI for view creation
 \author Petr Vanek <petr@scribus.info>
 */
-class CreateViewDialog : public QDialog
+class CreateViewDialog : public TableEditorDialog
 {
 	Q_OBJECT
 
 	public:
-		CreateViewDialog(const QString & schema,
-						 LiteManWindow * parent = 0);
-		~CreateViewDialog();
+		CreateViewDialog(LiteManWindow * parent = 0,
+						  QTreeWidgetItem * item = 0);
+		~CreateViewDialog(){};
+		void setText(QString query);
 
-		bool update;
-		void setText(const QString & text) { ui.sqlEdit->setText(text); };
-
-		QString schema() { return m_schema; };
-		QString name() { return m_name; };
+		bool updated;
 
 	private:
-		Ui::CreateViewDialog ui;
 
-		QString m_schema;
-		QString m_name;
+		QString getSQLfromGUI();
+		bool checkRetained(int i);
+		bool checkColumn(int i, QString cname,
+						 QString ctype, QString cextra);
+
+		bool m_dirty; // SQL has been edited
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
 		LiteManWindow * creator;
-
-		void resultAppend(QString text);
+		QPushButton * m_createButton;
+		int m_tabWidgetIndex;
+		
+	signals:
+		/*! \brief Rebuild part of the tree */
+		void rebuildViewTree(QString schema, QString name);
 
 	private slots:
 		void createButton_clicked();
-		void nameEdit_textChanged(const QString& text);
+		void tabWidget_currentChanged(int index);
+		void checkChanges();
+		void setDirty();
 };
 
 #endif

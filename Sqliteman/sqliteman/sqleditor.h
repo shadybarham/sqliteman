@@ -56,8 +56,6 @@ class SqlEditor : public QMainWindow
 		/*! \brief Request for complete object tree refresh.
 		It's used in "Run as Script" */
 		void buildTree();
-		/*! \brief Rebuild part of the tree */
-		void rebuildViewTree(QString schema, QString name);
 		/* may have changed the current table */
 		void refreshTable();
 

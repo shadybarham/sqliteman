@@ -61,7 +61,7 @@ QString CreateTableDialog::getSQLfromGUI()
 			sql = TableEditorDialog::getSQLfromGUI();
 			break;
 		case 1:
-			sql = getFullName();
+			sql = getFullName("TABLE");
 			sql += " AS " + ui.queryEditor->statement();
 			break;
 		case 2:

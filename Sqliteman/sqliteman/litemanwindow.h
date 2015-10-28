@@ -46,6 +46,9 @@ class LiteManWindow : public QMainWindow
 
 		QString mainDbPath() { return m_mainDbPath; };
 		bool checkForPending();
+		void checkForCatalogue();
+
+		QueryEditorDialog * queryEditor;
 
 	signals:
 		void prefsChanged();
@@ -85,8 +88,6 @@ class LiteManWindow : public QMainWindow
 		//! \brief Setup loading extensions actions and environment depending on prefs.
 		void handleExtensions(bool enable);
 #endif
-
-		void checkForCatalogue();
 
 		void describeObject(QString type);
 
@@ -180,7 +181,6 @@ class LiteManWindow : public QMainWindow
 		SqlEditor* sqlEditor;
 		QSplitter* splitterSql;
 		HelpBrowser * helpBrowser;
-		QueryEditorDialog * queryEditor;
 		
 		QMenu * databaseMenu;
 		QMenu * adminMenu;

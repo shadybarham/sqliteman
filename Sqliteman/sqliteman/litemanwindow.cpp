@@ -1,10 +1,10 @@
 /*
 For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
-a copyright and/or license notice that predates the release of Sqliteman
+a copyright and/or license notice that predates the release of Sqliteman	setWindowTitle(tr("Create Table"));
+
 for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
-    FIXME allow create view to use query editor
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -194,8 +194,6 @@ void LiteManWindow::initUI()
 			dataViewer, SLOT(sqlScriptStart()));
 	connect(sqlEditor, SIGNAL(showSqlScriptResult(QString)),
 			dataViewer, SLOT(showSqlScriptResult(QString)));
-	connect(sqlEditor, SIGNAL(rebuildViewTree(QString, QString)),
-			schemaBrowser->tableTree, SLOT(buildViewTree(QString,QString)));
 	connect(sqlEditor, SIGNAL(buildTree()),
 			schemaBrowser->tableTree, SLOT(buildTree()));
 	connect(sqlEditor, SIGNAL(refreshTable()),
@@ -1073,15 +1071,17 @@ void LiteManWindow::createView()
 {
 	dataViewer->removeErrorMessage();
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	CreateViewDialog dia(item->text(1), this);
-
-	dia.exec();
-	if (dia.update)
+	CreateViewDialog dlg(this, item);
+	connect(&dlg, SIGNAL(rebuildViewTree(QString, QString)),
+			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
+	dlg.exec();
+	if (dlg.updated)
 	{
-		schemaBrowser->tableTree->buildViewTree(dia.schema(), dia.name());
-		queryEditor->treeChanged();
 		checkForCatalogue();
+		queryEditor->treeChanged();
 	}
+	disconnect(&dlg, SIGNAL(rebuildViewTree(QString, QString)),
+			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
 }
 
 void LiteManWindow::alterView()

@@ -44,7 +44,7 @@ class TableEditorDialog : public QDialog
 		virtual bool checkColumn(int i, QString cname,
 								 QString type, QString cextra) = 0;
 		QString getSQLfromGUI();
-		QString getFullName();
+		QString getFullName(QString tableOrView);
 
 	public slots:
 		virtual void addField();

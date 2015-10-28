@@ -135,7 +135,6 @@ SET( SQLITEMAN_UI
     constraintsdialog.ui
     createindexdialog.ui
     createtriggerdialog.ui
-    createviewdialog.ui
     dataexportdialog.ui
     dataviewer.ui
     helpbrowser.ui
