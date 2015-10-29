@@ -151,7 +151,6 @@
    <addaction name="actionNew_Row"/>
    <addaction name="actionCopy_Row"/>
    <addaction name="actionRemove_Row"/>
-   <addaction name="actionTruncate_Table"/>
    <addaction name="separator"/>
    <addaction name="actionCommit"/>
    <addaction name="actionRollback"/>
@@ -191,15 +190,6 @@
    </property>
    <property name="text">
     <string>Remove Row</string>
-   </property>
-  </action>
-  <action name="actionTruncate_Table">
-   <property name="icon">
-    <iconset>
-     <normaloff>icons/clear_table_contents.png</normaloff>icons/clear_table_contents.png</iconset>
-   </property>
-   <property name="text">
-    <string>Truncate Table</string>
    </property>
   </action>
   <action name="actionExport_Data">

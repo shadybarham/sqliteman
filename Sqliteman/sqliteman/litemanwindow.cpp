@@ -305,6 +305,9 @@ void LiteManWindow::initActions()
 	importTableAct = new QAction(tr("&Import Table Data..."), this);
 	connect(importTableAct, SIGNAL(triggered()), this, SLOT(importTable()));
 
+	emptyTableAct = new QAction(tr("&Empty Table"), this);
+	connect(emptyTableAct, SIGNAL(triggered()), this, SLOT(emptyTable()));
+
 	createTriggerAct = new QAction(Utils::getIcon("trigger.png"),
 								   tr("&Create Trigger..."), this);
 	connect(createTriggerAct, SIGNAL(triggered()), this, SLOT(createTrigger()));
@@ -1067,6 +1070,53 @@ void LiteManWindow::dropTable()
 	}
 }
 
+void LiteManWindow::emptyTable()
+{
+	dataViewer->removeErrorMessage();
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+
+	if(!item)
+		return;
+
+	bool isActive = m_activeItem == item;
+
+	int ret = QMessageBox::question(this, m_appName,
+					tr("Are you sure you want to remove all records from the"
+					   " table  \"%1\"?").arg(item->text(0)),
+					QMessageBox::Yes, QMessageBox::No);
+
+	if(ret == QMessageBox::Yes)
+	{
+		// don't check for pending, we're dropping it anyway
+		QString sql = QString("DELETE FROM ")
+					  + Utils::quote(item->text(1))
+					  + "."
+					  + Utils::quote(item->text(0))
+					  + ";";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
+		{
+			dataViewer->setStatusText(
+				tr("Cannot empty table ")
+				+ item->text(1) + tr(".") + item->text(0)
+				+ ":<br/><span style=\" color:#ff0000;\">"
+				+ query.lastError().text()
+				+ "<br/></span>" + tr("using sql statement:")
+				+ "<br/><tt>" + sql);
+		}
+		else
+		{
+			if (isActive)
+			{
+				dataViewer->setNotPending();
+				dataViewer->setTableModel(new QSqlQueryModel(), false);
+				m_activeItem = 0;
+			}
+			tableTree_currentItemChanged(item, 0);
+		}
+	}
+}
+
 void LiteManWindow::createView()
 {
 	dataViewer->removeErrorMessage();
@@ -1285,6 +1335,16 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 			contextMenu->addAction(alterTableAct);
 			contextMenu->addAction(renameTableAct);
 			contextMenu->addAction(dropTableAct);
+			{
+				SqlQueryModel model(0);
+				model.setQuery(QString("select * from ")
+							   + Utils::quote(cur->text(1))
+							   + "."
+							   + Utils::quote(cur->text(0)),
+							   QSqlDatabase::database(SESSION_NAME));
+				if (model.rowCount() > 0)
+				{ contextMenu->addAction(emptyTableAct); }
+			}
 			contextMenu->addAction(contextBuildQueryAct);
 			contextMenu->addAction(reindexAct);
 			contextMenu->addSeparator();

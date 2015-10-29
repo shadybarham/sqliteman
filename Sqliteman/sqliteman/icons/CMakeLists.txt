@@ -9,7 +9,6 @@ ELSE (WANT_RESOURCES)
 
 INSTALL(FILES
 blob.png
-clear_table_contents.png
 close.png
 column.png
 database_commit.png

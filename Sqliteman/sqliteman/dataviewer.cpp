@@ -7,7 +7,6 @@ for which a new license (GPL+exception) is in place.
 	FIXME handle things better when not in autocommit mode
 	FIXME use explicit string NULL
 	FIXME messy column widths
-	FIXME integer type column displays null as 0
 */
 
 #include <QMessageBox>
@@ -55,8 +54,6 @@ DataViewer::DataViewer(QWidget * parent)
 	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
     ui.actionCopy_Row->setIcon(Utils::getIcon("duplicate_table_row.png"));
 	ui.actionRemove_Row->setIcon(Utils::getIcon("delete_table_row.png"));
-	ui.actionTruncate_Table->setIcon(
-		Utils::getIcon("clear_table_contents.png"));
 	ui.actionCommit->setIcon(Utils::getIcon("database_commit.png"));
 	ui.actionRollback->setIcon(Utils::getIcon("database_rollback.png"));
 	ui.actionRipOut->setIcon(Utils::getIcon("snapshot.png"));
@@ -102,8 +99,6 @@ DataViewer::DataViewer(QWidget * parent)
             this, SLOT(copyRow()));
 	connect(ui.actionRemove_Row, SIGNAL(triggered()),
 			this, SLOT(removeRow()));
-	connect(ui.actionTruncate_Table, SIGNAL(triggered()),
-			this, SLOT(truncateTable()));
 	connect(ui.actionExport_Data, SIGNAL(triggered()),
 			this, SLOT(exportData()));
 	connect(ui.actionCommit, SIGNAL(triggered()),
@@ -258,7 +253,6 @@ void DataViewer::updateButtons()
 	ui.actionNew_Row->setEnabled(editable);
 	ui.actionCopy_Row->setEnabled(editable && rowSelected);
 	ui.actionRemove_Row->setEnabled(editable && rowSelected);
-	ui.actionTruncate_Table->setEnabled(editable && haveRows);
 	ui.actionCommit->setEnabled(pending);
 	ui.actionRollback->setEnabled(pending);
 	if (canPreview || ui.actionBLOB_Preview->isChecked())
@@ -497,49 +491,6 @@ void DataViewer::removeRow()
 void DataViewer::deletingRow(int row)
 {
 	if ((row <= savedActiveRow) && (savedActiveRow > 0)) { --savedActiveRow; }
-}
-
-void DataViewer::truncateTable()
-{
-	removeErrorMessage();
-	int ret = QMessageBox::question(this, tr("Sqliteman"),
-					tr("Are you sure you want to remove all content from this table?"),
-					QMessageBox::Yes, QMessageBox::No);
-	if(ret == QMessageBox::No)
-		return;
-
-	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
-	if (!model)
-		return;
-
-	QSqlQuery q(QString("DELETE FROM ")
-				+ Utils::quote(model->schema())
-				+ "."
-				+ Utils::quote(model->tableName())
-				+ ";",
-				QSqlDatabase::database(SESSION_NAME));
-	if (q.lastError().isValid())
-	{
-		setStatusText(tr("Cannot truncate table ")
-					  + model->schema()
-					  + tr(".")
-					  + model->tableName()
-					  + ":<br/><span style=\" color:#ff0000;\">"
-					  + q.lastError().text()
-					  + "<br/></span>" + tr("using sql statement:")
-					  + "<br/><tt>" + q.lastQuery());
-	}
-	else
-	{
-		model->setPendingTransaction(false);
-		SqlTableModel * mdl = new SqlTableModel(0,
-			QSqlDatabase::database(SESSION_NAME));
-		mdl->setSchema(model->schema());
-		mdl->setTable(model->tableName());
-		mdl->select();
-		mdl->setEditStrategy(SqlTableModel::OnManualSubmit);
-		setTableModel(mdl, true);
-	}
 }
 
 void DataViewer::exportData()

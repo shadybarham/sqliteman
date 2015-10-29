@@ -1,7 +1,6 @@
 <RCC>
     <qresource prefix="/icons">
         <file>blob.png</file>
-        <file>clear_table_contents.png</file>
         <file>close.png</file>
         <file>column.png</file>
         <file>database.png</file>

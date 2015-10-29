@@ -88,7 +88,6 @@ class DataViewer : public QMainWindow
 		void copyRow();
 		void removeRow();
 		void deletingRow(int row); // when it actually gets deleted
-		void truncateTable();
 		void exportData();
 		void commit();
 		void rollback();
