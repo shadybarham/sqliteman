@@ -491,3 +491,8 @@ QString Database::getTempName(const QString & schema)
 	return QString("tmpname_%1").arg(i);
 }
 
+bool Database::isAutoCommit()
+{
+	return sqlite3_get_autocommit(sqlite3handle()) != 0;
+}
+

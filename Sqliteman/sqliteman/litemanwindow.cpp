@@ -121,17 +121,48 @@ bool LiteManWindow::checkForPending() {
 
 void LiteManWindow::closeEvent(QCloseEvent * e)
 {
-	if (!sqlEditor->saveOnExit()) {
-		e->ignore ();
-	}
-	
 	// check for uncommitted transaction in the DB
 	if (!dataViewer->checkForPending())
 	{
 		e->ignore();
 		return;
 	}
+	
+	if (!Database::isAutoCommit())
+	{
+		int com = QMessageBox::question(this, tr("Sqliteman"),
+			tr("There is a database transaction pending.\n"
+			   "Do you wish to commit it?\n\n"
+			   "Yes = commit\nNo = rollback\n"
+			   "Cancel = do not exit sqliteman"),
+			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+		if (com == QMessageBox::Yes)
+		{
+			QString sql = QString("COMMIT ;");
+			QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+			if (query.lastError().isValid())
+			{
+				dataViewer->setStatusText(
+					tr("Cannot commit transaction")
+					+ ":<br/><span style=\" color:#ff0000;\">"
+					+ query.lastError().text()
+					+ "<br/></span>" + tr("using sql statement:")
+					+ "<br/><tt>" + sql);
+				e->ignore();
+				return;
+			}
+		}
+		else if (com == QMessageBox::Cancel)
+		{
+			e->ignore();
+			return;
+		}
+	}
 
+	if (!sqlEditor->saveOnExit()) {
+		e->ignore ();
+	}
+	
 	writeSettings();
 
 	QMapIterator<QString, QString> i(attachedDb);

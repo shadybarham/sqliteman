@@ -152,10 +152,19 @@ bool DataViewer::checkForPending()
 	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (old && old->pendingTransaction())
 	{
+		QString msg (Database::isAutoCommit()
+			? tr("There are unsaved changes in table %1.%2.\n"
+				 "Do you wish to commit them to the database?\n\n"
+				 "Yes = commit changes\nNo = discard changes\n"
+				 "Cancel = skip this operation and stay in %1.%2")
+			: tr("There are unsaved changes in table %1.%2.\n"
+				 "Do you wish to save them to the database?\n"
+				 "(This will not commit as you are in pending"
+				 " transaction mode)\n"
+				 "\nYes = save changes\nNo = discard changes\n"
+				 "Cancel = skip this operation and stay in %1.%2"));
 		int com = QMessageBox::question(this, tr("Sqliteman"),
-			tr("There is a pending transaction in progress. Perform commit?"
-			   "\n\nHelp:\nYes = commit\nNo = rollback"
-			   "\nCancel = skip this operation and stay in the current table"),
+			msg.arg(old->schema(), old->tableName()),
 			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
 		if (com == QMessageBox::No)
 		{
@@ -169,10 +178,9 @@ bool DataViewer::checkForPending()
 			{
 				/* This should never happen */
 				int ret = QMessageBox::question(this, tr("Sqliteman"),
-					tr("There is a pending transaction in progress."
-					   " That cannot be committed now."
+					tr("Failed to write unsaved changes to the database."
 					   "\nError: %1\n"
-					   "Perform rollback?").arg(old->lastError().text()),
+					   "Discard changes?").arg(old->lastError().text()),
 												QMessageBox::Yes, QMessageBox::No);
 				if (ret == QMessageBox::Yes) { rollback(); }
 				else { return false; }

@@ -183,6 +183,9 @@ class Database
 		// get a name which isn't already in use
 		static QString getTempName(const QString & schema);
 
+		// are we in autocommit mode = !(did the sql editor do a BEGIN)?
+		static bool isAutoCommit();
+
 	private:
 		//! \brief Error feedback to the user.
 		static void exception(const QString & message);
