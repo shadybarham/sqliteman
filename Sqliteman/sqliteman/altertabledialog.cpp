@@ -21,6 +21,7 @@ for which a new license (GPL+exception) is in place.
 #include <QSettings>
 
 #include "altertabledialog.h"
+#include "sqlparser.h"
 #include "utils.h"
 
 
@@ -67,6 +68,8 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 			this, SLOT(cellClicked(int,int)));
 	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
 			this, SLOT(checkChanges()));
+	connect(ui.withoutRowid, SIGNAL(toggled(bool)),
+			this, SLOT(checkChanges()));
 
 	resetStructure();
 }
@@ -86,14 +89,15 @@ void AlterTableDialog::resetStructure()
 	}
 
 	// Initialize fields
-	m_fields = Database::tableFields(m_item->text(0), m_item->text(1));
+	SqlParser parsed = Database::parseTable(m_item->text(0), m_item->text(1));
+	m_fields = parsed.m_fields;
 	ui.columnTable->clearContents();
 	ui.columnTable->setRowCount(0);
 	for (int i = 0; i < m_fields.size(); i++)
 	{
-		int x = m_fields[i].isNotNull ? 1 : 0;
-		x += m_fields[i].isAutoIncrement ? 4 :
-				(m_fields[i].isPartOfPrimaryKey ? 2 : 0);
+		int x = m_fields[i].isAutoIncrement ? 3
+				: ( m_fields[i].isPartOfPrimaryKey ? 2
+					: (m_fields[i].isNotNull ? 1 : 0));
 
 		TableEditorDialog::addField(m_fields[i].name, m_fields[i].type, x,
 									SqlParser::defaultToken(m_fields[i]));
@@ -115,6 +119,8 @@ void AlterTableDialog::resetStructure()
 	}
 
 	m_keptColumns.clear();
+	m_hadRowid = parsed.m_hasRowid;
+	ui.withoutRowid->setChecked(!m_hadRowid);
 
 	checkChanges();
 }
@@ -493,6 +499,7 @@ void AlterTableDialog::checkChanges()
 	m_keptColumns.clear();
 	QString newName(ui.nameEdit->text().trimmed());
 	m_altered = newName != m_item->text(0);
+	m_altered |= m_hadRowid == ui.withoutRowid->isChecked();
 	bool ok = checkOk(newName); // side-effect on m_altered
 	m_alterButton->setEnabled(m_altered && ok);
 }

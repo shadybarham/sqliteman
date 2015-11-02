@@ -24,6 +24,7 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
 	updated = false;
 	m_dirty = false;
 	ui.removeButton->setEnabled(false); // Disable row removal
+	ui.withoutRowid->setChecked(false);
 	setWindowTitle(tr("Create Table"));
 
 	if (item)
@@ -45,6 +46,8 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
 	connect(m_createButton, SIGNAL(clicked(bool)),
 			this, SLOT(createButton_clicked()));
 	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
+			this, SLOT(checkChanges()));
+	connect(ui.withoutRowid, SIGNAL(toggled(bool)),
 			this, SLOT(checkChanges()));
 
 	ui.textEdit->setText("");

@@ -88,8 +88,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 
 	QComboBox * extraBox = new QComboBox(this);
 	QStringList extras;
-	extras << "" << "NOT NULL" << "PRIMARY KEY" << "PRIMARY KEY NOT NULL"
-		   << "AUTOINCREMENT" << "AUTOINCREMENT NOT NULL";
+	extras << "" << "NOT NULL" << "PRIMARY KEY" << "AUTOINCREMENT";
 	extraBox->addItems(extras);
 	extraBox->setCurrentIndex(x);
 	extraBox->setEditable(false);
@@ -107,6 +106,8 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	connect(defval, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
 	ui.columnTable->setCellWidget(rc, 3, defval);
+	ui.columnTable->resizeColumnToContents(1);
+	ui.columnTable->resizeColumnToContents(2);
 }
 
 QString TableEditorDialog::getFullName(QString tableOrView)
@@ -174,8 +175,12 @@ QString TableEditorDialog::getSQLfromGUI()
 		sql += Utils::quote(primaryKeys);
 		sql += " )";
 	}
-	//FIXME check for WITHOUT ROWID here
-	sql += "\n);";
+	sql += "\n)";
+	if (ui.withoutRowid->isChecked())
+	{
+		sql += " WITHOUT ROWID ";
+	}
+	sql += ";";
 	return sql;
 }
 
@@ -245,8 +250,13 @@ bool TableEditorDialog::checkOk(QString newName)
 			++pkCount;
 		}
 	}
-	if (autoSeen && (pkCount > 0)) { ok = false; }
-	if (colsLeft == 0) { ok = false; }
+	if (   (   (ui.withoutRowid->isChecked())
+			&& ((pkCount == 0) || autoSeen))
+		|| (autoSeen && (pkCount > 0))
+		|| (colsLeft == 0))
+	{
+		ok = false;
+	}
 	return ok;
 }
 

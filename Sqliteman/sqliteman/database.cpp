@@ -56,7 +56,7 @@ DbAttach Database::getDatabases()
 	return ret;
 }
 
-QList<FieldInfo> Database::tableFields(const QString & table, const QString & schema)
+SqlParser Database::parseTable(const QString & table, const QString & schema)
 {
 	// Build a query string to SELECT the CREATE statement from sqlite_master
 	QString createSQL = QString("SELECT sql FROM ")
@@ -107,9 +107,13 @@ QList<FieldInfo> Database::tableFields(const QString & table, const QString & sc
 	}
 #endif
 
-	return parsed.m_fields;
+	return parsed;
 }
 
+QList<FieldInfo> Database::tableFields(const QString & table, const QString & schema)
+{
+	return parseTable(table, schema).m_fields;
+}
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
 	QString sql = QString("PRAGMA ")

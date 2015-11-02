@@ -49,6 +49,7 @@ class AlterTableDialog : public TableEditorDialog
 		QPushButton * m_alterButton;
 		
 		QList<FieldInfo> m_fields;
+		bool m_hadRowid;
 
 		//! \brief Fill the GUI with table structure.
 		void resetStructure();
