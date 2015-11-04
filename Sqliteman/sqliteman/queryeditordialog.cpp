@@ -12,7 +12,6 @@ for which a new license (GPL+exception) is in place.
 
 #include "queryeditordialog.h"
 #include "queryeditorwidget.h"
-#include "utils.h"
 
 QueryEditorDialog::QueryEditorDialog(QWidget * parent): QDialog(parent)
 {
@@ -45,7 +44,7 @@ void QueryEditorDialog::treeChanged()
 	queryEditor->treeChanged();
 }
 
-void QueryEditorDialog::tableAltered(QString oldName, QString newName)
+void QueryEditorDialog::tableAltered(QString oldName, QTreeWidgetItem * item)
 {
-	queryEditor->tableAltered(oldName, newName);
+	queryEditor->tableAltered(oldName, item);
 }

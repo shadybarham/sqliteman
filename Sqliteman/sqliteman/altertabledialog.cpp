@@ -14,14 +14,13 @@ for which a new license (GPL+exception) is in place.
 */
 
 #include <QCheckBox>
+#include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QTreeWidgetItem>
-#include <QMessageBox>
-#include <QSettings>
 
 #include "altertabledialog.h"
-#include "sqlparser.h"
+#include "litemanwindow.h"
 #include "utils.h"
 
 
@@ -31,31 +30,33 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 	: TableEditorDialog(parent),
 	m_item(item)
 {
-	creator = parent;
 	m_alteringActive = isActive;
-	updateStage = 0;
 	ui.removeButton->setEnabled(false);
 	setWindowTitle(tr("Alter Table"));
+	m_tableOrView = "TABLE";
+	m_dubious = false;
+	m_oldWidget = ui.designTab;
 
-	if (m_item)
-	{
-		ui.nameEdit->setText(m_item->text(0));
-		int i = ui.databaseCombo->findText(m_item->text(1),
-			Qt::MatchFixedString | Qt::MatchCaseSensitive);
-		if (i >= 0)
-		{
-			ui.databaseCombo->setCurrentIndex(i);
-			ui.databaseCombo->setDisabled(true);
-		}
-	}
-	ui.tabWidget->removeTab(2);
-	ui.tabWidget->removeTab(1);
-	ui.adviceLabel->hide();
 	m_alterButton =
 		ui.buttonBox->addButton("Alte&r", QDialogButtonBox::ApplyRole);
 	m_alterButton->setDisabled(true);
 	connect(m_alterButton, SIGNAL(clicked(bool)),
 			this, SLOT(alterButton_clicked()));
+
+	// item must be valid and a table, otherwise we don't get called
+	ui.nameEdit->setText(m_item->text(0));
+	int i = ui.databaseCombo->findText(m_item->text(1),
+		Qt::MatchFixedString | Qt::MatchCaseSensitive);
+	if (i >= 0)
+	{
+		ui.databaseCombo->setCurrentIndex(i);
+		ui.databaseCombo->setDisabled(true);
+	}
+
+	ui.tabWidget->removeTab(2);
+	ui.tabWidget->removeTab(1);
+	m_tabWidgetIndex = ui.tabWidget->currentIndex();
+	ui.adviceLabel->hide();
 
 	ui.columnTable->insertColumn(4); // show if it's indexed
 	QTableWidgetItem * captIx = new QTableWidgetItem(tr("Indexed"));
@@ -66,10 +67,6 @@ AlterTableDialog::AlterTableDialog(LiteManWindow * parent,
 
 	connect(ui.columnTable, SIGNAL(cellClicked(int, int)),
 			this, SLOT(cellClicked(int,int)));
-	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
-			this, SLOT(checkChanges()));
-	connect(ui.withoutRowid, SIGNAL(toggled(bool)),
-			this, SLOT(checkChanges()));
 
 	resetStructure();
 }
@@ -197,36 +194,41 @@ bool AlterTableDialog::renameTable(QString oldTableName, QString newTableName)
 					  + oldTableName
 					  + tr(" to ")
 					  + newTableName;
-	if (execSql(sql, message))
-	{
-		updateStage = 1;
-		return true;
-	}
-	return false;
+	return execSql(sql, message);
 }
 
 void AlterTableDialog::alterButton_clicked()
 {
-	ui.resultEdit->setHtml("");
 	if (m_alteringActive && !(creator && creator->checkForPending()))
 	{
 		return;
 	}
 
-	QString newTableName(ui.nameEdit->text().trimmed());
+	QString newTableName(ui.nameEdit->text());
 	QString oldTableName(m_item->text(0));
+	if (m_dubious)
+	{
+		int ret = QMessageBox::question(this, "Sqliteman",
+			tr("A table with an empty column name "
+			   "will not display correctly.\n"
+			   "Are you sure you want to go ahead?\n\n"
+			   "Yes to do it anyway, Cancel to try again."),
+			QMessageBox::Yes, QMessageBox::Cancel);
+		if (ret == QMessageBox::Cancel) { return; }
+	}
 	if (newTableName.contains(QRegExp
 		("\\s|-|\\]|\\[|[`!\"%&*()+={}:;@'~#|\\\\<,>.?/^]")))
 	{
 		int ret = QMessageBox::question(this, "Sqliteman",
 			tr("A table named ")
 			+ newTableName
-			+ tr(" will not display correctly. "
-				 "Are you sure you want to rename it?\n")
-			+ tr("\nYes to rename, Cancel to try another name."),
+			+ tr(" will not display correctly.\n"
+				 "Are you sure you want to rename it?\n\n"
+				 "Yes to rename, Cancel to try another name."),
 			QMessageBox::Yes, QMessageBox::Cancel);
 		if (ret == QMessageBox::Cancel) { return; }
 	}
+	ui.resultEdit->setHtml("");
 	if (!execSql("SAVEPOINT ALTER_TABLE;", tr("Cannot create savepoint")))
 	{
 		return;
@@ -241,9 +243,12 @@ void AlterTableDialog::alterButton_clicked()
 		}
 		if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
 		{
-			doRollback(tr("Cannot roll back either"));
-			return;
+			if (doRollback(tr("Cannot roll back either")))
+			{
+				return;
+			}
 		}
+		updated = true;
 		m_item->setText(0, newTableName);
 		return;
 	}
@@ -265,6 +270,7 @@ void AlterTableDialog::alterButton_clicked()
 			{
 				if (!doRollback(tr("Cannot roll back after error")))
 				{
+					updated = true;
 					m_item->setText(0, oldTableName);
 				}
 				return;
@@ -277,6 +283,7 @@ void AlterTableDialog::alterButton_clicked()
 					return;
 				}
 			}
+			updated = true;
 			m_item->setText(0, newTableName);
 			return;
 		}
@@ -291,10 +298,12 @@ void AlterTableDialog::alterButton_clicked()
 
 	m_keptColumns.clear();
 	QString message(tr("Cannot create table ") + newTableName);
-	if (!execSql(getSQLfromGUI(), message))
+	QString sql(getFullName() + " ( " + getSQLfromGUI());
+	if (!execSql(sql, message))
 	{
 		if (!doRollback(tr("Cannot roll back after error")))
 		{
+			updated = true;
 			m_item->setText(0, oldTableName);
 		}
 		return;
@@ -303,11 +312,9 @@ void AlterTableDialog::alterButton_clicked()
 	// insert old data
 	if (m_keptColumns.count() > 0)
 	{
-		QString insert("INSERT INTO ");
-		insert += Utils::quote(m_item->text(1))
-				  + "."
-				  + Utils::quote(newTableName)
-				  + " (";
+		QString insert(QString("INSERT INTO %1.%2 (")
+			.arg(Utils::quote(ui.databaseCombo->currentText()),
+				 Utils::quote(ui.nameEdit->text())));
 
 	    QString select(" ) SELECT ");
 		bool first = true;
@@ -335,25 +342,26 @@ void AlterTableDialog::alterButton_clicked()
 		{
 			if (!doRollback(tr("Cannot roll back after error")))
 			{
+				updated = true;
 				m_item->setText(0, oldTableName);
 			}
 			return;
 		}
 	}
-	updateStage = 2;
 	
 	// drop old table
-	QString drop("DROP TABLE ");
-	drop += Utils::quote(m_item->text(1))
-			+ "."
-			+ Utils::quote(oldTableName)
-			+ ";";
+	sql = "DROP TABLE ";
+	sql += Utils::quote(m_item->text(1))
+		   + "."
+		   + Utils::quote(oldTableName)
+		   + ";";
 	message = tr("Cannot drop table ")
 			  + oldTableName;
-	if (!execSql(drop, message))
+	if (!execSql(sql, message))
 	{
 		if (!doRollback(tr("Cannot roll back after error")))
 		{
+			updated = true;
 			m_item->setText(0, oldTableName);
 		}
 		return;
@@ -369,17 +377,15 @@ void AlterTableDialog::alterButton_clicked()
 
 	if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
 	{
-		if (!doRollback(tr("Cannot roll back either")))
+		if (doRollback(tr("Cannot roll back either")))
 		{
-			m_item->setText(0, newTableName);
+			return;
 		}
-		return;
 	}
-	if (updateStage > 0)
-	{
-		resetStructure();
-		resultAppend(tr("Alter Table Done"));
-	}
+	updated = true;
+	m_item->setText(0, newTableName);
+	resetStructure();
+	resultAppend(tr("Alter Table Done"));
 }
 
 void AlterTableDialog::addField()
@@ -496,10 +502,12 @@ bool AlterTableDialog::checkColumn(int i, QString cname,
 
 void AlterTableDialog::checkChanges()
 {
+	m_dubious = false;
 	m_keptColumns.clear();
-	QString newName(ui.nameEdit->text().trimmed());
-	m_altered = newName != m_item->text(0);
-	m_altered |= m_hadRowid == ui.withoutRowid->isChecked();
+	QString newName(ui.nameEdit->text());
+	m_altered = m_hadRowid == ui.withoutRowid->isChecked();
 	bool ok = checkOk(newName); // side-effect on m_altered
-	m_alterButton->setEnabled(m_altered && ok);
+	m_alterButton->setEnabled(   ok
+							  && (   m_altered
+								  || (newName != m_item->text(0))));
 }

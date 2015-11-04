@@ -8,7 +8,6 @@ for which a new license (GPL+exception) is in place.
 #ifndef CREATETABLEDIALOG_H
 #define CREATETABLEDIALOG_H
 
-#include "litemanwindow.h"
 #include "tableeditordialog.h"
 
 class QTreeWidgetItem;
@@ -26,29 +25,19 @@ class CreateTableDialog : public TableEditorDialog
 						  QTreeWidgetItem * item = 0);
 		~CreateTableDialog(){};
 
-		bool updated;
-
 	private:
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
-		QString getSQLfromGUI();
 		bool checkRetained(int i);
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);
 
-		bool m_dirty; // SQL has been edited
 
-		// We ought to be able use use parent() for this, but for some reason
-		// qobject_cast<LiteManWindow*>(parent()) doesn't work
-		LiteManWindow * creator;
 		QPushButton * m_createButton;
-		int m_tabWidgetIndex;
 
 	private slots:
 		void createButton_clicked();
-		void tabWidget_currentChanged(int index);
 		void checkChanges();
-		void setDirty();
 };
 
 #endif

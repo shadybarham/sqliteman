@@ -531,22 +531,26 @@ void QueryEditorWidget::treeChanged()
 	}
 }
 
-void QueryEditorWidget::tableAltered(QString oldName, QString newName)
+void QueryEditorWidget::tableAltered(QString oldName, QTreeWidgetItem * item)
 {
-	for (int i = 0; i < tableList->count(); ++i)
+	if (m_schema == item->text(1))
 	{
-		if (tableList->itemText(i) == oldName)
+		QString newName(item->text(0));
+		for (int i = 0; i < tableList->count(); ++i)
 		{
-			tableList->setItemText(i, newName);
-			if (m_table == oldName)
+			if (tableList->itemText(i) == oldName)
 			{
-				m_table = newName;
-				QStringList columns = getColumns();
-				if (m_columnList != columns)
+				tableList->setItemText(i, newName);
+				if (m_table == oldName)
 				{
-					resetModel();
-					m_columnList = columns;
-					columnModel->setStringList(m_columnList);
+					m_table = newName;
+					QStringList columns = getColumns();
+					if (m_columnList != columns)
+					{
+						resetModel();
+						m_columnList = columns;
+						columnModel->setStringList(m_columnList);
+					}
 				}
 			}
 		}

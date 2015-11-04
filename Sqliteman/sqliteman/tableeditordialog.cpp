@@ -5,17 +5,19 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 */
 
-#include <QTableWidget>
 #include <QCheckBox>
-#include <QtDebug>
-#include <QSettings>
 #include <QLineEdit>
+#include <QMessageBox>
+#include <QSettings>
+#include <QTableWidget>
 
 #include "tableeditordialog.h"
 #include "utils.h"
 
-TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QString & tableName): QDialog(parent)
+TableEditorDialog::TableEditorDialog(LiteManWindow * parent)
 {
+	creator = parent;
+	updated = false;
 	ui.setupUi(this);
 	
 	QSettings settings("yarpen.cz", "sqliteman");
@@ -25,6 +27,7 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 	m_prefs = Preferences::instance();
 
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
+	m_dirty = false;
 
 	ui.columnTable->setColumnWidth(0, 150);
 	ui.columnTable->setColumnWidth(1, 200);
@@ -32,6 +35,14 @@ TableEditorDialog::TableEditorDialog(QWidget * parent)//, Mode mode, const QStri
 			this, SLOT(fieldSelected()));
 	connect(ui.addButton, SIGNAL(clicked()), this, SLOT(addField()));
 	connect(ui.removeButton, SIGNAL(clicked()), this, SLOT(removeField()));
+	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
+			this, SLOT(tabWidget_currentChanged(int)));
+	connect(ui.databaseCombo, SIGNAL(currentIndexChanged(int)),
+			this, SLOT(tableNameChanged()));
+	connect(ui.nameEdit, SIGNAL(textEdited(const QString&)),
+			this, SLOT(tableNameChanged()));
+	connect(ui.withoutRowid, SIGNAL(toggled(bool)),
+			this, SLOT(checkChanges()));
 }
 
 TableEditorDialog::~TableEditorDialog()
@@ -110,17 +121,17 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	ui.columnTable->resizeColumnToContents(2);
 }
 
-QString TableEditorDialog::getFullName(QString tableOrView)
+QString TableEditorDialog::getFullName()
 {
-	return QString("CREATE %1 ").arg(tableOrView)
+	return QString("CREATE %1 ").arg(m_tableOrView)
 		   + Utils::quote(ui.databaseCombo->currentText())
 		   + "."
 		   + Utils::quote(ui.nameEdit->text());
 }
 
-QString TableEditorDialog::getSQLfromGUI()
+QString TableEditorDialog::getSQLfromDesign()
 {
-	QString sql = getFullName("TABLE");
+	QString sql;
 	bool first = true;
 	QStringList primaryKeys;
 	for (int i = 0; i < ui.columnTable->rowCount(); i++)
@@ -129,7 +140,6 @@ QString TableEditorDialog::getSQLfromGUI()
 		{
 			if (first)
 			{
-				sql += " (\n";
 				first = false;
 			}
 			else
@@ -184,6 +194,23 @@ QString TableEditorDialog::getSQLfromGUI()
 	return sql;
 }
 
+QString TableEditorDialog::getSQLfromGUI()
+{
+	QWidget * w = ui.tabWidget->currentWidget();
+	if (w == ui.designTab)
+	{
+		return getSQLfromDesign();
+	}
+	else if (w == ui.queryTab)
+	{
+		return ui.queryEditor->statement();
+	}
+	else
+	{
+		return ui.textEdit->text();
+	}
+}
+
 void TableEditorDialog::addField()
 {
 	addField(QString(), QString(), 0, QString());
@@ -210,52 +237,59 @@ void TableEditorDialog::fieldSelected()
 
 bool TableEditorDialog::checkOk(QString newName)
 {
-	int cols = ui.columnTable->rowCount();
-	int colsLeft = cols;
 	bool ok = !newName.isEmpty();
-	int pkCount = 0;
-	bool autoSeen = false;
-	for (int i = 0; i < cols; i++)
+	if (ui.tabWidget->currentWidget() == ui.designTab)
 	{
-		QLineEdit * edit =
-			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
-		QString cname(edit->text());
-		QComboBox * types =
-			qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
-		QString ctype(types->currentText());
-		QComboBox * extras =
-			qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 2));
-		QString cextra(extras->currentText());
-		if (checkColumn(i, cname, ctype, cextra))
+		int pkCount = 0;
+		int cols = ui.columnTable->rowCount();
+		int colsLeft = cols;
+		bool autoSeen = false;
+		for (int i = 0; i < cols; i++)
 		{
-			--colsLeft;
-			continue;
+			QLineEdit * edit =
+				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+			QString cname(edit->text());
+			QComboBox * types =
+				qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
+			QString ctype(types->currentText());
+			QComboBox * extras =
+				qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 2));
+			QString cextra(extras->currentText());
+			if (checkColumn(i, cname, ctype, cextra))
+			{
+				--colsLeft;
+				continue;
+			}
+			if (cname.isEmpty()) { m_dubious = true; }
+			for (int j = 0; j < i; ++j)
+			{
+				QLineEdit * edit =
+					qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(j, 0));
+				bool b =
+					(edit->text().compare(cname, Qt::CaseInsensitive) != 0);
+				ok &= b;
+			}
+			if (cextra.contains("AUTOINCREMENT"))
+			{
+				if (ctype.compare("INTEGER", Qt::CaseInsensitive))
+				{
+					ok = false;
+					break;
+				}
+				autoSeen = true;
+			}
+			if (cextra.contains("PRIMARY KEY"))
+			{
+				++pkCount;
+			}
 		}
-		if (cname.isEmpty())
+		if (   (   (ui.withoutRowid->isChecked())
+				&& ((pkCount == 0) || autoSeen))
+			|| (autoSeen && (pkCount > 0))
+			|| (colsLeft == 0))
 		{
 			ok = false;
-			break;
 		}
-		if (cextra.contains("AUTOINCREMENT"))
-		{
-			if (ctype.compare("INTEGER", Qt::CaseInsensitive))
-			{
-				ok = false;
-				break;
-			}
-			autoSeen = true;
-		}
-		if (cextra.contains("PRIMARY KEY"))
-		{
-			++pkCount;
-		}
-	}
-	if (   (   (ui.withoutRowid->isChecked())
-			&& ((pkCount == 0) || autoSeen))
-		|| (autoSeen && (pkCount > 0))
-		|| (colsLeft == 0))
-	{
-		ok = false;
 	}
 	return ok;
 }
@@ -277,3 +311,87 @@ void TableEditorDialog::resultAppend(QString text)
 		ui.resultEdit->setFixedHeight(lh * lines);
 	}
 }
+
+void TableEditorDialog::setFirstLine()
+{
+	QString fl(getFullName());
+	if (m_oldWidget == ui.designTab) { fl += " ( "; }
+	else if (m_oldWidget == ui.queryTab) { fl += " AS "; }
+	ui.firstLine->setText(fl);
+}
+
+void TableEditorDialog::setDirty()
+{
+	m_dirty = true;
+}
+
+void TableEditorDialog::tableNameChanged()
+{
+	setFirstLine();
+	checkChanges();
+}
+
+void TableEditorDialog::tabWidget_currentChanged(int index)
+{
+	QWidget * w = ui.tabWidget->widget(m_tabWidgetIndex);
+	if (ui.tabWidget->widget(index) == ui.sqlTab)
+	{
+		if (w != ui.sqlTab)
+		{
+			m_oldWidget = w;
+			setFirstLine();
+			bool getFromTab = true;
+			if (m_dirty)
+			{
+				int com = QMessageBox::question(this, tr("Sqliteman"),
+					tr("Do you want to keep the current content"
+					   " of the SQL editor?."
+					   "\nYes to keep it,\nNo to create from the %1 tab"
+					   "\nCancel to return to the %1 tab")
+					.arg(ui.tabWidget->tabText(m_tabWidgetIndex)),
+					QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+				if (com == QMessageBox::Yes) { getFromTab = false; }
+				else if (com == QMessageBox::Cancel)
+				{
+					ui.tabWidget->setCurrentIndex(m_tabWidgetIndex);
+					return;
+				}
+			}
+			if (getFromTab)
+			{
+				if (m_oldWidget == ui.designTab)
+				{
+					ui.textEdit->setText(getSQLfromDesign());
+				}
+				else if (m_oldWidget == ui.queryTab)
+				{
+					ui.textEdit->setText(ui.queryEditor->statement());
+				}
+				setDirty();
+			}
+		}
+		ui.adviceLabel->hide();
+	}
+	else
+	{
+		m_oldWidget = w;
+		setFirstLine();
+		if (ui.tabWidget->indexOf(ui.sqlTab) >= 0)
+		{
+			ui.adviceLabel->show();
+		}
+	}
+	m_tabWidgetIndex = index;
+	checkChanges();
+}
+
+QString TableEditorDialog::schema()
+{
+	return ui.databaseCombo->currentText();
+}
+
+QString TableEditorDialog::createdName()
+{
+	return ui.nameEdit->text();
+}
+

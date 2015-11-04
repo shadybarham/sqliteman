@@ -34,7 +34,7 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 		//! \brief generates a valid SQL statement using the values in the dialog
 		QString statement();
 		void treeChanged();
-		void tableAltered(QString oldName, QString newName);
+		void tableAltered(QString oldName, QTreeWidgetItem * item);
 
 	private:
 		bool initialised;

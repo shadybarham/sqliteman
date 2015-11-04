@@ -5,6 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman	setWind
 
 for which a new license (GPL+exception) is in place.
 	FIXME add function to evaluate an expression
+	FIXME creating empty constraint name is legal
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -210,13 +211,16 @@ void LiteManWindow::initUI()
 	sqlEditor->setEnabled(false);
 	sqlEditor->hide();
 
-	connect(schemaBrowser->tableTree, SIGNAL(itemActivated(QTreeWidgetItem *, int)),
-		this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
-
-	connect(schemaBrowser->tableTree, SIGNAL(customContextMenuRequested(const QPoint &)),
-		this, SLOT(treeContextMenuOpened(const QPoint &)));
-	connect(schemaBrowser->tableTree, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
-			this, SLOT(tableTree_currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
+	connect(schemaBrowser->tableTree,
+			SIGNAL(itemActivated(QTreeWidgetItem *, int)),
+			this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+	connect(schemaBrowser->tableTree,
+			SIGNAL(customContextMenuRequested(const QPoint &)),
+			this, SLOT(treeContextMenuOpened(const QPoint &)));
+	connect(schemaBrowser->tableTree,
+		SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+		this,
+		SLOT(tableTree_currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
 
 	// sql editor
 	connect(sqlEditor, SIGNAL(showSqlResult(QString)),
@@ -684,6 +688,28 @@ void LiteManWindow::handleExtensions(bool enable)
 }
 #endif
 
+void LiteManWindow::setActiveItem(QTreeWidgetItem * item)
+{
+	// this sets the active item without any side-effects
+	// used when the item was already active but has been recreated
+	disconnect(schemaBrowser->tableTree,
+			   SIGNAL(itemActivated(QTreeWidgetItem *, int)),
+			   this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+	disconnect(schemaBrowser->tableTree,
+		SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+		this,
+		SLOT(tableTree_currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
+	connect(schemaBrowser->tableTree,
+			SIGNAL(itemActivated(QTreeWidgetItem *, int)),
+			this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+	schemaBrowser->tableTree->setCurrentItem(item);
+	m_activeItem = item;
+	connect(schemaBrowser->tableTree,
+		SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+		this,
+		SLOT(tableTree_currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
+}
+
 void LiteManWindow::checkForCatalogue()
 {
 	if (m_activeItem && (m_activeItem->type() == TableTree::SystemType))
@@ -868,12 +894,29 @@ void LiteManWindow::createTable()
 	dlg.exec();
 	if (dlg.updated)
 	{
-		foreach (QTreeWidgetItem* item,
+		foreach (QTreeWidgetItem* it,
 			schemaBrowser->tableTree->searchMask(
 				schemaBrowser->tableTree->trTables))
 		{
-			if (item->type() == TableTree::TablesItemType)
-				schemaBrowser->tableTree->buildTables(item, item->text(1));
+			if (   (it->type() == TableTree::TablesItemType)
+				&& (it->text(1) == dlg.schema()))
+			{
+				schemaBrowser->tableTree->buildTables(it, it->text(1));
+				if (m_activeItem)
+				{
+					// item recreated but should still be current
+					if (dlg.schema() == m_activeItem->text(1))
+					{
+						for (int i = 0; i < it->childCount(); ++i)
+						{
+							if (it->child(i)->text(0) == m_activeItem->text(0))
+							{
+								setActiveItem(it->child(i));
+							}
+						}
+					}
+				}
+			}
 		}
 		checkForCatalogue();
 		queryEditor->treeChanged();
@@ -892,7 +935,7 @@ void LiteManWindow::alterTable()
 	dataViewer->saveSelection();
 	AlterTableDialog dlg(this, item, isActive);
 	dlg.exec();
-	if (dlg.updateStage == 2)
+	if (dlg.updated)
 	{
 		schemaBrowser->tableTree->buildTableItem(item, true);
 		checkForCatalogue();
@@ -902,7 +945,7 @@ void LiteManWindow::alterTable()
 			treeItemActivated(item, 0);
 			dataViewer->reSelect();
 		}
-		queryEditor->tableAltered(oldName, item->text(0));
+		queryEditor->tableAltered(oldName, item);
 	}
 }
 
@@ -996,7 +1039,7 @@ void LiteManWindow::renameTable()
 			}
 			else
 			{
-				queryEditor->tableAltered(item->text(0), text);
+				queryEditor->tableAltered(item->text(0), item);
 				item->setText(0, text);
 				checkForCatalogue();
 				if (isActive)
@@ -1040,7 +1083,7 @@ void LiteManWindow::importTable()
 							    item ? item->text(1) : "main");
 	if (dlg.exec() == QDialog::Accepted)
 	{
-		queryEditor->tableAltered(item->text(0), item->text(0));
+		queryEditor->tableAltered(item->text(0), item);
 		dataViewer->saveSelection();
 		if (isActive)
 		{
@@ -1155,6 +1198,22 @@ void LiteManWindow::createView()
 	CreateViewDialog dlg(this, item);
 	connect(&dlg, SIGNAL(rebuildViewTree(QString, QString)),
 			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
+	dlg.exec();
+	if (dlg.updated)
+	{
+		checkForCatalogue();
+		queryEditor->treeChanged();
+	}
+	disconnect(&dlg, SIGNAL(rebuildViewTree(QString, QString)),
+			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
+}
+
+void LiteManWindow::createViewFromSql(QString query)
+{
+	CreateViewDialog dlg(this, 0);
+	connect(&dlg, SIGNAL(rebuildViewTree(QString, QString)),
+			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
+	dlg.setSql(query);
 	dlg.exec();
 	if (dlg.updated)
 	{
@@ -1374,7 +1433,7 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 							   + Utils::quote(cur->text(0)),
 							   QSqlDatabase::database(SESSION_NAME));
 				if (model.rowCount() > 0)
-				{ contextMenu->addAction(emptyTableAct); }
+					{ contextMenu->addAction(emptyTableAct); }
 			}
 			contextMenu->addAction(contextBuildQueryAct);
 			contextMenu->addAction(reindexAct);

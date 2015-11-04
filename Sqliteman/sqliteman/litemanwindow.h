@@ -47,6 +47,7 @@ class LiteManWindow : public QMainWindow
 		QString mainDbPath() { return m_mainDbPath; };
 		bool checkForPending();
 		void checkForCatalogue();
+		void createViewFromSql(QString query);
 
 		QueryEditorDialog * queryEditor;
 
@@ -89,6 +90,7 @@ class LiteManWindow : public QMainWindow
 		void handleExtensions(bool enable);
 #endif
 
+		void setActiveItem(QTreeWidgetItem * item);
 		void describeObject(QString type);
 
 	protected:

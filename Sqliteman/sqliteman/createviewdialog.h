@@ -28,23 +28,15 @@ class CreateViewDialog : public TableEditorDialog
 						  QTreeWidgetItem * item = 0);
 		~CreateViewDialog(){};
 		void setText(QString query);
-
-		bool updated;
+		void setSql(QString query);
 
 	private:
 
-		QString getSQLfromGUI();
 		bool checkRetained(int i);
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);
 
-		bool m_dirty; // SQL has been edited
-
-		// We ought to be able use use parent() for this, but for some reason
-		// qobject_cast<LiteManWindow*>(parent()) doesn't work
-		LiteManWindow * creator;
 		QPushButton * m_createButton;
-		int m_tabWidgetIndex;
 		
 	signals:
 		/*! \brief Rebuild part of the tree */
@@ -52,9 +44,7 @@ class CreateViewDialog : public TableEditorDialog
 
 	private slots:
 		void createButton_clicked();
-		void tabWidget_currentChanged(int index);
 		void checkChanges();
-		void setDirty();
 };
 
 #endif

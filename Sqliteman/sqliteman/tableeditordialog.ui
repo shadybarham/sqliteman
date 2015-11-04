@@ -236,8 +236,30 @@
        <property name="spacing">
         <number>6</number>
        </property>
-       <item row="0" column="0">
+       <item row="1" column="0">
         <widget class="SqlEditorWidget" name="textEdit"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLineEdit" name="firstLine">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="acceptDrops">
+          <bool>false</bool>
+         </property>
+         <property name="autoFillBackground">
+          <bool>true</bool>
+         </property>
+         <property name="frame">
+          <bool>true</bool>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="placeholderText">
+          <string notr="true"/>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
