@@ -333,9 +333,9 @@ void TableEditorDialog::tableNameChanged()
 
 void TableEditorDialog::tabWidget_currentChanged(int index)
 {
-	QWidget * w = ui.tabWidget->widget(m_tabWidgetIndex);
 	if (ui.tabWidget->widget(index) == ui.sqlTab)
 	{
+		QWidget * w = ui.tabWidget->widget(m_tabWidgetIndex);
 		if (w != ui.sqlTab)
 		{
 			m_oldWidget = w;
@@ -374,7 +374,7 @@ void TableEditorDialog::tabWidget_currentChanged(int index)
 	}
 	else
 	{
-		m_oldWidget = w;
+		m_oldWidget = ui.tabWidget->widget(index);
 		setFirstLine();
 		if (ui.tabWidget->indexOf(ui.sqlTab) >= 0)
 		{
