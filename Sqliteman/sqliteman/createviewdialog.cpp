@@ -32,8 +32,9 @@ CreateViewDialog::CreateViewDialog(LiteManWindow * parent,
 	connect(m_createButton, SIGNAL(clicked()), this,
 			SLOT(createButton_clicked()));
 
+	ui.databaseCombo->setCurrentIndex(0);
 	if (item && (   (item->type() == TableTree::DatabaseItemType)
-				 || (item->type() == TableTree::TablesItemType)))
+				 || (item->type() == TableTree::ViewsItemType)))
 	{
 		int i = ui.databaseCombo->findText(item->text(1),
 			Qt::MatchFixedString | Qt::MatchCaseSensitive);
@@ -43,6 +44,8 @@ CreateViewDialog::CreateViewDialog(LiteManWindow * parent,
 			ui.databaseCombo->setDisabled(true);
 		}
 	}
+	connect(ui.databaseCombo, SIGNAL(currentIndexChanged(int)),
+			this, SLOT(databaseChanged(int)));
 
 	ui.tabWidget->setCurrentIndex(1);
 	ui.tabWidget->removeTab(0);
@@ -64,6 +67,17 @@ void CreateViewDialog::setSql(QString query)
 	ui.tabWidget->setCurrentWidget(ui.sqlTab);
 	ui.textEdit->setText(query);
 	setDirty();
+}
+
+bool CreateViewDialog::event(QEvent * e)
+{
+	QDialog::event(e);
+	if (e->type() == QEvent::Polish)
+	{
+		databaseChanged(ui.databaseCombo->currentIndex());
+	}
+	e->accept();
+	return true;
 }
 
 void CreateViewDialog::createButton_clicked()
@@ -102,4 +116,9 @@ bool CreateViewDialog::checkColumn(int i, QString cname,
 void CreateViewDialog::checkChanges()
 {
 	m_createButton->setEnabled(!ui.nameEdit->text().isEmpty());
+}
+
+void CreateViewDialog::databaseChanged(int index)
+{
+	ui.queryEditor->fixSchema(ui.databaseCombo->itemText(index));
 }

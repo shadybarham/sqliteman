@@ -29,6 +29,7 @@ class CreateViewDialog : public TableEditorDialog
 		~CreateViewDialog(){};
 		void setText(QString query);
 		void setSql(QString query);
+		bool event(QEvent * e);
 
 	private:
 
@@ -45,6 +46,7 @@ class CreateViewDialog : public TableEditorDialog
 	private slots:
 		void createButton_clicked();
 		void checkChanges();
+		void databaseChanged(int);
 };
 
 #endif

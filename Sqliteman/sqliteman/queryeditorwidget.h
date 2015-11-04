@@ -35,6 +35,7 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 		QString statement();
 		void treeChanged();
 		void tableAltered(QString oldName, QTreeWidgetItem * item);
+		void fixSchema(const QString & schema);
 
 	private:
 		bool initialised;
@@ -51,8 +52,8 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 		void resetSchemaList();
 
 private slots:
-		void tableSelected(const QString & table);
-		void schemaSelected(const QString & schema);
+		void schemaSelected(const QString & table);
+		void tableSelected(const QString & schema);
 		// Term tab
 		void moreTerms();
 		void lessTerms();

@@ -556,3 +556,10 @@ void QueryEditorWidget::tableAltered(QString oldName, QTreeWidgetItem * item)
 		}
 	}
 }
+
+void QueryEditorWidget::fixSchema(const QString & schema)
+{
+	schemaList->setCurrentIndex(schemaList->findText(schema));
+	schemaSelected(schema);
+	schemaList->setDisabled(true);
+}
