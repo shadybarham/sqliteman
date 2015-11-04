@@ -12,18 +12,18 @@ for which a new license (GPL+exception) is in place.
 #include <QPointer>
 #include <QMap>
 
-class QTreeWidgetItem;
-class DataViewer;
+class QAction;
+class QLabel;
+class QMenu;
 class QSplitter;
-class SchemaBrowser;
-class SqlEditor;
+class QTreeWidgetItem;
+
+class DataViewer;
 class HelpBrowser;
 class QueryEditorDialog;
-
-class QAction;
-class QMenu;
-class QLabel;
-
+class SchemaBrowser;
+class SqlEditor;
+class SqlQueryModel;
 
 /*!
  * @brief The main window for LiteMan
@@ -48,6 +48,7 @@ class LiteManWindow : public QMainWindow
 		bool checkForPending();
 		void checkForCatalogue();
 		void createViewFromSql(QString query);
+		void setTableModel(SqlQueryModel * model);
 
 		QueryEditorDialog * queryEditor;
 

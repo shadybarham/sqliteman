@@ -1224,6 +1224,11 @@ void LiteManWindow::createViewFromSql(QString query)
 			schemaBrowser->tableTree, SLOT(buildViewTree(QString, QString)));
 }
 
+void LiteManWindow::setTableModel(SqlQueryModel * model)
+{
+	dataViewer->setTableModel(model, false);
+}
+
 void LiteManWindow::alterView()
 {
 	//FIXME allow Alter View to change name like Alter Table

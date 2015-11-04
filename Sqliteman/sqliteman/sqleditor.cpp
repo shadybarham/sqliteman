@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME When running script, save result of last SELECT
 */
 #include <QMessageBox>
 #include <QFile>
@@ -21,12 +20,13 @@ for which a new license (GPL+exception) is in place.
 #include <qscilexer.h>
 
 #include "createviewdialog.h"
+#include "database.h"
 #include "preferences.h"
+#include "queryeditordialog.h"
 #include "sqleditor.h"
 #include "sqlkeywords.h"
+#include "sqlmodels.h"
 #include "utils.h"
-#include "database.h"
-#include "queryeditordialog.h"
 
 
 SqlEditor::SqlEditor(LiteManWindow * parent)
@@ -271,6 +271,7 @@ void SqlEditor::actionRun_Explain_triggered()
 void SqlEditor::actionRun_as_Script_triggered()
 {
 	if ((!creator) || !(creator->checkForPending())) { return; }
+	SqlQueryModel * model = 0;
 	m_scriptCancelled = false;
 	toSQLParse::editorTokenizer tokens(ui.sqlTextEdit);
 	int cpos, cline;
@@ -313,15 +314,16 @@ void SqlEditor::actionRun_as_Script_triggered()
 		{
 			sql = prepareExec(tokens, line, pos);
 			emit showSqlScriptResult(sql);
-			query.exec(sql);
+			SqlQueryModel * mdl = new SqlQueryModel(creator);
+			mdl->setQuery(sql, QSqlDatabase::database(SESSION_NAME));
             appendHistory(sql);
-			if (query.lastError().isValid())
+			if (mdl->lastError().isValid())
 			{
 				emit showSqlScriptResult(
-					"-- " + tr("Error: %1.").arg(query.lastError().text()));
+					"-- " + tr("Error: %1.").arg(mdl->lastError().text()));
 				int com = QMessageBox::question(this, tr("Run as Script"),
 						tr("This script contains the following error:\n")
-						+ query.lastError().text()
+						+ mdl->lastError().text()
 						+ tr("\nAt line: ")
 						+ line,
 						QMessageBox::Ignore, QMessageBox::Abort);
@@ -334,11 +336,13 @@ void SqlEditor::actionRun_as_Script_triggered()
 			}
 			else
 			{
-				if (Utils::updateObjectTree(query.lastQuery()))
+				if (Utils::updateObjectTree(sql))
 					emit buildTree();
-				if (Utils::updateTables(query.lastQuery()))
+				if (Utils::updateTables(sql))
 					emit refreshTable();
 				emit showSqlScriptResult("-- " + tr("No error"));
+				if (mdl->rowCount() > 0) { model = mdl; }
+				else delete mdl;
 			}
 			emit showSqlScriptResult("--");
 		}
@@ -349,6 +353,10 @@ void SqlEditor::actionRun_as_Script_triggered()
 	ui.sqlTextEdit->setSelection(cline, cpos, tokens.line(), tokens.offset());
 	if (!isError)
 		emit showSqlScriptResult("-- " + tr("Script finished"));
+	if (model)
+	{
+		creator->setTableModel(model);
+	}
 }
 
 void SqlEditor::actionCreateView_triggered()
