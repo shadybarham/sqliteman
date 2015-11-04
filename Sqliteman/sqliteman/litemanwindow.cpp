@@ -310,9 +310,6 @@ void LiteManWindow::initActions()
 	alterTableAct->setShortcut(tr("Ctrl+L"));
 	connect(alterTableAct, SIGNAL(triggered()), this, SLOT(alterTable()));
 
-	renameTableAct = new QAction(tr("&Rename Table..."), this);
-	connect(renameTableAct, SIGNAL(triggered()), this, SLOT(renameTable()));
-
 	populateTableAct = new QAction(tr("&Populate Table..."), this);
 	connect(populateTableAct, SIGNAL(triggered()), this, SLOT(populateTable()));
 
@@ -949,111 +946,6 @@ void LiteManWindow::alterTable()
 	}
 }
 
-void LiteManWindow::renameTable()
-{
-	dataViewer->removeErrorMessage();
-	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	if (!item) { return; }
-
-	QString text = item->text(0);
-	QString oldName = text;
-	while (1)
-	{
-		bool ok = true;
-		text = QInputDialog::getText(this, m_appName,
-									 tr("New table name:"),
-									 QLineEdit::Normal, text, &ok);
-		if (text.isEmpty() || !ok) { return; }
-		
-		if (text.contains(QRegExp
-			("\\s|-|\\]|\\[|[`!\"%&*()+={}:;@'~#|\\\\<,>.?/^]")))
-		{
-			int ret = QMessageBox::question(this, m_appName,
-				tr("A table named ")
-				+ text
-				+ tr(" will not display correctly. "
-					 "Are you sure you want to rename it?\n")
-				+ tr("\nYes to rename, Cancel to try another name."),
-				QMessageBox::Yes, QMessageBox::Cancel);
-			if (ret == QMessageBox::Cancel) { continue; }
-		}
-		bool isActive = m_activeItem == item;
-		dataViewer->saveSelection();
-		if (text.compare(oldName, Qt::CaseInsensitive) == 0)
-		{
-			if (text.compare(oldName, Qt::CaseSensitive) == 0)
-			{
-				return;
-			}
-			else
-			{
-				// sqlite won't rename if only case changes,
-				// so we rename via a temporary name
-				QString tmpName = Database::getTempName(item->text(1));
-				// check needed because QSqlTableModel holds the table name
-				if ((!isActive) || (checkForPending()))
-				{
-					QString sql = QString("ALTER TABLE ")
-								  + Utils::quote(item->text(1))
-								  + "."
-								  + Utils::quote(oldName)
-								  + " RENAME TO "
-								  + Utils::quote(tmpName)
-								  + ";";
-					QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-					if (query.lastError().isValid())
-					{
-						dataViewer->setStatusText(
-							tr("Cannot rename table ")
-							+ item->text(1) + tr(".") + item->text(0)
-							+ ":<br/><span style=\" color:#ff0000;\">"
-							+ query.lastError().text()
-							+ "<br/></span>" + tr("using sql statement:")
-							+ "<br/><tt>" + sql);
-						return;
-					}
-					oldName = tmpName;
-				}
-			}
-		}
-		// check needed because QSqlTableModel holds the table name
-		if ((!isActive) || (checkForPending()))
-		{
-			QString sql = QString("ALTER TABLE ")
-						  + Utils::quote(item->text(1))
-						  + "."
-						  + Utils::quote(oldName)
-						  + " RENAME TO "
-						  + Utils::quote(text)
-						  + ";";
-			QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
-			if (query.lastError().isValid())
-			{
-				dataViewer->setStatusText(
-					tr("Cannot rename table ")
-					+ item->text(1) + tr(".") + oldName
-					+ ":<br/><span style=\" color:#ff0000;\">"
-					+ query.lastError().text()
-					+ "<br/></span>" + tr("using sql statement:")
-					+ "<br/><tt>" + sql);
-			}
-			else
-			{
-				queryEditor->tableAltered(item->text(0), item);
-				item->setText(0, text);
-				checkForCatalogue();
-				if (isActive)
-				{
-					m_activeItem = 0; // we've changed it
-					treeItemActivated(item, 0);
-					dataViewer->reSelect();
-				}
-			}
-		}
-		return;
-	}
-}
-
 void LiteManWindow::populateTable()
 {
 	dataViewer->removeErrorMessage();
@@ -1428,7 +1320,6 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 		case TableTree::TableType:
 			contextMenu->addAction(describeTableAct);
 			contextMenu->addAction(alterTableAct);
-			contextMenu->addAction(renameTableAct);
 			contextMenu->addAction(dropTableAct);
 			{
 				SqlQueryModel model(0);
