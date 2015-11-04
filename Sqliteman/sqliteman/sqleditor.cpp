@@ -272,6 +272,8 @@ void SqlEditor::actionRun_as_Script_triggered()
 {
 	if ((!creator) || !(creator->checkForPending())) { return; }
 	SqlQueryModel * model = 0;
+	bool rebuildTree = false;
+	bool updateTable = false;
 	m_scriptCancelled = false;
 	toSQLParse::editorTokenizer tokens(ui.sqlTextEdit);
 	int cpos, cline;
@@ -324,8 +326,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 				int com = QMessageBox::question(this, tr("Run as Script"),
 						tr("This script contains the following error:\n")
 						+ mdl->lastError().text()
-						+ tr("\nAt line: ")
-						+ line,
+						+ tr("\nAt line: %1").arg(line),
 						QMessageBox::Ignore, QMessageBox::Abort);
 				if (com == QMessageBox::Abort)
 				{
@@ -336,10 +337,8 @@ void SqlEditor::actionRun_as_Script_triggered()
 			}
 			else
 			{
-				if (Utils::updateObjectTree(sql))
-					emit buildTree();
-				if (Utils::updateTables(sql))
-					emit refreshTable();
+				if (Utils::updateObjectTree(sql)) { rebuildTree = true; }
+				if (Utils::updateTables(sql)) { updateTable = true; }
 				emit showSqlScriptResult("-- " + tr("No error"));
 				if (mdl->rowCount() > 0) { model = mdl; }
 				else delete mdl;
@@ -357,6 +356,8 @@ void SqlEditor::actionRun_as_Script_triggered()
 	{
 		creator->setTableModel(model);
 	}
+	if (rebuildTree) { emit buildTree(); }
+	if (updateTable) { emit refreshTable(); }
 }
 
 void SqlEditor::actionCreateView_triggered()
