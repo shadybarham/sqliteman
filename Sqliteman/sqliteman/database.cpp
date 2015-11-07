@@ -500,3 +500,39 @@ bool Database::isAutoCommit()
 	return sqlite3_get_autocommit(sqlite3handle()) != 0;
 }
 
+extern "C" void do_exec(sqlite3_context* context, int n, sqlite3_value** value)
+{
+	char * errmsg = NULL;
+	if (n == 1)
+	{
+		sqlite3_exec(sqlite3_context_db_handle(context),
+					 (const char *)sqlite3_value_text(*value),
+					 NULL, NULL, &errmsg);
+		if (errmsg)
+		{
+			sqlite3_result_text(context, errmsg, -1, SQLITE_TRANSIENT);
+			sqlite3_free(errmsg);
+		}
+		else
+		{
+			sqlite3_result_null(context);
+		}
+	}
+	else if (n == 0)
+	{
+		sqlite3_result_error(
+			context, "User function exec called with no arguments", -1);
+	}
+	else
+	{
+		sqlite3_result_error(
+			context, "More than one argument to user function exec", -1);
+	}
+}
+
+int Database::makeUserFunctions()
+{
+	return sqlite3_create_function(
+		sqlite3handle(), "exec", 1, SQLITE_UTF8, NULL, do_exec, NULL, NULL);
+}
+

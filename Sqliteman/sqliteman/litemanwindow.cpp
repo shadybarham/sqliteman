@@ -673,6 +673,15 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	adminMenu->setEnabled(isOpened);
 	sqlEditor->setEnabled(isOpened);
 	dataViewer->setEnabled(isOpened);
+	int n = Database::makeUserFunctions();
+	if (n)
+	{
+		dataViewer->setStatusText(
+			tr("Cannot create user function exec")
+			+ ":<br/><span style=\" color:#ff0000;\">"
+			+ sqlite3_errstr(n)
+			+ "<br/></span>");
+	}
 }
 
 #ifdef ENABLE_EXTENSIONS
