@@ -49,7 +49,6 @@ class AlterTableDialog : public TableEditorDialog
 		
 		QList<FieldInfo> m_fields;
 		bool m_hadRowid;
-
 		//! \brief Fill the GUI with table structure.
 		void resetStructure();
 
@@ -67,6 +66,7 @@ class AlterTableDialog : public TableEditorDialog
 		bool execSql(const QString & statement, const QString & message);
 		bool doRollback(QString message);
 
+		int oldColumnNumber(int i);
 		bool checkRetained(int i);
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);

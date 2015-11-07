@@ -28,6 +28,7 @@ class CreateTableDialog : public TableEditorDialog
 	private:
 		/*! \brief Analyze user changes and performs the CREATE TABLE sql
 		*/
+		int oldColumnNumber(int i) { return -1; };
 		bool checkRetained(int i);
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);
