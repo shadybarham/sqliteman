@@ -11,7 +11,7 @@ for which a new license (GPL+exception) is in place.
 #include <qwidget.h>
 
 #include "litemanwindow.h"
-#include "ui_createviewdialog.h"
+#include "ui_alterviewdialog.h"
 
 
 /*! \brief GUI for view altering
@@ -30,7 +30,7 @@ class AlterViewDialog : public QDialog
 		void setText(const QString & text) { ui.sqlEdit->setText(text); };
 
 	private:
-		Ui::CreateViewDialog ui;
+		Ui::AlterViewDialog ui;
 		void resultAppend(QString text);
 		
 	private slots:
