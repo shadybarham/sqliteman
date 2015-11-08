@@ -1146,7 +1146,7 @@ static char *appendText(char *zIn, char const *zAppend, char quote){
 ** "--" comment occurs at the end of the statement, the comment
 ** won't consume the semicolon terminator.
 */
-int run_table_dump_query(
+static int run_table_dump_query(
   ShellState *p,           /* Query context */
   const char *zSelect,     /* SELECT statement to extract content */
   const char *zFirstRow    /* Print before first row, if not NULL */
@@ -1747,7 +1747,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
 ** If we get a SQLITE_CORRUPT error, rerun the query after appending
 ** "ORDER BY rowid DESC" to the end.
 */
-int run_schema_dump_query(
+static int run_schema_dump_query(
   ShellState *p, 
   const char *zQuery
 ){
@@ -4495,7 +4495,7 @@ static char *cmdline_option_value(int argc, char **argv, int i){
   return argv[i];
 }
 
-static main(int argc, char **argv){
+int SQLITE_CDECL main(int argc, char **argv){
   char *zErrMsg = 0;
   ShellState data;
   const char *zInitFile = 0;
