@@ -33,6 +33,7 @@ class CreateViewDialog : public TableEditorDialog
 
 	private:
 
+		int oldColumnNumber(int i) { return -1; };
 		bool checkRetained(int i);
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);

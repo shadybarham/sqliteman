@@ -63,6 +63,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 
 	QLineEdit * name = new QLineEdit(this);
 	name->setText(oldName);
+	name->setToolTip(oldName);
 	name->setFrame(false);
 	connect(name, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
@@ -136,7 +137,8 @@ QString TableEditorDialog::getSQLfromDesign()
 	QStringList primaryKeys;
 	for (int i = 0; i < ui.columnTable->rowCount(); i++)
 	{
-		if (checkRetained(i))
+		if (   (oldColumnNumber(i) < 0)
+			|| (checkRetained(i)))
 		{
 			if (first)
 			{

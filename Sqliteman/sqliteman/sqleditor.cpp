@@ -352,12 +352,12 @@ void SqlEditor::actionRun_as_Script_triggered()
 	ui.sqlTextEdit->setSelection(cline, cpos, tokens.line(), tokens.offset());
 	if (!isError)
 		emit showSqlScriptResult("-- " + tr("Script finished"));
+	if (rebuildTree) { emit buildTree(); }
+	if (updateTable) { emit refreshTable(); }
 	if (model)
 	{
 		creator->setTableModel(model);
 	}
-	if (rebuildTree) { emit buildTree(); }
-	if (updateTable) { emit refreshTable(); }
 }
 
 void SqlEditor::actionCreateView_triggered()

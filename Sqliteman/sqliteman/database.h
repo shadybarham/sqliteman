@@ -195,6 +195,8 @@ class Database
 		// are we in autocommit mode = !(did the sql editor do a BEGIN)?
 		static bool isAutoCommit();
 
+		static int makeUserFunctions();
+
 	private:
 		//! \brief Error feedback to the user.
 		static void exception(const QString & message);

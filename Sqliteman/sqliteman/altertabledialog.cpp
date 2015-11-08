@@ -126,7 +126,7 @@ bool AlterTableDialog::execSql(const QString & statement,
 							   const QString & message)
 {
 	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
-	if(query.lastError().isValid())
+	if (query.lastError().isValid())
 	{
 		QString errtext = message
 						  + ":<br/><span style=\" color:#ff0000;\">"
@@ -427,32 +427,50 @@ void AlterTableDialog::cellClicked(int row, int)
 	TableEditorDialog::fieldSelected();
 }
 
+int AlterTableDialog::oldColumnNumber(int i)
+{
+	QLineEdit * le = qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+	if (le) {
+		QString oldName(le->toolTip());
+		if (!oldName.isNull())
+		{
+			int j;
+			for (j = 0; j < m_fields.count(); ++j)
+			{
+				if (oldName.compare(m_fields[j].name) == 0)
+				{
+					return j;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 bool AlterTableDialog::checkRetained(int i)
 {
-	if (i < m_fields.count())
-	{
-		QCheckBox * drop =
-			qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5));
-		if (drop->checkState() == Qt::Checked) { return false; }
-		m_keptColumns.append(i);
-	}
+	QCheckBox * drop =
+		qobject_cast<QCheckBox*>(ui.columnTable->cellWidget(i, 5));
+	if (drop->checkState() == Qt::Checked) { return false; }
+	m_keptColumns.append(i);
 	return true;
 }
 
 bool AlterTableDialog::checkColumn(int i, QString cname,
 								   QString ctype, QString cextra)
 {
-	if (!checkRetained(i))
+	int j = oldColumnNumber(i);
+	if (j >= 0)
 	{
-		m_altered = true;
-		return true;
-	}
-	if (i < m_fields.count())
-	{
+		if (!checkRetained(i))
+		{
+			m_altered = true;
+			return true;
+		}
 		bool useNull = m_prefs->nullHighlight();
 		QString nullText = m_prefs->nullHighlightText();
 
-		QString ftype(m_fields[i].type);
+		QString ftype(m_fields[j].type);
 		if (ftype.isEmpty())
 		{
 			if (useNull && !nullText.isEmpty())
@@ -465,30 +483,30 @@ bool AlterTableDialog::checkColumn(int i, QString cname,
 			}
 		}
 		QString fextra;
-		if (m_fields[i].isAutoIncrement)
+		if (m_fields[j].isAutoIncrement)
 		{
 			if (!fextra.isEmpty()) { fextra.append(" "); }
 			fextra.append("AUTOINCREMENT");
 		}
-		if (m_fields[i].isPartOfPrimaryKey)
+		if (m_fields[j].isPartOfPrimaryKey)
 		{
-			if (!m_fields[i].isAutoIncrement)
+			if (!m_fields[j].isAutoIncrement)
 			{
 				if (!fextra.isEmpty()) { fextra.append(" "); }
 				fextra.append("PRIMARY KEY");
 			}
 		}
-		if (m_fields[i].isNotNull)
+		if (m_fields[j].isNotNull)
 		{
 			if (!fextra.isEmpty()) { fextra.append(" "); }
 			fextra.append("NOT NULL");
 		}
 		QLineEdit * defval =
 			qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 3));
-		if (   (cname != m_fields[i].name)
+		if (   (cname != m_fields[j].name)
 			|| (ctype != ftype)
 			|| (fextra != cextra)
-			|| (defval->text() != SqlParser::defaultToken(m_fields[i])))
+			|| (defval->text() != SqlParser::defaultToken(m_fields[j])))
 		{
 			m_altered = true;
 		}

@@ -44,6 +44,7 @@ class TableEditorDialog : public QDialog
 		bool updated;
 
 	protected:
+		virtual int oldColumnNumber(int i) = 0;
 		virtual bool checkRetained(int i) = 0;
 		virtual bool checkColumn(int i, QString cname,
 								 QString type, QString cextra) = 0;
