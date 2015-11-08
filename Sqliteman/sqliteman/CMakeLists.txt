@@ -130,6 +130,7 @@ ENDIF (WANT_INTERNAL_SQLDRIVER)
 
 
 SET( SQLITEMAN_UI
+    alterviewdialog.ui
     analyzedialog.ui
     blobpreviewwidget.ui
     constraintsdialog.ui
