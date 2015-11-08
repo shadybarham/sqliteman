@@ -55,7 +55,8 @@ bool Utils::updateObjectTree(const QString & sql)
 			|| tmp.startsWith("ATTACH")
 			|| tmp.startsWith("CREATE")
 			|| tmp.startsWith("DETACH")
-			|| tmp.startsWith("DROP"));
+			|| tmp.startsWith("DROP")
+		    || tmp.contains("EXEC")); // crude, but will work for now
 }
 
 bool Utils::updateTables(const QString & sql)
@@ -69,7 +70,8 @@ bool Utils::updateTables(const QString & sql)
 			|| tmp.startsWith("DROP")
 			|| tmp.startsWith("INSERT")
 			|| tmp.startsWith("REPLACE")
-			|| tmp.startsWith("UPDATE"));
+			|| tmp.startsWith("UPDATE")
+		    || tmp.contains("EXEC")); // crude, but will work for now
 }
 
 QString Utils::quote(QString s)

@@ -13,6 +13,8 @@ for which a new license (GPL+exception) is in place.
 #include <QFile>
 #include <QMessageBox>
 
+#include <strings.h>
+
 #include "database.h"
 #include "preferences.h"
 #include "shell.h"
@@ -500,39 +502,115 @@ bool Database::isAutoCommit()
 	return sqlite3_get_autocommit(sqlite3handle()) != 0;
 }
 
-extern "C" void do_exec(sqlite3_context* context, int n, sqlite3_value** value)
+struct do_exec_state {
+	int count;
+	char * name;
+	sqlite3 * db;
+	char * errmsg;
+	char * result;
+};
+
+extern "C" int do_exec_callback(void * p, int n, char ** data, char **names)
 {
-	char * errmsg = NULL;
-	if (n == 1)
+	struct do_exec_state * state = (struct do_exec_state *)p;
+	if (state->errmsg) { return 0; }
+	bool first = true;
+	int i;
+	if (state->name)
 	{
-		sqlite3_exec(sqlite3_context_db_handle(context),
-					 (const char *)sqlite3_value_text(*value),
-					 NULL, NULL, &errmsg);
-		if (errmsg)
+		if (state->count == 0)
 		{
-			sqlite3_result_text(context, errmsg, -1, SQLITE_TRANSIENT);
-			sqlite3_free(errmsg);
+			// First result row, create the table
+			QString create(QString("CREATE TABLE %1 (")
+						   .arg(state->name));
+			for (i = 0; i < n; ++i)
+			{
+				if (first) { first = false; }
+				else { create += ","; }
+				create += Utils::quote(names[i]);
+			}
+			create += ");"; 
+			sqlite3_exec(state->db, create.toUtf8().data(),
+						 NULL, NULL, &(state->errmsg));
+			if (state->errmsg) { return 0; }
 		}
-		else
+		state->count++;
+		// add the data row
+		QString insert(QString("INSERT INTO %1 VALUES (")
+					   .arg(state->name));
+		first = true;
+		for (i = 0; i < n; ++i)
 		{
-			sqlite3_result_null(context);
+			if (first) { first = false; }
+			else { insert += ","; }
+			insert += Utils::literal(data[i]);
 		}
-	}
-	else if (n == 0)
-	{
-		sqlite3_result_error(
-			context, "User function exec called with no arguments", -1);
+		insert += ");"; 
+		sqlite3_exec(state->db, insert.toUtf8().data(),
+					 NULL, NULL, &(state->errmsg));
+		if (state->errmsg)
+		{
+			// Oh dear, we failed after creating the table: try to drop it again
+			QString drop(QString("DROP TABLE %1 ;").arg(state->name));
+			sqlite3_exec(state->db, drop.toUtf8().data(), NULL, NULL, NULL);
+		}
 	}
 	else
 	{
-		sqlite3_result_error(
-			context, "More than one argument to user function exec", -1);
+		if (state->count == 0)
+		{
+			state->result = strdup(*data);
+		}
+		state->count++;
 	}
+	return 0;
+}
+
+extern "C" void do_exec(sqlite3_context* context,
+						  int n, sqlite3_value** value)
+{
+	struct do_exec_state state;
+	state.count = 0;
+	if (sqlite3_value_type(value[0]) == SQLITE_NULL)
+	{
+		state.name = NULL;
+	}
+	else
+	{
+		state.name = strdup((const char *)sqlite3_value_text(value[0]));
+	}
+	state.db = sqlite3_context_db_handle(context);
+	state.errmsg = NULL;
+	state.result = NULL;
+	char * errmsg = NULL;
+	char * sql = strdup((const char *)sqlite3_value_text(value[1]));
+	sqlite3_exec(state.db, sql, do_exec_callback, &state, &errmsg);
+	if (state.errmsg)
+	{
+		sqlite3_result_error(context, state.errmsg, -1);
+		sqlite3_free(state.errmsg);
+	}
+	else if (state.name == NULL)
+	{
+		sqlite3_result_text(context, state.result, -1, SQLITE_TRANSIENT);
+	}
+	else if (errmsg)
+	{
+		sqlite3_result_text(context, errmsg, -1, SQLITE_TRANSIENT);
+	}
+	else
+	{
+		sqlite3_result_null(context);
+	}
+	sqlite3_free(errmsg);
+	free(state.name);
+	free(state.result);
+	free(sql);
 }
 
 int Database::makeUserFunctions()
 {
 	return sqlite3_create_function(
-		sqlite3handle(), "exec", 1, SQLITE_UTF8, NULL, do_exec, NULL, NULL);
+		sqlite3handle(), "exec", 2, SQLITE_UTF8, NULL, do_exec, NULL, NULL);
 }
 

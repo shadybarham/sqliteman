@@ -1,0 +1,518 @@
+-- This script exercises various create <something> statements
+-- to see which ones sqlite3 thinks are syntactically valid
+-- and what gets into the sqlite_master table for those which are.
+-- When running it, ignore all errors
+drop table if exists stmt ;
+create table stmt (id integer primary key, stmt text) ;
+drop table if exists one_result ;
+create table one_result (id integer primary key, one_result text) ;
+drop table if exists result_list ;
+create table result_list ('123' integer, stmt text, result text) ;
+insert into result_list values (1, 'datetime()', datetime());
+insert into result_list values ((select max("123") from result_list) + 1,
+ 'sqlite_version()', sqlite_version());
+-- exercise basic create index
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create unique index
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create unique index test_index on result_list(stmt) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index if not exists
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index if not exists test_index on result_list(stmt)
+  where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with 'column'
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(''stmt'') where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with "column"
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list("stmt") where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with [column]
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list([stmt]) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with `column`
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(`stmt`) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with numeric column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(123) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with 'numeric' column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(''123'') where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with "numeric" column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list("123") where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with [numeric] column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list([123]) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with `numeric` column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(`123`) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with invalid column
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(invalid) where stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with 'column' in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where ''stmt'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with "column" in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where "stmt" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with [column] in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where [stmt] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with `column` in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where `stmt` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with numeric column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where 123 not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with 'numeric' column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where ''123'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with "numeric" column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where "123" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with [numeric] column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where [123] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with `numeric` column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where `123` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with invalid column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where invalid not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with 'invalid' column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where ''invalid'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with "invalid" column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where "invalid" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with [invalid] column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where [invalid] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with `invalid` column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where `invalid` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.stmt not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.'column' in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.''stmt'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table."column" in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list."stmt" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.[column] in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.[stmt] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.`column` in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.`stmt` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.numeric column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.123 not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.'numeric' column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.''123'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table."numeric" column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list."123" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.[numeric] column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.[123] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.`numeric` column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.`123` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.invalid column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.invalid not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.'invalid' column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.''invalid'' not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table."invalid" column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list."invalid" not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.[invalid] column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.[invalid] not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
+-- exercise create index with table.`invalid` column in expression
+drop index if exists test_index ;
+insert or replace into stmt values (1,
+ 'create index test_index on result_list(stmt) where result_list.`invalid` not null ;' ) ;
+insert or replace into one_result values (1,
+ (select exec(stmt) from stmt)) ;
+insert into result_list values (
+ (select max("123") from result_list) + 1, 
+ (select stmt from stmt),
+ coalesce(
+ (select one_result from one_result),
+ (select sql from main.sqlite_master where name = 'test_index'))) ;
