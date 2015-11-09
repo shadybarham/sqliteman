@@ -31,33 +31,51 @@ SchemaBrowser::SchemaBrowser(QWidget * parent, Qt::WindowFlags f)
 
 void SchemaBrowser::buildPragmasTree()
 {
+	int row = pragmaTable->currentRow();
 	disconnect(pragmaTable, SIGNAL(currentCellChanged(int, int, int, int)),
 			   this, SLOT(pragmaTable_currentCellChanged(int, int, int, int)));
 	pragmaTable->clearContents();
 	pragmaTable->setRowCount(0);
 
+	addPragma("application_id");
 	addPragma("auto_vacuum");
+	addPragma("automatic_index");
+	addPragma("busy_timeout");
 	addPragma("cache_size");
+	addPragma("cache_spill");
 	addPragma("case_sensitive_like");
-	addPragma("count_changes");
+	addPragma("cell_size_check");
+	addPragma("checkpoint_fullfsync");
+	addPragma("data_version");
 	addPragma("default_cache_size");
 	addPragma("default_synchronous");
-	addPragma("empty_result_callbacks");
 	addPragma("encoding");
-	addPragma("full_column_names");
+	addPragma("foreign_keys");
 	addPragma("fullfsync");
+	addPragma("ignore_check_constraints");
+	addPragma("journal_mode");
+	addPragma("journal_size_limit");
 	addPragma("legacy_file_format");
 	addPragma("locking_mode");
-	addPragma("page_size");
 	addPragma("max_page_count");
+	addPragma("mmap_size");
+	addPragma("page_size");
+	addPragma("query_only");
 	addPragma("read_uncommitted");
+	addPragma("recursive_triggers");
+	addPragma("reverse_unordered_selects");
+	addPragma("secure_delete");
 	addPragma("short_column_names");
+	addPragma("soft_heap_limit");
 	addPragma("synchronous");
 	addPragma("temp_store");
-	addPragma("temp_store_directory");
+	addPragma("threads");
+	addPragma("user_version");
+	addPragma("wal_autocheckpoint");
 
-	pragmaTable_currentCellChanged(0, 0, 0, 0);
-	pragmaTable->setCurrentItem(pragmaTable->item(0, 0));
+	if (row < 0) { row = 0; }
+	pragmaTable_currentCellChanged(row, 0, 0, 0);
+	pragmaTable->setCurrentItem(pragmaTable->item(row, 0));
 	connect(pragmaTable, SIGNAL(currentCellChanged(int, int, int, int)),
 		    this, SLOT(pragmaTable_currentCellChanged(int, int, int, int)));
 }
@@ -78,24 +96,12 @@ void SchemaBrowser::pragmaTable_currentCellChanged(int currentRow, int /*current
 
 void SchemaBrowser::setPragmaButton_clicked()
 {
-	int row = pragmaTable->currentRow();
-	QTableWidgetItem * item = pragmaTable->item(row, 0);
-	QString text(item->text().toLower());
-	QString value(pragmaTable->item(row, 1)->text());
-	// TODO: create a better way to get new value.
-	// TODO: Check sane values etc. It will need a some description of pragmas (XML?... now I wish it could be written in python dicts...
-	bool ok;
-	QString newValue = QInputDialog::getText(this, "Set Pragma", text, QLineEdit::Normal, value, &ok);
-	if (ok && !text.isEmpty())
-	{
-		Database::execSql(QString("PRAGMA main.")
-						  + text
-						  + " = "
-						  + newValue
-						  + ";");
-		// FIXME this doesn't update the displayed values correctly
-		buildPragmasTree();
-	}
+	Database::execSql(QString("PRAGMA main.")
+					  + pragmaName->text()
+					  + " = "
+					  + pragmaValue->text()
+					  + ";");
+	buildPragmasTree();
 }
 
 void SchemaBrowser::appendExtensions(const QStringList & list, bool switchToTab)

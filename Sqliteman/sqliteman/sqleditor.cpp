@@ -257,6 +257,7 @@ void SqlEditor::action_Run_SQL_triggered()
 		QString sql(query());
 		emit showSqlResult(sql);
 	    appendHistory(sql);
+		creator->buildPragmasTree();
 	}
 }
 
@@ -358,6 +359,7 @@ void SqlEditor::actionRun_as_Script_triggered()
 	{
 		creator->setTableModel(model);
 	}
+	creator->buildPragmasTree();
 }
 
 void SqlEditor::actionCreateView_triggered()

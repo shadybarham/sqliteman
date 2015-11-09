@@ -46,6 +46,7 @@ class LiteManWindow : public QMainWindow
 
 		QString mainDbPath() { return m_mainDbPath; };
 		bool checkForPending();
+		void buildPragmasTree();
 		void checkForCatalogue();
 		void createViewFromSql(QString query);
 		void setTableModel(SqlQueryModel * model);

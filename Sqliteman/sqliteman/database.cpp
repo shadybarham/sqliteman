@@ -397,8 +397,16 @@ QString Database::hex(const QByteArray & val)
 
 QString Database::pragma(const QString & name)
 {
-	QString statement("PRAGMA main.%1;");
-	QSqlQuery query(statement.arg(name), QSqlDatabase::database(SESSION_NAME));
+	QString statement;
+	if (name.compare("case_sensitive_like", Qt::CaseInsensitive) == 0)
+	{
+		statement = QString("VALUES ('a' NOT LIKE 'A') ;");
+	}
+	else
+	{
+		statement = QString("PRAGMA main.%1;").arg(name);
+	}
+	QSqlQuery query(statement, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
 	{
 		exception(tr("Error executing: %1.").arg(query.lastError().text()));

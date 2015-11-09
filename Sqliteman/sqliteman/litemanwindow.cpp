@@ -120,6 +120,10 @@ bool LiteManWindow::checkForPending() {
 	return dataViewer->checkForPending();
 }
 
+void LiteManWindow::buildPragmasTree() {
+	schemaBrowser->buildPragmasTree();
+}
+
 void LiteManWindow::closeEvent(QCloseEvent * e)
 {
 	// check for uncommitted transaction in the DB
