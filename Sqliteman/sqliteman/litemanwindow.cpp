@@ -4,7 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman	setWindowTitle(tr("Create Table"));
 
 for which a new license (GPL+exception) is in place.
-	FIXME add function to evaluate an expression
 	FIXME creating empty constraint name is legal
 */
 #include <QTreeWidget>

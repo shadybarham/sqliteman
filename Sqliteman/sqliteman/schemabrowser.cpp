@@ -23,6 +23,8 @@ SchemaBrowser::SchemaBrowser(QWidget * parent, Qt::WindowFlags f)
 #ifndef ENABLE_EXTENSIONS
 	schemaTabWidget->setTabEnabled(2, false);
 #endif
+	connect(schemaTabWidget, SIGNAL(currentChanged(int)),
+			this, SLOT(tabWidget_currentChanged(int)));
 
 // 	connect(pragmaTable, SIGNAL(currentCellChanged(int, int, int, int)),
 // 			this, SLOT(pragmaTable_currentCellChanged(int, int, int, int)));
@@ -84,8 +86,26 @@ void SchemaBrowser::addPragma(const QString & name)
 {
 	int row = pragmaTable->rowCount();
 	pragmaTable->setRowCount(row + 1);
-	pragmaTable->setItem(row, 0, new QTableWidgetItem(name));
-	pragmaTable->setItem(row, 1, new QTableWidgetItem(Database::pragma(name)));
+	QTableWidgetItem * twi = new QTableWidgetItem(name);
+	twi->setToolTip(name);
+	pragmaTable->setItem(row, 0, twi);
+	QString value(Database::pragma(name));
+	twi = new QTableWidgetItem(value);
+	twi->setToolTip(value);
+	pragmaTable->setItem(row, 1, twi);
+}
+
+void SchemaBrowser::tabWidget_currentChanged(int index)
+{
+	if (index == 1)
+	{
+		pragmaTable->resizeColumnsToContents();
+		int w = pragmaTable->viewport()->width();
+		int w0 = pragmaTable->columnWidth(0);
+		int w1 = pragmaTable->columnWidth(1);
+		pragmaTable->setColumnWidth(0, w0 * w / (w0 + w1));
+		pragmaTable->setColumnWidth(1, w1 * w / (w0 + w1));
+	}
 }
 
 void SchemaBrowser::pragmaTable_currentCellChanged(int currentRow, int /*currentColumn*/, int /*previousRow*/, int /*previousColumn*/)
