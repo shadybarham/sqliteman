@@ -898,6 +898,7 @@ void LiteManWindow::dumpDatabase()
 void LiteManWindow::createTable()
 {
 	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	QTreeWidgetItem old(*item);
 	dataViewer->removeErrorMessage();
 	CreateTableDialog dlg(this, item);
 	dlg.exec();
@@ -914,11 +915,11 @@ void LiteManWindow::createTable()
 				if (m_activeItem)
 				{
 					// item recreated but should still be current
-					if (dlg.schema() == m_activeItem->text(1))
+					if (dlg.schema() == old.text(1))
 					{
 						for (int i = 0; i < it->childCount(); ++i)
 						{
-							if (it->child(i)->text(0) == m_activeItem->text(0))
+							if (it->child(i)->text(0) == old.text(0))
 							{
 								setActiveItem(it->child(i));
 							}
