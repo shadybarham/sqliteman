@@ -53,11 +53,14 @@ class TableEditorDialog : public QDialog
 		QString getFullName();
 		void setFirstLine();
 		void setDirty();
+		void paintEvent(QPaintEvent * event);
+		void resizeEvent(QResizeEvent * event);
 		QString m_tableOrView;
 		int m_tabWidgetIndex;
 		bool m_dirty; // SQL has been edited
 		bool m_dubious; // some column has an empty name
 		QWidget * m_oldWidget; // widget from which we got SQL
+		bool resizeWanted;
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work

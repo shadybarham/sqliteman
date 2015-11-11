@@ -375,6 +375,8 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 	ui.tableView->resizeColumnsToContents();
 	ui.tableView->resizeRowsToContents();
 
+	Utils::setColumnWidths(ui.tableView);
+#if 0
 	int total = 0;
 	for (int i = 0; i < model->columnCount(); ++i)
 		total += ui.tableView->columnWidth(i);
@@ -386,6 +388,7 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 		for (int i = 0; i < model->columnCount(); ++i)
 			ui.tableView->setColumnWidth(i, ui.tableView->columnWidth(i) + extra);
 	}
+#endif
 	dataResized = false;
 }
 

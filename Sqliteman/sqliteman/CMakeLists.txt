@@ -30,9 +30,10 @@ SET( SQLITEMAN_SRC
     helpbrowser.cpp
     importtabledialog.cpp
     importtablelogdialog.cpp
-    multieditdialog.cpp
     litemanwindow.cpp
     main.cpp
+    multieditdialog.cpp
+    mylineedit.cpp
     populatorcolumnwidget.cpp
     populatordialog.cpp
     preferences.cpp
@@ -98,6 +99,7 @@ SET( SQLITEMAN_MOC
     importtablelogdialog.h
     litemanwindow.h
     multieditdialog.h
+    mylineedit.h
     populatorcolumnwidget.h
     populatordialog.h
 #     populatorstructs.h

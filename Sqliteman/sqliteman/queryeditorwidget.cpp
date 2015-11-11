@@ -56,6 +56,7 @@ void QueryEditorWidget::tableSelected(const QString & table)
 	m_table = table;
 	m_columnList = getColumns();
 	columnModel->setStringList(m_columnList);
+	resizeWanted = true;
 }
 
 void QueryEditorWidget::resetTableList()
@@ -195,6 +196,7 @@ void QueryEditorWidget::setItem(QTreeWidgetItem * item)
 		schemaList->setEnabled(true);
 		tableList->setEnabled(true);
 	}
+	resizeWanted = true;
 }
 
 QString QueryEditorWidget::statement()
@@ -300,7 +302,6 @@ QString QueryEditorWidget::statement()
 	return sql;
 }
 
-
 void QueryEditorWidget::addAllSelect()
 {
 	QStringList list(columnModel->stringList());
@@ -370,6 +371,7 @@ void QueryEditorWidget::moreTerms()
 	termsTable->setCellWidget(i, 2, value);
 	termsTable->resizeColumnsToContents();
 	termLessButton->setEnabled(true);
+	resizeWanted = true;
 }
 
 void QueryEditorWidget::lessTerms()
@@ -397,8 +399,8 @@ void QueryEditorWidget::moreOrders()
 	directions->addItem("ASC");
 	directions->addItem("DESC");
 	ordersTable->setCellWidget(i, 2, directions);
-	ordersTable->resizeColumnsToContents();
 	orderLessButton->setEnabled(true);
+	resizeWanted = true;
 }
 
 void QueryEditorWidget::lessOrders()
@@ -526,6 +528,7 @@ void QueryEditorWidget::treeChanged()
 				resetModel();
 				m_columnList = columns;
 				columnModel->setStringList(m_columnList);
+				resizeWanted = true;
 			}
 		}
 	}
@@ -550,6 +553,7 @@ void QueryEditorWidget::tableAltered(QString oldName, QTreeWidgetItem * item)
 						resetModel();
 						m_columnList = columns;
 						columnModel->setStringList(m_columnList);
+						resizeWanted = true;
 					}
 				}
 			}
@@ -562,4 +566,21 @@ void QueryEditorWidget::fixSchema(const QString & schema)
 	schemaList->setCurrentIndex(schemaList->findText(schema));
 	schemaSelected(schema);
 	schemaList->setDisabled(true);
+}
+
+void QueryEditorWidget::resizeEvent(QResizeEvent * event)
+{
+	resizeWanted = true;
+	QWidget::resizeEvent(event);
+}
+
+void QueryEditorWidget::paintEvent(QPaintEvent * event)
+{
+	if (resizeWanted)
+	{
+		Utils::setColumnWidths(termsTable);
+		Utils::setColumnWidths(ordersTable);
+		resizeWanted = false;
+	}
+	QWidget::paintEvent(event);
 }

@@ -5,17 +5,20 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 */
 
-#include <QIcon>
+#include <QtCore/qmath.h>
 #include <QComboBox>
-#include <QPixmapCache>
+#include <QHeaderView>
+#include <QIcon>
 #include <QItemSelection>
-#include <QTreeWidgetItem>
-#include <QTime>
-#include <QUrl>
-#include <QTextEdit>
-#include <QSqlRecord>
-#include <QVariant>
 #include <QLineEdit>
+#include <QPixmapCache>
+#include <QSqlRecord>
+#include <QTableView>
+#include <QTextEdit>
+#include <QTime>
+#include <QTreeWidgetItem>
+#include <QUrl>
+#include <QVariant>
 
 #include "utils.h"
 
@@ -114,6 +117,73 @@ QString Utils::like(QString s)
 			  .replace("%", "@%")
 			  .replace("@", "@@")
 		   + "%' ESCAPE '@'";
+}
+
+/* Set suitable column widths for a QTableView (or a QTableWidget which inherits
+ * from it).
+ */
+void Utils::setColumnWidths(QTableView * tv)
+{
+	int widthView = tv->viewport()->width();
+	int widthLeft = widthView;
+	int widthUsed = 0;
+	int columns = tv->horizontalHeader()->count();
+	int columnsLeft = columns;
+	QVector<int> wantedWidths(columns);
+	QVector<int> gotWidths(columns);
+	tv->resizeColumnsToContents();
+	int i;
+	for (i = 0; i < columns; ++i)
+	{
+		wantedWidths[i] = tv->columnWidth(i);
+		gotWidths[i] = 0;
+	}
+	i = 0;
+	/* First give all "small" columns what they want. */
+	while (i < columns)
+	{
+		int w = wantedWidths[i];
+		if ((gotWidths[i] == 0) && (w <= widthLeft / columnsLeft ))
+		{
+			gotWidths[i] = w;
+			widthLeft -= w;
+			widthUsed += w;
+			columnsLeft -= 1;
+			i = 0;
+			continue;
+		}
+		++i;
+	}
+	/* Now allocate to other columns, giveing smaller ones a larger proportion
+	 * of what they want;
+	 */
+	for (i = 0; i < columns; ++i)
+	{
+		if (gotWidths[i] == 0)
+		{
+			int w = (int)qSqrt((qreal)(
+				wantedWidths[i] * widthLeft / columnsLeft));
+			gotWidths[i] = w;
+			widthUsed += w;
+		}
+	}
+	/* If there is space left, make all columns proportionately wider to fill
+	 * it.
+	 */
+	if (widthUsed < widthView)
+	{
+		for (i = 0; i < columns; ++i)
+		{
+			tv->setColumnWidth(i, gotWidths[i] * widthView / widthUsed);
+		}
+	}
+	else
+	{
+		for (i = 0; i < columns; ++i)
+		{
+			tv->setColumnWidth(i, gotWidths[i]);
+		}
+	}
 }
 
 // debugging hacks
@@ -333,7 +403,12 @@ void Utils::dump(QSqlRecord & rec)
 	}
 	dump(sl);
 }
-void Utils::dump(QLineEdit & le) { dump(le.text()); }
+void Utils::dump(QLineEdit & le)
+{
+	dump(QString("LineEdit(%1),") .arg(le.text())
+		 + QString(" height %1,").arg(le.size().rheight())
+		 + QString(" width %1").arg(le.size().rwidth()));
+}
 void Utils::dump(QLineEdit * le)
 {
 	le ? dump(*le) : qDebug("Null QLineEdit");

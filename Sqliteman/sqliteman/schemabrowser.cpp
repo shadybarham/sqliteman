@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 #include "schemabrowser.h"
 #include "database.h"
 #include "extensionmodel.h"
+#include "utils.h"
 
 
 SchemaBrowser::SchemaBrowser(QWidget * parent, Qt::WindowFlags f)
@@ -99,12 +100,7 @@ void SchemaBrowser::tabWidget_currentChanged(int index)
 {
 	if (index == 1)
 	{
-		pragmaTable->resizeColumnsToContents();
-		int w = pragmaTable->viewport()->width();
-		int w0 = pragmaTable->columnWidth(0);
-		int w1 = pragmaTable->columnWidth(1);
-		pragmaTable->setColumnWidth(0, w0 * w / (w0 + w1));
-		pragmaTable->setColumnWidth(1, w1 * w / (w0 + w1));
+		Utils::setColumnWidths(pragmaTable);
 	}
 }
 

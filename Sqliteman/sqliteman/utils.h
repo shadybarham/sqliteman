@@ -20,6 +20,7 @@ class QIcon;
 class QPixmap;
 class QSqlRecord;
 class QLineEdit;
+class QTableView;
 
 //! Various helper functions
 namespace Utils {
@@ -48,6 +49,8 @@ QString literal(QString s);
 QString unQuote(QString s);
 
 QString like(QString s);
+
+void setColumnWidths(QTableView * tv);
 
 //debugging hacks
 void dump(QString s);

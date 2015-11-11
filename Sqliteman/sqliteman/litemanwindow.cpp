@@ -1,8 +1,7 @@
 /*
 For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
-a copyright and/or license notice that predates the release of Sqliteman	setWindowTitle(tr("Create Table"));
-
+a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
 */
@@ -169,6 +168,7 @@ void LiteManWindow::closeEvent(QCloseEvent * e)
 	
 	writeSettings();
 
+	dataViewer->setTableModel(new QSqlQueryModel(), false);
 	QMapIterator<QString, QString> i(attachedDb);
 	while (i.hasNext())
 	{
@@ -1212,14 +1212,18 @@ void LiteManWindow::dropView()
 void LiteManWindow::createIndex()
 {
 	dataViewer->removeErrorMessage();
-	QString table(schemaBrowser->tableTree->currentItem()->parent()->text(0));
-	QString schema(schemaBrowser->tableTree->currentItem()->parent()->text(1));
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	if (item->type() == TableTree::IndexesItemType)
+	{
+		item = item->parent();
+	}
+	QString table(item->text(0));
+	QString schema(item->text(1));
 	CreateIndexDialog dia(table, schema, this);
 	dia.exec();
 	if (dia.update)
 	{
-		schemaBrowser->tableTree->buildIndexes(
-			schemaBrowser->tableTree->currentItem(), schema, table);
+		schemaBrowser->tableTree->buildIndexes(item, schema, table);
 		checkForCatalogue();
 	}
 }
@@ -1344,6 +1348,7 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 					{ contextMenu->addAction(emptyTableAct); }
 			}
 			contextMenu->addAction(contextBuildQueryAct);
+			contextMenu->addAction(createIndexAct);
 			contextMenu->addAction(reindexAct);
 			contextMenu->addSeparator();
 			contextMenu->addAction(importTableAct);

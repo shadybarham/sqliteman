@@ -19,16 +19,15 @@ for which a new license (GPL+exception) is in place.
 CreateIndexDialog::CreateIndexDialog(const QString & tabName,
 									 const QString & schema,
 									 LiteManWindow * parent)
-	: QDialog(parent),
-	m_schema(schema)
+	: QDialog(parent), m_schema(schema), m_table(tabName)
 {
 	creator = parent;
 	update = false;
 	ui.setupUi(this);
-	ui.tableNameLabel->setText(tabName);
-	ui.schemaLabel->setText(m_schema);
+	QString s("Table Name: ");
+	ui.label->setText(s + m_schema + "." + m_table);
 
-	QList<FieldInfo> columns = Database::tableFields(tabName, schema);
+	QList<FieldInfo> columns = Database::tableFields(m_table, m_schema);
 	ui.tableColumns->setRowCount(columns.size());
 	ui.createButton->setDisabled(true);
 
@@ -58,6 +57,7 @@ CreateIndexDialog::CreateIndexDialog(const QString & tabName,
 	connect(ui.indexNameEdit, SIGNAL(textChanged(const QString&)),
 			this, SLOT(indexNameEdit_textChanged(const QString&)));
 	connect(ui.createButton, SIGNAL(clicked()), this, SLOT(createButton_clicked()));
+	resizeWanted = true;
 }
 
 CreateIndexDialog::~CreateIndexDialog()
@@ -91,7 +91,7 @@ void CreateIndexDialog::createButton_clicked()
 					  + "."
 					  + Utils::quote(ui.indexNameEdit->text())
 					  + " on "
-					  + Utils::quote(ui.tableNameLabel->text())
+					  + Utils::quote(m_table)
 					  + " ("
 					  + cols.join(", ")
 					  + ");";
@@ -157,4 +157,20 @@ void CreateIndexDialog::resultAppend(QString text)
 		int lines = text.split("<br/>").count() + 1;
 		ui.resultEdit->setFixedHeight(lh * lines);
 	}
+}
+
+void CreateIndexDialog::resizeEvent(QResizeEvent * event)
+{
+	resizeWanted = true;
+	QDialog::resizeEvent(event);
+}
+
+void CreateIndexDialog::paintEvent(QPaintEvent * event)
+{
+	if (resizeWanted)
+	{
+		Utils::setColumnWidths(ui.tableColumns);
+		resizeWanted = false;
+	}
+	QDialog::paintEvent(event);
 }

@@ -36,9 +36,13 @@ class CreateIndexDialog : public QDialog
 	private:
 		Ui::CreateIndexDialog ui;
 		QString m_schema;
+		QString m_table;
 
 		void checkToEnable();
 		void resultAppend(QString text);
+		bool resizeWanted;
+		void paintEvent(QPaintEvent * event);
+		void resizeEvent(QResizeEvent * event);
 
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work

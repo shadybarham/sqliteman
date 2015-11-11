@@ -16,6 +16,7 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "litemanwindow.h"
 #include "tabletree.h"
+#include "utils.h"
 
 CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
 									 QTreeWidgetItem * item)
@@ -50,6 +51,7 @@ CreateTableDialog::CreateTableDialog(LiteManWindow * parent,
 	ui.textEdit->setText("");
 	ui.queryEditor->setItem(0);
 	addField(); // A table should have at least one field
+	Utils::setColumnWidths(ui.columnTable);
 }
 
 void CreateTableDialog::createButton_clicked()

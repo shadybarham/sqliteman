@@ -113,6 +113,19 @@ void TableTree::buildTables(QTreeWidgetItem * tablesItem, const QString & schema
 
 void TableTree::buildIndexes(QTreeWidgetItem *indexesItem, const QString & schema, const QString & table)
 {
+	if (indexesItem->type() == TableTree::TableType)
+	{
+		for (int i = 0; i < indexesItem->childCount(); ++i)
+		{
+			QTreeWidgetItem * item = indexesItem->child(i);
+			if (item->type() == TableTree::IndexesItemType)
+			{
+				indexesItem = item;
+				break;
+			}
+		}
+	}
+	if (indexesItem->type() != TableTree::IndexesItemType) { return; }
 	deleteChildren(indexesItem);
 	QStringList values = Database::getObjects("index", schema).values(table);
 	indexesItem->setText(0, trLabel(trIndexes).arg(values.size()));

@@ -6,13 +6,15 @@ for which a new license (GPL+exception) is in place.
 */
 
 #include <QCheckBox>
-#include <QLineEdit>
 #include <QMessageBox>
 #include <QSettings>
 #include <QTableWidget>
 
+#include "mylineedit.h"
 #include "tableeditordialog.h"
 #include "utils.h"
+
+//FIXME resizing window needs to set resizeWanted
 
 TableEditorDialog::TableEditorDialog(LiteManWindow * parent)
 {
@@ -29,8 +31,6 @@ TableEditorDialog::TableEditorDialog(LiteManWindow * parent)
 	ui.databaseCombo->addItems(Database::getDatabases().keys());
 	m_dirty = false;
 
-	ui.columnTable->setColumnWidth(0, 150);
-	ui.columnTable->setColumnWidth(1, 200);
 	connect(ui.columnTable, SIGNAL(itemSelectionChanged()),
 			this, SLOT(fieldSelected()));
 	connect(ui.addButton, SIGNAL(clicked()), this, SLOT(addField()));
@@ -43,6 +43,7 @@ TableEditorDialog::TableEditorDialog(LiteManWindow * parent)
 			this, SLOT(tableNameChanged()));
 	connect(ui.withoutRowid, SIGNAL(toggled(bool)),
 			this, SLOT(checkChanges()));
+	resizeWanted = true;
 }
 
 TableEditorDialog::~TableEditorDialog()
@@ -61,7 +62,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	int rc = ui.columnTable->rowCount();
 	ui.columnTable->setRowCount(rc + 1);
 
-	QLineEdit * name = new QLineEdit(this);
+	MyLineEdit * name = new MyLineEdit(this);
 	name->setText(oldName);
 	name->setToolTip(oldName);
 	name->setFrame(false);
@@ -108,7 +109,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	connect(extraBox, SIGNAL(currentIndexChanged(const QString &)),
 			this, SLOT(checkChanges()));
 
-	QLineEdit * defval = new QLineEdit(this);
+	MyLineEdit * defval = new MyLineEdit(this);
 	defval->setText(oldDefault);
 	if (useNull && oldDefault.isNull())
 	{
@@ -118,8 +119,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	connect(defval, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
 	ui.columnTable->setCellWidget(rc, 3, defval);
-	ui.columnTable->resizeColumnToContents(1);
-	ui.columnTable->resizeColumnToContents(2);
+	resizeWanted = true;
 }
 
 QString TableEditorDialog::getFullName()
@@ -148,8 +148,8 @@ QString TableEditorDialog::getSQLfromDesign()
 			{
 				sql += ",\n";
 			}
-			QLineEdit * ed =
-				qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
+			MyLineEdit * ed =
+				qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 0));
 			QString name(ed->text());
 			sql += Utils::quote(name);
 			QComboBox * box =
@@ -173,7 +173,7 @@ QString TableEditorDialog::getSQLfromDesign()
 			{
 				sql += " NOT NULL";
 			}
-			ed = qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 3));
+			ed = qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 3));
 			QString defval(ed->text());
 			if (!defval.isEmpty())
 			{
@@ -217,6 +217,7 @@ void TableEditorDialog::addField()
 {
 	addField(QString(), QString(), 0, QString());
 	checkChanges();
+	resizeWanted = true;
 }
 
 void TableEditorDialog::removeField()
@@ -230,6 +231,7 @@ void TableEditorDialog::removeField()
 	{
 		checkChanges();
 	}
+	resizeWanted = true;
 }
 
 void TableEditorDialog::fieldSelected()
@@ -248,8 +250,8 @@ bool TableEditorDialog::checkOk(QString newName)
 		bool autoSeen = false;
 		for (int i = 0; i < cols; i++)
 		{
-			QLineEdit * edit =
-				qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(i, 0));
+			MyLineEdit * edit =
+				qobject_cast<MyLineEdit*>(ui.columnTable->cellWidget(i, 0));
 			QString cname(edit->text());
 			QComboBox * types =
 				qobject_cast<QComboBox*>(ui.columnTable->cellWidget(i, 1));
@@ -265,8 +267,8 @@ bool TableEditorDialog::checkOk(QString newName)
 			if (cname.isEmpty()) { m_dubious = true; }
 			for (int j = 0; j < i; ++j)
 			{
-				QLineEdit * edit =
-					qobject_cast<QLineEdit*>(ui.columnTable->cellWidget(j, 0));
+				MyLineEdit * edit =
+					qobject_cast<MyLineEdit*>(ui.columnTable->cellWidget(j, 0));
 				bool b =
 					(edit->text().compare(cname, Qt::CaseInsensitive) != 0);
 				ok &= b;
@@ -325,6 +327,22 @@ void TableEditorDialog::setFirstLine()
 void TableEditorDialog::setDirty()
 {
 	m_dirty = true;
+}
+
+void TableEditorDialog::resizeEvent(QResizeEvent * event)
+{
+	resizeWanted = true;
+	QDialog::resizeEvent(event);
+}
+
+void TableEditorDialog::paintEvent(QPaintEvent * event)
+{
+	if (resizeWanted)
+	{
+		Utils::setColumnWidths(ui.columnTable);
+		resizeWanted = false;
+	}
+	QDialog::paintEvent(event);
 }
 
 void TableEditorDialog::tableNameChanged()

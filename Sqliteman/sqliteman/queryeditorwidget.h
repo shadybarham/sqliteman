@@ -45,6 +45,9 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 		QueryStringModel * selectModel;
 		QString m_rowid;
 		QStringList m_columnList;
+		bool resizeWanted;
+		void paintEvent(QPaintEvent * event);
+		void resizeEvent(QResizeEvent * event);
 
 		void resetModel();
 		QStringList getColumns();
