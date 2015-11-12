@@ -50,6 +50,7 @@ class SqlTableModel : public QSqlTableModel
 		static void detach(SqlTableModel * model);
 		// add a user
 		void attach() { m_useCount++; }
+		void fetchAll();
 
 		bool isDeleted(int row);
 		void initRecord(int row);
@@ -114,6 +115,7 @@ class SqlQueryModel : public QSqlQueryModel
 		static void detach(SqlQueryModel * model);
 		// add a user
 		void attach() { m_useCount++; }
+		void fetchAll();
 
 signals:
 		void rowCountChanged();

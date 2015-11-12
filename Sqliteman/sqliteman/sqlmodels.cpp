@@ -308,6 +308,17 @@ void SqlTableModel::detach (SqlTableModel * model)
 	if (--(model->m_useCount) == 0) { delete model ; }
 }
 
+void SqlTableModel::fetchAll()
+{
+	if (rowCount() > 0)
+	{
+		while (canFetchMore(QModelIndex()))
+		{
+			fetchMore();
+		}
+	}
+}
+
 bool SqlTableModel::select()
 {
 	bool result = QSqlTableModel::select();
@@ -454,3 +465,13 @@ void SqlQueryModel::detach (SqlQueryModel * model)
 	if (--(model->m_useCount) == 0) { delete model ; }
 }
 
+void SqlQueryModel::fetchAll()
+{
+	if (rowCount() > 0)
+	{
+		while (canFetchMore(QModelIndex()))
+		{
+			fetchMore();
+		}
+	}
+}

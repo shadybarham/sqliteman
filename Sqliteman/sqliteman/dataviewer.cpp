@@ -666,6 +666,8 @@ void DataViewer::openStandaloneWindow()
 	}
 
 	qm->attach();
+	qm->fetchAll();
+
 	w->setTableModel(qm);
 	w->ui.mainToolBar->hide();
 	w->ui.actionRipOut->setEnabled(false);

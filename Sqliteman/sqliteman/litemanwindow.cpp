@@ -8,8 +8,6 @@ for which a new license (GPL+exception) is in place.
 	FIXME ... appears to corrupt it too!
 	FIXME close model before opening a different database
 	FIXME not removing connection when detaching database
-	FIXME ... may cause problem with snapshots if we do
-	FIXME snapshot with canfetchmore leaves database locked
 */
 #include <QTreeWidget>
 #include <QTableView>
