@@ -18,6 +18,7 @@ class QTreeWidgetItem;
 class QTextEdit;
 class QIcon;
 class QPixmap;
+class QSqlError;
 class QSqlRecord;
 class QLineEdit;
 class QTableView;
@@ -70,6 +71,8 @@ void dump(QList<FieldInfo> fl);
 void dump(QSqlRecord & rec);
 void dump(QLineEdit & le);
 void dump(QLineEdit * le);
+void dump(QSqlError & e);
+void dump(QSqlError * e);
 };
 
 #endif

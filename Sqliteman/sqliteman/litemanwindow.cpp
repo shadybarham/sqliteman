@@ -4,6 +4,12 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
+	FIXME clicking on table of database attached by sql doesn't open it
+	FIXME ... appears to corrupt it too!
+	FIXME close model before opening a different database
+	FIXME not removing connection when detaching database
+	FIXME ... may cause problem with snapshots if we do
+	FIXME snapshot with canfetchmore leaves database locked
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -605,12 +611,12 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	   select statement should perform a real "is it a database" check
 	   for us. */
 	QSqlQuery q("select 1 from sqlite_master where 1=2", db);
-	if (!q.exec())
+	if (q.lastError().isValid())
 	{
 		dataViewer->setStatusText(tr("Cannot access ")
 								  + QFileInfo(fileName).fileName()
 								  + ":<br/><span style=\" color:#ff0000;\">"
-								  + db.lastError().text()
+								  + q.lastError().text()
 								  + "<br/></span>"
 								  + tr("It is probably not a database."));
 		db.close();

@@ -43,6 +43,8 @@ DataViewer::DataViewer(QWidget * parent)
 	ui.setupUi(this);
 	canFetchMore= tr("(More rows can be fetched. "
 		"Scroll the resultset for more rows and/or read the documentation.)");
+	// force the status window to have a document
+	ui.statusText->setDocument(new QTextDocument());
 
 #ifdef Q_WS_MAC
     ui.mainToolBar->setIconSize(QSize(16, 16));
@@ -139,6 +141,7 @@ DataViewer::~DataViewer()
 	    settings.setValue("dataviewer/width", QVariant(width()));
 	}
 	freeResources( ui.tableView->model()); // avoid memory leak of model
+	delete ui.statusText->document();
 }
 
 void DataViewer::setNotPending()

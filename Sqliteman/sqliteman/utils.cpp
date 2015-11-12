@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include <QItemSelection>
 #include <QLineEdit>
 #include <QPixmapCache>
+#include <QSqlError>
 #include <QSqlRecord>
 #include <QTableView>
 #include <QTextEdit>
@@ -412,4 +413,14 @@ void Utils::dump(QLineEdit & le)
 void Utils::dump(QLineEdit * le)
 {
 	le ? dump(*le) : qDebug("Null QLineEdit");
+}
+
+void Utils::dump(QSqlError & e)
+{
+	dump(e.text());
+}
+
+void Utils::dump(QSqlError * e)
+{
+	e ? dump(*e) : qDebug("Null QSqlError");
 }
