@@ -432,7 +432,8 @@ void SqlParser::destroyExpression(Expression * e)
 
 // removes some tokens from its argument
 // we don't take account of precedence, since we won't try to evaluate it
-Expression * SqlParser::parseExpression(QList<Token> & tokens)
+
+Expression * SqlParser::parseExpression(QList<Token> & tokens, QStringList ends)
 {
 	Expression * expr = new Expression;
 	expr->left = 0;
@@ -448,7 +449,7 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 				{
 					expr->type = exprOpX;
 					expr->terminal = tokens.takeFirst();
-					expr->right = parseExpression(tokens);
+					expr->right = parseExpression(tokens, ends);
 					if (expr->right == 0)
 					{
 						destroyExpression(expr);
@@ -469,7 +470,7 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 						expr->type = exprExpr;
 						++m_depth;
 						tokens.removeFirst();
-						expr->left = parseExpression(tokens);
+						expr->left = parseExpression(tokens, ends);
 						if (expr->left == 0)
 						{
 							// empty expression
@@ -514,7 +515,7 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 						++m_depth;
 						e->left = expr;
 						tokens.removeFirst();
-						e->right = parseExpression(tokens);
+						e->right = parseExpression(tokens, ends);
 						if (e->right == 0)
 						{
 							destroyExpression(expr);
@@ -539,7 +540,7 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 					e->type = exprXOpX;
 					e->left = expr;
 					e->terminal = tokens.takeFirst();
-					e->right = parseExpression(tokens);
+					e->right = parseExpression(tokens, ends);
 					if (e->right == 0)
 					{
 						destroyExpression(expr);
@@ -569,7 +570,7 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 						e->left = expr;
 						e->terminal = tokens.takeFirst();
 						e->terminal.type = tokenOperator;
-						e->right = parseExpression(tokens);
+						e->right = parseExpression(tokens, ends);
 						if (e->right == 0)
 						{
 							destroyExpression(e);
@@ -581,6 +582,13 @@ Expression * SqlParser::parseExpression(QList<Token> & tokens)
 					{
 						return expr;
 					}
+				}
+				else if (   (m_depth == 0)
+					     && (tokens.at(0).type == tokenIdentifier)
+						 && (ends.contains(s, Qt::CaseInsensitive)))
+				{
+					// expr terminated by reserved word
+					return expr;
 				}
 				destroyExpression(expr);
 				return 0; // expression followed by non-operator
@@ -2196,7 +2204,7 @@ SqlParser::SqlParser(QString input)
 				continue;
 			case 87: // look for indexed column
 			{
-				Expression * expr = parseExpression(tokens);
+				Expression * expr = parseExpression(tokens, QStringList());
 				if (   (expr == 0)
 					|| (tokens.at(0).type != tokenSingle))
 				{ break ; } // not a valid create statement
@@ -2222,7 +2230,7 @@ SqlParser::SqlParser(QString input)
 				continue;
 			case 89: // look for expression
 				m_isValid = false;
-				m_whereClause = parseExpression(tokens);
+				m_whereClause = parseExpression(tokens, QStringList());
 				if (m_whereClause != 0)
 				{
 					m_isValid = true;

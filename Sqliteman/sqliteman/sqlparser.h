@@ -89,7 +89,7 @@ class SqlParser
 		void clearField(FieldInfo &f);
 		void addToPrimaryKey(QString s);
 		void destroyExpression(Expression * e);
-		Expression * parseExpression(QList<Token> & tokens);
+		Expression * parseExpression(QList<Token> & tokens, QStringList ends);
 		// replacing column names, returns false if any deleted
 		bool replaceToken(QMap<QString,QString> map, Expression * expr);
 		bool replace(QMap<QString,QString> map,
