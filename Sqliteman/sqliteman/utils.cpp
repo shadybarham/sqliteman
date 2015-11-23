@@ -83,6 +83,11 @@ QString Utils::quote(QString s)
 	return "\"" + s.replace("\"", "\"\"") + "\"";
 }
 
+QString Utils::backQuote(QString s)
+{
+	return "`" + s.replace("`", "``") + "`";
+}
+
 QString Utils::quote(QStringList l)
 {
 	for (int i = 0; i < l.count(); ++i)
@@ -92,11 +97,21 @@ QString Utils::quote(QStringList l)
 	return "\"" + l.join("\", \"") + "\"";
 }
 
+QString Utils::backQuote(QStringList l)
+{
+	for (int i = 0; i < l.count(); ++i)
+	{
+		l.replace(i, l[i].replace("`", "``"));
+	}
+	return "`" + l.join("`, `") + "`";
+}
+
 QString Utils::literal(QString s)
 {
 	return "'" + s.replace("'", "''") + "'";
 }
 
+//FIXME check where this is used
 QString Utils::unQuote(QString s)
 {
 	if (s.startsWith("'")) {
@@ -376,23 +391,6 @@ QString Utils::variantToString(QVariant x)
 	}
 }
 void Utils::dump(QVariant x) { dump(variantToString(x)); }
-void Utils::dump(FieldInfo f)
-{
-	QString s("name ");
-	s.append(f.name);
-	if (!f.type.isEmpty()) { s.append(", type "); s.append(f.type); }
-	if (!f.defaultValue.isEmpty())
-		{ s.append(", default "); s.append(f.defaultValue); }
-	if (f.isPartOfPrimaryKey) { s.append(", PRIMARY KEY"); }
-	if (f.isAutoIncrement) { s.append(", AUTOINCREMENT"); }
-	if (f.isNotNull) { s.append(", NOT NULL"); }
-	dump(s);
-}
-void Utils::dump(QList<FieldInfo> fl)
-{
-	if (fl.count() == 0) { qDebug("Empty QList<FieldInfo>"); }
-	else { foreach (FieldInfo f, fl) { dump(f); } }
-}
 void Utils::dump(QSqlRecord & rec)
 {
 	QStringList sl;
@@ -414,13 +412,64 @@ void Utils::dump(QLineEdit * le)
 {
 	le ? dump(*le) : qDebug("Null QLineEdit");
 }
-
 void Utils::dump(QSqlError & e)
 {
 	dump(e.text());
 }
-
 void Utils::dump(QSqlError * e)
 {
 	e ? dump(*e) : qDebug("Null QSqlError");
+}
+void Utils::dump(Token & t)
+{
+	dump(SqlParser::toString(t));
+}
+void Utils::dump(QList<Token> tl)
+{
+	foreach (Token t, tl) { dump(t); }
+}
+void Utils::dump(Expression * e)
+{
+	dump(SqlParser::toString(e));
+}
+void Utils::dump(FieldInfo f)
+{
+	QString s("name ");
+	s.append(f.name);
+	if (!f.type.isEmpty()) { s.append(", type "); s.append(f.type); }
+	if (!f.defaultValue.isEmpty())
+		{ s.append(", default "); s.append(f.defaultValue); }
+	if (f.isPartOfPrimaryKey) { s.append(", PRIMARY KEY"); }
+	if (f.isAutoIncrement) { s.append(", AUTOINCREMENT"); }
+	if (f.isNotNull) { s.append(", NOT NULL"); }
+	dump(s);
+}
+void Utils::dump(QList<FieldInfo> fl)
+{
+	if (fl.count() == 0) { qDebug("Empty QList<FieldInfo>"); }
+	else { foreach (FieldInfo f, fl) { dump(f); } }
+}
+void Utils::dump(SqlParser & p)
+{
+	dump(p.toString());
+}
+void Utils::dump(SqlParser * pp)
+{
+	pp ? dump(*pp) : qDebug("Null SqlParser");
+}
+void Utils::dump(QList<SqlParser> pl)
+{
+	if (pl.count() == 0) { qDebug("Empty QList<SqlParser>"); }
+	else { foreach (SqlParser p, pl) { dump(p); } }
+}
+void Utils::dump(QMap<QString,QString> map)
+{
+	if (map.count() == 0) { qDebug("Empty QMap"); }
+	else
+	{
+		foreach (QString s, map.keys())
+		{
+			dump(s + " -> " + map.value(s));
+		}
+	}
 }

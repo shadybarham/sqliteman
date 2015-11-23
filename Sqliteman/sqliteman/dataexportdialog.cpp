@@ -36,8 +36,9 @@ DataExportDialog::DataExportDialog(DataViewer * parent, const QString & tableNam
 {
 	Preferences * prefs = Preferences::instance();
 
-	m_data = parent->tableData();
-	m_table = qobject_cast<SqlTableModel *>(m_data);
+	QAbstractItemModel * data = parent->tableData();
+	m_data = qobject_cast<SqlQueryModel *>(data);
+	m_table = qobject_cast<SqlTableModel *>(data);
 	m_header = parent->tableHeader();
 	cancelled = false;
 

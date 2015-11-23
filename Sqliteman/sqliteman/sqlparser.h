@@ -14,20 +14,47 @@ schema is known to be valid, we do not always detect bad syntax.
 #define SQLPARSER_H
 
 enum tokenType {
+	tokenNone,
 	tokenIdentifier,
 	tokenQuotedIdentifier,
+	tokenSquareIdentifier,
+	tokenBackQuotedIdentifier,
 	tokenStringLiteral,
 	tokenBlobLiteral,
 	tokenNumeric,
 	tokenOperator,
+	tokenPostfix,
 	tokenSingle
 };
+
+enum itemType {
+	createTable,
+	createIndex
+};
+
+// To simplify our parsing, we treat commas and some keywords as operators.
+enum exprType {
+	exprToken, // a single operand
+	exprOpX, // unary-prefix-operator expression
+	exprXOpX, // expression binary-operator expression
+	exprXOp, // expression unary-postfix-operator
+	exprCall, // fname (expression)
+	exprExpr // ( expression )
+};
+
 typedef struct
 {
 	QString name;
 	enum tokenType type;
+	bool isColName;
 } Token;
 
+typedef struct Expression {
+	enum exprType type;
+	struct Expression * left;
+	Token terminal;
+	struct Expression * right;
+} Expression;
 
 typedef struct
 {
@@ -41,58 +68,41 @@ typedef struct
 	bool isNotNull;
 } FieldInfo;
 
-/* When scanning for indexed-column items in a CREATE INDEX:-
- * name is a column name and fails if there is no such column
- * 'name' is a column name and fails if there is no such column
- * "name" is a column name if there is such a column, otherwise an expression
- * `name` is a column name and fails if there is no such column
- * [name] is a column name and fails if there is no such column
- * (name) is a column name and fails if there is no such column
- * 1 is a column name and fails if there is no such column
- * '1' is a column name and fails if there is no such column
- * "1" is a column name if there is such a column, otherwise an expression
- * `1` is a column name and fails if there is no such column
- * [1] is a column name and fails if there is no such column
- * (1) is an expression
- * When scanning a WHERE expression in a CREATE INDEX:-
- * name is a column name and fails if there is no such column
- * 'name' is a column name if there is such a column, otherwise an expression
- * "name" is a column name if there is such a column, otherwise an expression
- * `name` is a column name and fails if there is no such column
- * [name] is a column name and fails if there is no such column
- * (tested on sqlite 3.9.1)
- */
-typedef struct
-{
-	QString name;
-	QList<Token> expression;
-} IndexedColumn;
-
-typedef struct
-{
-	bool isUnique;
-	QString name;
-	QString tableName;
-	
-} IndexInfo;
-
 class SqlParser
 {
 	public:
-		bool m_isValid; // false -> couldn't parse CREATE statemnet
-		QString m_database;
-		QString m_name;
-		bool m_hasRowid; // false -> WITHOUT ROWID (or a view)
-		bool m_isTable; // false -> is a view
-		QList<FieldInfo> m_fields;
-	
-		SqlParser(QString input);
-		static QString defaultToken(FieldInfo &f);
+		bool m_isValid; // false -> couldn't parse CREATE statement
+		enum itemType m_type;
+		bool m_isUnique; // UNIQUE (index only)
+		bool m_hasRowid; // true -> not WITHOUT ROWID (or not a table)
+		QString m_indexName;
+		QString m_tableName;
+		QList<FieldInfo> m_fields;  // table only
+		QList<Expression *> m_columns; // index only
+		Expression * m_whereClause; // index only
 
 	private:
+		QStringList operators;
+		QStringList posts;
+		int m_depth;
 		QList<Token> tokenise(QString input);
 		void clearField(FieldInfo &f);
 		void addToPrimaryKey(QString s);
+		void destroyExpression(Expression * e);
+		Expression * parseExpression(QList<Token> & tokens);
+		// replacing column names, returns false if any deleted
+		bool replaceToken(QMap<QString,QString> map, Expression * expr);
+		bool replace(QMap<QString,QString> map,
+					 Expression * expr, bool inside = false);
+
+	public:
+		SqlParser(QString input);
+		~SqlParser();
+		static QString defaultToken(FieldInfo &f);
+		bool replace(QMap<QString,QString> map, QString newTableName);
+		static QString toString(Token t);
+		static QString toString(Expression * expr);
+		QString toString();
 };
 
 #endif // SQLPARSER_H

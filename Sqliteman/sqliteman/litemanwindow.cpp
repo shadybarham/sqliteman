@@ -6,8 +6,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
 	FIXME clicking on table of database attached by sql doesn't open it
 	FIXME ... appears to corrupt it too!
-	FIXME close model before opening a different database
-	FIXME not removing connection when detaching database
+	FIXME why do we do both both ATTACH DATABASE (same connection) and addDatabase (different connection)
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -582,16 +581,29 @@ void LiteManWindow::openDatabase(const QString & fileName)
 	
 	bool isOpened = false;
 
-	QSqlDatabase db = QSqlDatabase::database(SESSION_NAME);
-	if (db.isValid())
+	/* This messy bit of logic is necessary to ensure that db has gone out of
+	 * scope by the time removeDatabase() gets called, otherwise it thinks that
+	 * there is an outstanding reference and prints a warning message.
+	 */
+	bool isValid = false;
 	{
-		db.close();
-		QSqlDatabase::removeDatabase(SESSION_NAME);
+		QSqlDatabase old = QSqlDatabase::database(SESSION_NAME);
+		if (old.isValid())
+		{
+			isValid = true;
+			removeRef("temp");
+			removeRef("main");
+			old.close();
+		}
 	}
+	if (isValid) { QSqlDatabase::removeDatabase(SESSION_NAME); }
+
 #ifdef INTERNAL_SQLDRIVER
-	db = QSqlDatabase::addDatabase(new QSQLiteDriver(this), SESSION_NAME);
+	QSqlDatabase db =
+		QSqlDatabase::addDatabase(new QSQLiteDriver(this), SESSION_NAME);
 #else
-	db = QSqlDatabase::addDatabase("QSQLITE", SESSION_NAME);
+	QSqlDatabase db =
+		QSqlDatabase::addDatabase("QSQLITE", SESSION_NAME);
 #endif
 
 	db.setDatabaseName(fileName);
@@ -688,6 +700,16 @@ void LiteManWindow::openDatabase(const QString & fileName)
 			+ ":<br/><span style=\" color:#ff0000;\">"
 			+ sqlite3_errstr(n)
 			+ "<br/></span>");
+	}
+}
+
+void LiteManWindow::removeRef(const QString & dbname)
+{
+	SqlTableModel * m = qobject_cast<SqlTableModel *>(dataViewer->tableData());
+	if (m && dbname.compare(m->schema()))
+	{
+		dataViewer->setTableModel(new QSqlQueryModel(), false);
+		m_activeItem = 0;
 	}
 }
 
@@ -831,8 +853,8 @@ void LiteManWindow::execSql(QString query)
 	dataViewer->setStatusText("");
 	if (!checkForPending()) { return; }
 
-	dataViewer->freeResources(dataViewer->tableData());
 	m_activeItem = 0;
+
 	sqlEditor->setStatusMessage();
 
 	QTime time;
@@ -1538,6 +1560,7 @@ void LiteManWindow::detachDatabase()
 {
 	dataViewer->removeErrorMessage();
 	QString dbname(schemaBrowser->tableTree->currentItem()->text(0));
+	removeRef(dbname);
 	QString sql = QString("DETACH DATABASE ")
 				  + Utils::quote(dbname)
 				  + ";";
@@ -1558,6 +1581,7 @@ void LiteManWindow::detachDatabase()
 		QSqlDatabase::database(attachedDb[dbname]).rollback();
 		QSqlDatabase::database(attachedDb[dbname]).close();
 		attachedDb.remove(dbname);
+		// this removes the item from the tree as well as deleting it
 		delete schemaBrowser->tableTree->currentItem();
 		queryEditor->treeChanged();
 	}

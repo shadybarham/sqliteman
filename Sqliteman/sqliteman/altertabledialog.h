@@ -71,8 +71,9 @@ class AlterTableDialog : public TableEditorDialog
 		bool checkColumn(int i, QString cname,
 						 QString ctype, QString cextra);
 
-		//! \brief Returns a list of DDL statements to recreate reqired obejcts after all.
+		//! \brief Returns a list of DDL statements to recreate required obejcts after all.
 		QStringList originalSource(QString tableName);
+		QList<SqlParser *> originalIndexes(QString tableName);
 
 		// true if altering currently active table
 		bool m_alteringActive;
@@ -91,6 +92,7 @@ class AlterTableDialog : public TableEditorDialog
 		void cellClicked(int, int);
 
 		void alterButton_clicked();
+		void dropItemChanged(int);
 
 		//! \brief Setup the Alter button if there is something changed
 		void checkChanges();

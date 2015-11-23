@@ -42,8 +42,16 @@ bool updateTables(const QString & sql);
 //! \brief Quote identifier for generated SQL statement
 QString quote(QString s);
 
+/*! \brief BackQuote identifier for generated SQL statement - needed because in
+		   some contexts quoted identifiers are treated as string literals if
+		   they don't match a column name. */
+QString backQuote(QString s);
+
 //! \brief Quote list of identifiers for generated SQL statement
 QString quote(QStringList l);
+
+//! \brief BackQuote list of identifiers for generated SQL statement
+QString backQuote(QStringList l);
 
 QString literal(QString s);
 
@@ -66,13 +74,20 @@ void dump(QTextEdit & te);
 void dump(QTextEdit * te);
 QString variantToString(QVariant x);
 void dump(QVariant x);
-void dump(FieldInfo f);
-void dump(QList<FieldInfo> fl);
 void dump(QSqlRecord & rec);
 void dump(QLineEdit & le);
 void dump(QLineEdit * le);
 void dump(QSqlError & e);
 void dump(QSqlError * e);
+void dump(Token & t);
+void dump(QList<Token> tl);
+void dump(Expression * e);
+void dump(FieldInfo f);
+void dump(QList<FieldInfo> fl);
+void dump(SqlParser & p);
+void dump(SqlParser * pp);
+void dump(QList<SqlParser> pl);
+void dump(QMap<QString,QString> map);
 };
 
 #endif

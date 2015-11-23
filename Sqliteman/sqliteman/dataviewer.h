@@ -44,7 +44,7 @@ class DataViewer : public QMainWindow
 		//! \brief Show/hide status widget
 		void showStatusText(bool show);
 
-		QSqlQueryModel* tableData();
+		QAbstractItemModel * tableData();
 		QStringList tableHeader();
 
 		QByteArray saveSplitter() { return ui.splitter->saveState(); };

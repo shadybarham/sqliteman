@@ -58,7 +58,7 @@ DbAttach Database::getDatabases()
 	return ret;
 }
 
-SqlParser Database::parseTable(const QString & table, const QString & schema)
+SqlParser * Database::parseTable(const QString & table, const QString & schema)
 {
 	// Build a query string to SELECT the CREATE statement from sqlite_master
 	QString createSQL = QString("SELECT sql FROM ")
@@ -82,7 +82,7 @@ SqlParser Database::parseTable(const QString & table, const QString & schema)
 	QString createStatement = createQuery.value(0).toString();
 
 	// Parse the CREATE statement
-	SqlParser parsed(createStatement);
+	SqlParser * parsed = new SqlParser(createStatement);
 #if 0 // this code only used for testing new parser
 	qDebug("Parsing %s:", createStatement.toUtf8().data());
 	qDebug("  m_isValid = %s", parsed.m_isValid ? "true" : "false");
@@ -114,7 +114,10 @@ SqlParser Database::parseTable(const QString & table, const QString & schema)
 
 QList<FieldInfo> Database::tableFields(const QString & table, const QString & schema)
 {
-	return parseTable(table, schema).m_fields;
+	SqlParser * parser = parseTable(table, schema);
+	QList<FieldInfo> result = parser->m_fields;
+	delete parser;
+	return result;
 }
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {

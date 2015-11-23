@@ -123,10 +123,11 @@ class Database
 		@brief Returns parsed info for a table
 		@param table The table to retreive the fields from
 		\param schema a name of the DB schema
-		@return an SqlParser
+		@return a pointer to a new SqlParser: the caller is responsible for
+		destroying it
 		*/
-		static SqlParser parseTable(const QString & table,
-									const QString & schema);
+		static SqlParser * parseTable(const QString & table,
+									  const QString & schema);
 
 		//! \brief Returns the list of columns in given index
 		static QStringList indexFields(const QString & index, const QString &schema);

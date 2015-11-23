@@ -522,9 +522,9 @@ void DataViewer::exportData()
 	delete dia;
 }
 
-QSqlQueryModel* DataViewer::tableData()
+QAbstractItemModel * DataViewer::tableData()
 {
-	return qobject_cast<QSqlQueryModel *>(ui.tableView->model());
+	return ui.tableView->model();
 }
 
 QStringList DataViewer::tableHeader()

@@ -5,7 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME allow reordering columns
 	FIXME loses some constraints
-	mulptiple primary key are not allowed
+	multiple primary key are not allowed
 	multiple not null are allowed
 	multiple unique are allowed if any on conflict clauses are the same
 	multiple different checks are allowed
@@ -21,6 +21,8 @@ for which a new license (GPL+exception) is in place.
 
 #include "altertabledialog.h"
 #include "litemanwindow.h"
+#include "mylineedit.h"
+#include "sqlparser.h"
 #include "utils.h"
 
 
@@ -86,22 +88,23 @@ void AlterTableDialog::resetStructure()
 	}
 
 	// Initialize fields
-	SqlParser parsed = Database::parseTable(m_item->text(0), m_item->text(1));
-	m_fields = parsed.m_fields;
+	SqlParser * parsed = Database::parseTable(m_item->text(0), m_item->text(1));
+	m_fields = parsed->m_fields;
 	ui.columnTable->clearContents();
 	ui.columnTable->setRowCount(0);
 	for (int i = 0; i < m_fields.size(); i++)
 	{
+		QString name(m_fields[i].name);
 		int x = m_fields[i].isAutoIncrement ? 3
 				: ( m_fields[i].isPartOfPrimaryKey ? 2
 					: (m_fields[i].isNotNull ? 1 : 0));
 
-		TableEditorDialog::addField(m_fields[i].name, m_fields[i].type, x,
+		TableEditorDialog::addField(name, m_fields[i].type, x,
 									SqlParser::defaultToken(m_fields[i]));
 
 		QTableWidgetItem * ixItem = new QTableWidgetItem();
 		ixItem->setFlags(Qt::NoItemFlags);
-		if (columnIndexMap.contains(m_fields[i].name))
+		if (columnIndexMap.contains(name))
 		{
 			ixItem->setIcon(Utils::getIcon("index.png"));
 			ixItem->setText(tr("Yes"));
@@ -110,14 +113,15 @@ void AlterTableDialog::resetStructure()
 		ui.columnTable->setItem(i, 4, ixItem);
 
 		QCheckBox * dropItem = new QCheckBox(this);
-		connect(dropItem, SIGNAL(stateChanged(int)),
-				this, SLOT(checkChanges()));
+		connect(dropItem, SIGNAL(stateChanged(int)), //FIXME display message
+				this, SLOT(dropItemChanged(int)));
 		ui.columnTable->setCellWidget(i, 5, dropItem);
 	}
 
 	m_keptColumns.clear();
-	m_hadRowid = parsed.m_hasRowid;
+	m_hadRowid = parsed->m_hasRowid;
 	ui.withoutRowid->setChecked(!m_hadRowid);
+	delete parsed;
 
 	checkChanges();
 }
@@ -158,8 +162,34 @@ QStringList AlterTableDialog::originalSource(QString tableName)
 {
 	QString ixsql = QString("select sql from ")
 					+ Database::getMaster(m_item->text(1))
-					+ " where type in ('index', 'trigger') "
-					+ "and tbl_name = "
+					+ " where type = 'trigger' and tbl_name = "
+					+ Utils::quote(tableName)
+					+ ";";
+	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
+
+	if (query.lastError().isValid())
+	{
+		QString errtext = tr("Cannot get trigger list for ")
+						  + m_item->text(0)
+						  + ":<br/><span style=\" color:#ff0000;\">"
+						  + query.lastError().text()
+						  + "<br/></span>" + tr("using sql statement:")
+						  + "<br/><tt>" + ixsql;
+		resultAppend(errtext);
+		return QStringList();
+	}
+	QStringList ret;
+	while (query.next())
+		{ ret.append(query.value(0).toString()); }
+	return ret;
+}
+
+QList<SqlParser *> AlterTableDialog::originalIndexes(QString tableName)
+{
+	QList<SqlParser *> ret;
+	QString ixsql = QString("select sql from ")
+					+ Database::getMaster(m_item->text(1))
+					+ " where type = 'index' and tbl_name = "
 					+ Utils::quote(tableName)
 					+ ";";
 	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
@@ -173,11 +203,14 @@ QStringList AlterTableDialog::originalSource(QString tableName)
 						  + "<br/></span>" + tr("using sql statement:")
 						  + "<br/><tt>" + ixsql;
 		resultAppend(errtext);
-		return QStringList();
 	}
-	QStringList ret;
-	while (query.next())
-		{ ret.append(query.value(0).toString()); }
+	else
+	{
+		while (query.next())
+		{
+			ret.append(new SqlParser(query.value(0).toString()));
+		}
+	}
 	return ret;
 }
 
@@ -295,6 +328,7 @@ void AlterTableDialog::alterButton_clicked()
         Database::tableFields(oldTableName, m_item->text(1));
 	// indexes and triggers on the original table
 	QStringList originalSrc = originalSource(oldTableName);
+	QList<SqlParser *> originalIx(originalIndexes(oldTableName));
 
 	m_keptColumns.clear();
 	QString message(tr("Cannot create table ") + newTableName);
@@ -310,6 +344,7 @@ void AlterTableDialog::alterButton_clicked()
 	}
 
 	// insert old data
+	QMap<QString,QString> columnMap; // old => new
 	if (m_keptColumns.count() > 0)
 	{
 		QString insert(QString("INSERT INTO %1.%2 (")
@@ -318,18 +353,26 @@ void AlterTableDialog::alterButton_clicked()
 
 	    QString select(" ) SELECT ");
 		bool first = true;
-		foreach (int i, m_keptColumns)
+		for (int i = 0; i < oldColumns.count(); ++i)
 		{
-			if (first) { first = false; }
+			if (m_keptColumns.contains(i))
+			{
+				if (first) { first = false; }
+				else
+				{
+					insert += ", ";
+					select += ", ";
+				}
+				QLineEdit * nameItem =
+					qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
+				insert += Utils::quote(nameItem->text());
+		        select += Utils::quote(oldColumns[i].name);
+				columnMap.insert(oldColumns[i].name, nameItem->text());
+			}
 			else
 			{
-				insert += ", ";
-				select += ", ";
+				columnMap.insert(oldColumns[i].name, QString());
 			}
-			QLineEdit * nameItem =
-				qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
-			insert += Utils::quote(nameItem->text());
-	        select += Utils::quote(oldColumns[i].name);
 		}
 		select += " FROM "
 				  + Utils::quote(m_item->text(1))
@@ -372,7 +415,19 @@ void AlterTableDialog::alterButton_clicked()
 	foreach (QString restoreSql, originalSrc)
 	{
 		// continue after failure here
-		(void)execSql(restoreSql, tr("Cannot recreate original index/trigger"));
+		(void)execSql(restoreSql, tr("Cannot recreate original trigger"));
+	}
+	
+	while (!originalIx.isEmpty())
+	{
+		SqlParser * parser = originalIx.takeFirst();
+		if (parser->replace(columnMap, ui.nameEdit->text()))
+		{
+			// continue after failure here
+			(void)execSql(parser->toString(),
+						  tr("Cannot recreate index ") + parser->m_indexName);
+		}
+		delete parser;
 	}
 
 	if (!execSql("RELEASE ALTER_TABLE;", tr("Cannot release savepoint")))
@@ -386,6 +441,36 @@ void AlterTableDialog::alterButton_clicked()
 	m_item->setText(0, newTableName);
 	resetStructure();
 	resultAppend(tr("Alter Table Done"));
+}
+
+void AlterTableDialog::dropItemChanged(int newState)
+{
+	QCheckBox * box = qobject_cast<QCheckBox *>(sender());
+	if (box && (newState == Qt::Checked))
+	{
+		for (int i = 0; i < m_fields.size(); i++)
+		{
+			if (ui.columnTable->cellWidget(i, 5) == box)
+			{
+				if (ui.columnTable->item(i, 4)->text().compare(tr("Yes")) == 0)
+				{
+					MyLineEdit * edit = qobject_cast<MyLineEdit*>(
+						ui.columnTable->cellWidget(i, 0));
+					int ret = QMessageBox::question(this, "Sqliteman",
+						tr("Column ") + edit->text()
+						+ tr(" is indexed:\ndropping it will delete the index\n"
+							 "Are you sure you want to drop it?\n\n"
+							 "Yes to drop it anyway, Cancel to keep it."),
+						QMessageBox::Yes, QMessageBox::Cancel);
+					if (ret == QMessageBox::Cancel)
+					{
+						box->setCheckState(Qt::Unchecked);
+					}
+				}
+			}
+		}
+	}
+	checkChanges();
 }
 
 void AlterTableDialog::addField()

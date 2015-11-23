@@ -86,6 +86,7 @@ class LiteManWindow : public QMainWindow
 		\param fileName a string prepared by newDB(), open(), and openRecent()
 		*/
 		void openDatabase(const QString & fileName);
+		void removeRef(const QString & dbname);
 
 #ifdef ENABLE_EXTENSIONS
 		//! \brief Setup loading extensions actions and environment depending on prefs.
