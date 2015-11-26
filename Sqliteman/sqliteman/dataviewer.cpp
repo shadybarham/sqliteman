@@ -7,6 +7,9 @@ for which a new license (GPL+exception) is in place.
 	FIXME handle things better when not in autocommit mode
 	FIXME use explicit string NULL
 	FIXME messy column widths
+	FIXME moving mouse out of window loses edits
+	FIXME deleting last reord leaves blank after committing
+	FIXME deleting duplicate record removes both from display
 */
 
 #include <QMessageBox>
@@ -465,7 +468,7 @@ void DataViewer::copyRow()
 			 * such that if we do so, we get a reference to the same record
 			 * rather than a new different one.
 			 */
-            if (model->insertRecord(-1, rec))
+			if (model->insertRecord(-1, rec))
 			{
 				ui.tableView->selectRow(model->rowCount() - 1);
 				updateButtons();
@@ -488,8 +491,8 @@ void DataViewer::removeRow()
 	if (model)
 	{
 		int row = ui.tableView->currentIndex().row();
-		model->removeRows(row, 1);
 		ui.tableView->hideRow(row);
+		model->removeRows(row, 1);
 		if (ui.tabWidget->currentIndex() == 1)
 		{
 			if (ui.itemView->rowDeleted())
