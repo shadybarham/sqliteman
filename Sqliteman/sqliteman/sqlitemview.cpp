@@ -100,45 +100,53 @@ void SqlItemView::updateButtons(int row)
 
 void SqlItemView::setCurrentIndex(int row, int column)
 {
-	m_column = column;
 	m_row = row;
-	if ((row >= 0) && (column >= 0))
+	if ((row >= 0) && (column >= 0) && !m_changing)
 	{
 		m_changing = true;
 		bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
-		for (int i = 0; i < m_count; ++i)
+		for (m_column = 0; m_column < m_count; ++m_column)
 		{
-			QWidget * w = m_gridLayout->itemAtPosition(i, 1)->widget();
+			QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
 			QTextEdit * te = qobject_cast<QTextEdit *>(w);
 			if (te)
 			{
 				QColor color =
-					m_model->data(m_model->index(row, i),
+					m_model->data(m_model->index(row, m_column),
 								  Qt::BackgroundColorRole).value<QColor>();
 				QPalette p(te->palette());
 				p.setColor(QPalette::Active, QPalette::Base, color);
 				p.setColor(QPalette::Inactive, QPalette::Base, color);
 				te->setPalette(p);
 				QVariant rawdata = m_model->data(
-					m_model->index(row, i), Qt::EditRole);
+					m_model->index(row, m_column), Qt::EditRole);
 				if (rawdata.type() == QVariant::ByteArray)
 				{
 					te->setText(m_model->data(
-						m_model->index(row, i), Qt::DisplayRole).toString());
+						m_model->index(row, m_column), Qt::DisplayRole).toString());
 					te->setReadOnly(true);
 				}
 				else
 				{
 					te->setReadOnly(!writeable);
-					Qt::ItemDataRole role = (writeable && (i == column)) ?
-						Qt::EditRole : Qt::DisplayRole;
+					Qt::ItemDataRole role;
+					if (writeable && (m_column == column))
+					{
+						role = Qt::EditRole;
+						te->setFocus();
+					}
+					else
+					{
+						role = Qt::DisplayRole;
+					}
 					te->setText(m_model->data(
-						m_model->index(row, i), role).toString());
+						m_model->index(row, m_column), role).toString());
 				}
 			}
 		}
 		m_changing = false;
 	}
+	m_column = column;
 	updateButtons(row);
 }
 

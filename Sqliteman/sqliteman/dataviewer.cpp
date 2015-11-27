@@ -8,8 +8,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME use explicit string NULL
 	FIXME messy column widths
 	FIXME moving mouse out of window loses edits
-	FIXME deleting last reord leaves blank after committing
-	FIXME deleting duplicate record removes both from display
+	FIXME deleting last record leaves blank after committing
 */
 
 #include <QMessageBox>
@@ -307,6 +306,10 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 			SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
 			this,
 			SLOT(tableView_selectionChanged(const QItemSelection &, const QItemSelection &)));
+	connect(ui.tableView->selectionModel(),
+			SIGNAL(currentChanged(const QModelIndex &, const QModelIndex & )),
+			this,
+			SLOT(tableView_currentChanged(const QModelIndex &, const QModelIndex & )));
 	SqlTableModel * stm = qobject_cast<SqlTableModel*>(model);
 	if (stm)
 	{
@@ -459,7 +462,8 @@ void DataViewer::copyRow()
 	    qobject_cast<SqlTableModel *>(ui.tableView->model());
     if (model)
     {
-        int row = ui.tableView->currentIndex().row();
+		QModelIndex index = ui.tableView->currentIndex();
+        int row = index.row();
         if (row >= 0)
         {
             QSqlRecord rec(model->record(row));
@@ -470,13 +474,16 @@ void DataViewer::copyRow()
 			 */
 			if (model->insertRecord(-1, rec))
 			{
-				ui.tableView->selectRow(model->rowCount() - 1);
+				QModelIndex newIndex = ui.tableView->model()->index(
+					model->rowCount() - 1, index.column());
+				ui.tableView->setCurrentIndex(newIndex);
 				updateButtons();
 				if (ui.tabWidget->currentIndex() == 1)
 				{
 					ui.itemView->setCurrentIndex(
 						ui.tableView->currentIndex().row(),
 						ui.tableView->currentIndex().column());
+					ui.itemView->textChanged();
 				}
 			}
         }
@@ -696,8 +703,8 @@ void DataViewer::handleBlobPreview(bool state)
 	}
 }
 
-void DataViewer::tableView_selectionChanged(const QItemSelection &,
-											const QItemSelection &)
+void DataViewer::tableView_selectionChanged(const QItemSelection & current,
+											const QItemSelection & previous)
 {
 	removeErrorMessage();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
@@ -708,6 +715,7 @@ void DataViewer::tableView_selectionChanged(const QItemSelection &,
 
 	updateButtons();
 	QModelIndex index = ui.tableView->currentIndex();
+	
 	if (ui.blobPreviewBox->isVisible())
 	{
 		if (index.isValid())
@@ -722,9 +730,16 @@ void DataViewer::tableView_selectionChanged(const QItemSelection &,
 	}
 }
 
+void DataViewer::tableView_currentChanged(const QModelIndex & current,
+										  const QModelIndex & previous)
+{
+	// only used for debug output
+}
+
 void DataViewer::tabWidget_currentChanged(int ix)
 {
 	removeErrorMessage();
+	QModelIndex ci = ui.tableView->currentIndex();
 	if (ix == 0)
 	{
 		// be careful with this. See itemView_indexChanged() docs.
@@ -735,8 +750,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	}
 	if (ix == 1)
 	{
-		ui.itemView->setCurrentIndex(ui.tableView->currentIndex().row(),
-									 ui.tableView->currentIndex().column());
+		ui.itemView->setCurrentIndex(ci.row(), ci.column());
 		// be careful with this. See itemView_indexChanged() docs.
 		connect(ui.itemView, SIGNAL(indexChanged()),
 				this, SLOT(itemView_indexChanged()));
@@ -755,8 +769,7 @@ void DataViewer::itemView_indexChanged()
 	removeErrorMessage();
 	ui.tableView->setCurrentIndex(
 		ui.tableView->model()->index(ui.itemView->currentRow(),
-								     ui.itemView->currentColumn())
-							);
+								     ui.itemView->currentColumn()));
 	updateButtons();
 }
 

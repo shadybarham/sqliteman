@@ -68,7 +68,7 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		int findUp(int row);
 		int findDown(int row);
 
-private slots:
+	private slots:
 		void toFirst();
 		void toPrevious();
 		void toNext();
@@ -78,6 +78,8 @@ private slots:
 		/*! Handle app focus change. It chatches only m_mapper's
 		widgets. It emits indexChanged() for DataViewer. */
 		void aApp_focusChanged(QWidget* old, QWidget* now);
+
+	public slots:
 		void textChanged();
 
 };

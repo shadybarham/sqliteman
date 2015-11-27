@@ -83,32 +83,6 @@ SqlParser * Database::parseTable(const QString & table, const QString & schema)
 
 	// Parse the CREATE statement
 	SqlParser * parsed = new SqlParser(createStatement);
-#if 0 // this code only used for testing new parser
-	qDebug("Parsing %s:", createStatement.toUtf8().data());
-	qDebug("  m_isValid = %s", parsed.m_isValid ? "true" : "false");
-	qDebug("  m_database = %s", parsed.m_database.toUtf8().data());
-	qDebug("  m_name = %s", parsed.m_name.toUtf8().data());
-	qDebug("  m_hasRowid = %s", parsed.m_hasRowid ? "true" : "false");
-	qDebug("  m_isTable = %s", parsed.m_isTable ? "true" : "false");
-	foreach (FieldInfo f, parsed.m_fields)
-	{
-		qDebug("  Field %s%s%s", f.name.toUtf8().data(),
-			   f.type.isEmpty() ? "" : " type ",
-			   f.type.toUtf8().data());
-		qDebug("    %sDefault %s%s%s",
-			   f.defaultValue.isEmpty() ? "No " : "",
-			   f.defaultisQuoted ? "'" : "",
-			   f.defaultValue.toUtf8().data(),
-			   f.defaultisQuoted ? "'" : "");
-		qDebug("    isPartOfPrimaryKey = %s",
-			   f.isPartOfPrimaryKey ? "true" : "false");
-		qDebug("    isAutoIncrement = %s",
-			   f.isAutoIncrement ? "true" : "false");
-		qDebug("    isNotNull = %s",
-			   f.isNotNull ? "true" : "false");
-	}
-#endif
-
 	return parsed;
 }
 

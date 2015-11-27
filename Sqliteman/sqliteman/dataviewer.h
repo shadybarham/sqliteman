@@ -114,6 +114,7 @@ class DataViewer : public QMainWindow
 
 		void handleBlobPreview(bool);
 		void tableView_selectionChanged(const QItemSelection &, const QItemSelection &);
+		void tableView_currentChanged(const QModelIndex &, const QModelIndex &);
 		void tableView_dataResized(int column, int oldWidth, int newWidth);
 
 		//! \brief Set position in the models when user switches his views.
