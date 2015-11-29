@@ -10,6 +10,7 @@ It contains a parser for SQL schemas (not general SQL statements). Since the
 schema is known to be valid, we do not detect all cases of bad syntax.
 
 sqlite_master and describe table leave any quotes around types, but pragma table_info removes them.
+FIXME m_hasRowid is true when it shouldn't be
 */
 
 #include <QStringList>

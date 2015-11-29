@@ -11,6 +11,7 @@ for which a new license (GPL+exception) is in place.
 
 #include "queryeditorwidget.h"
 #include "querystringmodel.h"
+#include "sqlparser.h"
 #include "utils.h"
 
 void QueryEditorWidget::resetModel()
@@ -26,27 +27,31 @@ void QueryEditorWidget::resetModel()
 QStringList QueryEditorWidget::getColumns()
 {
 	QStringList columns;
-	bool rowid = true;
-	bool _rowid_ = true;
-	bool oid = true;
-	QList<FieldInfo> fields = Database::tableFields(m_table, m_schema);
-	foreach (FieldInfo i, fields)
+	SqlParser * parser = Database::parseTable(m_table, m_schema);
+	if (parser->m_hasRowid)
 	{
-		if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
-			{ rowid = false; }
-		if (i.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
-			{ _rowid_ = false; }
-		if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
-			{ oid = false; }
+		bool rowid = true;
+		bool _rowid_ = true;
+		bool oid = true;
+		foreach (FieldInfo i, parser->m_fields)
+		{
+			if (i.name.compare("rowid", Qt::CaseInsensitive) == 0)
+				{ rowid = false; }
+			if (i.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
+				{ _rowid_ = false; }
+			if (i.name.compare("oid", Qt::CaseInsensitive) == 0)
+				{ oid = false; }
+		}
+		if (rowid)
+			{ columns << QString("rowid"); m_rowid = "rowid"; }
+		else if (_rowid_)
+			{ columns << QString("_rowid_"); m_rowid = "_rowid_"; }
+		else if (oid)
+			{ columns << QString("oid"); m_rowid = "oid"; }
 	}
-	if (rowid)
-		{ columns << QString("rowid"); m_rowid = "rowid"; }
-	else if (_rowid_)
-		{ columns << QString("_rowid_"); m_rowid = "_rowid_"; }
-	else if (oid)
-		{ columns << QString("oid"); m_rowid = "oid"; }
 
-	foreach (FieldInfo i, fields) { columns << i.name; }
+	foreach (FieldInfo i, parser->m_fields) { columns << i.name; }
+	delete parser;
 	return columns;
 }
 
