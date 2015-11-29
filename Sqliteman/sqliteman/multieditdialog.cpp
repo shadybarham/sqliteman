@@ -17,6 +17,8 @@ MultiEditDialog::MultiEditDialog(QWidget * parent)
 {
 	setupUi(this);
 
+	connect(textEdit, SIGNAL(textChanged()),
+			this, SLOT(textEdit_textChanged()));
 	connect(blobFileEdit, SIGNAL(textChanged(const QString &)),
 			this, SLOT(blobFileEdit_textChanged(const QString &)));
 	connect(tabWidget, SIGNAL(currentChanged(int)),
@@ -54,6 +56,8 @@ void MultiEditDialog::setData(const QVariant & data)
 		tabWidget->setTabEnabled(0, true);
 		tabWidget->setCurrentIndex(0);
 	}
+	m_edited = false;
+	checkButtonStatus();
 }
 
 QVariant MultiEditDialog::data()
@@ -108,12 +112,15 @@ void MultiEditDialog::blobFileButton_clicked()
 	{
 		blobFileEdit->setText(fileName);
 		blobPreviewLabel->setBlobFromFile(fileName);
+		checkButtonStatus();
 	}
 }
 
 void MultiEditDialog::blobRemoveButton_clicked()
 {
 	setData(QVariant());
+	m_edited = true;
+	checkButtonStatus();
 }
 
 void MultiEditDialog::blobSaveButton_clicked()
@@ -140,6 +147,12 @@ void MultiEditDialog::blobSaveButton_clicked()
 	f.close();
 }
 
+void MultiEditDialog::textEdit_textChanged()
+{
+	m_edited = true;
+	checkButtonStatus();
+}
+
 void MultiEditDialog::blobFileEdit_textChanged(const QString &)
 {
 	checkButtonStatus();
@@ -153,14 +166,13 @@ void MultiEditDialog::tabWidget_currentChanged(int)
 void MultiEditDialog::checkButtonStatus()
 {
 	bool e = true;
-	// NULL
-	if (nullCheckBox->isChecked())
-		e = true;
-	else
+	nullCheckBox->setDisabled(m_data.isNull());
+	if (!(nullCheckBox->isEnabled() && nullCheckBox->isChecked()))
 	{
 		switch (tabWidget->currentIndex())
 		{
 			case 0:
+				e = m_edited;
 				break;
 			case 1:
 			{
@@ -175,25 +187,6 @@ void MultiEditDialog::checkButtonStatus()
 	}
 	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(e);
 }
-
-// void MultiEditDialog::checkBlobPreview(QVariant data)
-// {
-// 	QPixmap pm;
-// 	pm.loadFromData(data.toByteArray());
-// 	if (pm.isNull())
-// 		blobPreviewLabel->setText(tr("File content cannot be displayed"));
-// 	else
-// 		blobPreviewLabel->setPixmap(pm.scaled(blobPreviewLabel->size(), Qt::KeepAspectRatio));
-// }
-
-// void MultiEditDialog::checkBlobPreview(const QString & fileName)
-// {
-// 	QPixmap pm(fileName);
-// 	if (pm.isNull())
-// 		blobPreviewLabel->setText(tr("File content cannot be displayed"));
-// 	else
-// 		blobPreviewLabel->setPixmap(pm.scaled(blobPreviewLabel->size(), Qt::KeepAspectRatio));
-// }
 
 void MultiEditDialog::nullCheckBox_stateChanged(int)
 {

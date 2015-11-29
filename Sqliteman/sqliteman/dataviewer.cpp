@@ -826,7 +826,6 @@ void DataViewer::actOpenEditor_triggered()
 
 void DataViewer::actOpenMultiEditor_triggered()
 {
-	removeErrorMessage();
 	MultiEditDialog * dia = new MultiEditDialog(this);
 	QAbstractItemModel * model = ui.tableView->model();
 	QVariant data = model->data(ui.tableView->currentIndex(), Qt::EditRole);
@@ -836,13 +835,19 @@ void DataViewer::actOpenMultiEditor_triggered()
 		data = dia->data();
 		ui.tableView->model()->setData(ui.tableView->currentIndex(),
 									   data, Qt::EditRole);
+		tableView_dataChanged();
 	}
 }
 
 void DataViewer::actInsertNull_triggered()
 {
-	removeErrorMessage();
-    ui.tableView->model()->setData(ui.tableView->currentIndex(), QString(), Qt::EditRole); 
+	QAbstractItemModel * model = ui.tableView->model();
+	QModelIndex index(ui.tableView->currentIndex());
+	if (!(model->data(index, Qt::EditRole).isNull()))
+	{
+	    model->setData(index, QString(), Qt::EditRole);
+		tableView_dataChanged();
+	}
 }
 
 void DataViewer::rowDoubleClicked(int)

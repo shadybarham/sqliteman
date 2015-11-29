@@ -28,12 +28,12 @@ class MultiEditDialog : public QDialog, public Ui::MultiEditDialog
 
 	private:
 		QVariant m_data;
+		bool m_edited;
 
 		void checkButtonStatus();
-// 		void checkBlobPreview(QVariant data);
-// 		void checkBlobPreview(const QString & fileName);
 
 	private slots:
+		void textEdit_textChanged();
 		void blobFileEdit_textChanged(const QString &);
 		void tabWidget_currentChanged(int);
 		void blobFileButton_clicked();
