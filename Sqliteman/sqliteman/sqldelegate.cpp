@@ -154,13 +154,13 @@ void SqlDelegateUi::nullButton_clicked(bool)
 
 void SqlDelegateUi::editButton_clicked(bool state)
 {
-	MultiEditDialog * dia = new MultiEditDialog(this);
+	MultiEditDialog dia(this);
 	qApp->setOverrideCursor(Qt::WaitCursor);
-	dia->setData(m_sqlData);
+	dia.setData(m_sqlData);
 	qApp->restoreOverrideCursor();
-	if (dia->exec())
+	if (dia.exec())
 	{
-		m_sqlData = dia->data();
+		m_sqlData = dia.data();
         emit textChanged();
 	}
 	emit closeEditor();

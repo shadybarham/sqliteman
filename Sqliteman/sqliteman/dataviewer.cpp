@@ -826,13 +826,13 @@ void DataViewer::actOpenEditor_triggered()
 
 void DataViewer::actOpenMultiEditor_triggered()
 {
-	MultiEditDialog * dia = new MultiEditDialog(this);
+	MultiEditDialog dia(this);
 	QAbstractItemModel * model = ui.tableView->model();
 	QVariant data = model->data(ui.tableView->currentIndex(), Qt::EditRole);
-	dia->setData(data);
-	if (dia->exec())
+	dia.setData(data);
+	if (dia.exec())
 	{
-		data = dia->data();
+		data = dia.data();
 		ui.tableView->model()->setData(ui.tableView->currentIndex(),
 									   data, Qt::EditRole);
 		tableView_dataChanged();
