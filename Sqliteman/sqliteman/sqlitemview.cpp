@@ -12,6 +12,7 @@ for which a new license (GPL+exception) is in place.
 #include <QTextEdit>
 
 #include "database.h"
+#include "multieditdialog.h"
 #include "sqlitemview.h"
 #include "sqlmodels.h"
 #include "utils.h"
@@ -33,6 +34,10 @@ SqlItemView::SqlItemView(QWidget * parent)
 			this, SLOT(toNext()));
 	connect(lastButton, SIGNAL(clicked()),
 			this, SLOT(toLast()));
+	connect(nullButton, SIGNAL(clicked()),
+			this, SLOT(insertNull()));
+	connect(multiButton, SIGNAL(clicked()),
+			this, SLOT(openMultiEditor()));
 	connect(qApp, SIGNAL(focusChanged(QWidget*,QWidget*)),
 			 this, SLOT(aApp_focusChanged(QWidget*,QWidget*)));
 }
@@ -84,6 +89,9 @@ void SqlItemView::updateButtons(int row)
 	int rowcount = m_model->rowCount();
 	int notDeleted = 0;
 	int adjRow = row;
+	QVariant data
+		= m_model->data(m_model->index(m_row, m_column), Qt::EditRole);
+	bool editable = (m_row >= 0) && (m_column >= 0) && m_writeable;
 	for (int i = 0; i < rowcount; ++i)
 	{
 		if (m_table->isRowHidden(i))
@@ -97,14 +105,16 @@ void SqlItemView::updateButtons(int row)
 	firstButton->setEnabled(findUp(-1) != row);
 	nextButton->setEnabled(findUp(row) != row);
 	lastButton->setEnabled(findDown(rowcount) != row);
+	nullButton->setEnabled(editable && !data.isNull());
+	multiButton->setEnabled(editable);
 }
 
 void SqlItemView::setCurrentIndex(int row, int column)
 {
-	m_row = row;
 	if ((row >= 0) && (column >= 0))
 	{
-		bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
+		m_row = row;
+		m_writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
 		for (m_column = 0; m_column < m_count; ++m_column)
 		{
 			QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
@@ -131,9 +141,9 @@ void SqlItemView::setCurrentIndex(int row, int column)
 					}
 					else
 					{
-						te->setReadOnly(!writeable);
+						te->setReadOnly(!m_writeable);
 						Qt::ItemDataRole role;
-						if (writeable && (m_column == column))
+						if (m_writeable && (m_column == column))
 						{
 							role = Qt::EditRole;
 							te->setFocus();
@@ -238,6 +248,27 @@ void SqlItemView::toLast()
 	if (row != m_row) {
 		setCurrentIndex(row, m_column);
 		emit indexChanged();
+	}
+}
+
+void SqlItemView::insertNull()
+{
+		QModelIndex index = m_model->index(m_row, m_column);
+		m_model->setData(index, QVariant());
+		setCurrentIndex(m_row, m_column);
+		emit dataChanged();
+}
+
+void SqlItemView::openMultiEditor()
+{
+	MultiEditDialog dia(this);
+	dia.setData(m_model->data(m_model->index(m_row, m_column), Qt::EditRole));
+	if (dia.exec())
+	{
+		QModelIndex index = m_model->index(m_row, m_column);
+		m_model->setData(index, dia.data());
+		setCurrentIndex(m_row, m_column);
+		emit dataChanged();
 	}
 }
 

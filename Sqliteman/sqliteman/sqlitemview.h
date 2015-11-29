@@ -60,6 +60,7 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		int m_row;
 		int m_count;
 		bool m_changing;
+		bool m_writeable;
 		QAbstractItemModel * m_model;
 		QTableView * m_table;
 
@@ -73,6 +74,8 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		void toPrevious();
 		void toNext();
 		void toLast();
+		void insertNull();
+		void openMultiEditor();
 		//! \brief Set the navigation buttons state and "X of Y" label.
 		void updateButtons(int row);
 		/*! Handle app focus change. It chatches only m_mapper's
