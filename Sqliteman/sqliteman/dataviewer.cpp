@@ -92,7 +92,6 @@ DataViewer::DataViewer(QWidget * parent)
 	connect(delegate, SIGNAL(dataChanged()),
 		this, SLOT(tableView_dataChanged()));
 
-
 	// workaround for Ctrl+C
 	DataViewerTools::KeyPressEater *keyPressEater = new DataViewerTools::KeyPressEater(this);
 	ui.tableView->installEventFilter(keyPressEater);
@@ -375,7 +374,6 @@ void DataViewer::resizeEvent(QResizeEvent * event)
 		resizeViewToContents(ui.tableView->model());
 }
 
-
 void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 {
 	if (model->columnCount() <= 0)
@@ -385,19 +383,6 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 	ui.tableView->resizeRowsToContents();
 
 	Utils::setColumnWidths(ui.tableView);
-#if 0
-	int total = 0;
-	for (int i = 0; i < model->columnCount(); ++i)
-		total += ui.tableView->columnWidth(i);
-
-	if (total < ui.tableView->viewport()->width())
-	{
-		int extra = (ui.tableView->viewport()->width() - total)
-			/ model->columnCount();
-		for (int i = 0; i < model->columnCount(); ++i)
-			ui.tableView->setColumnWidth(i, ui.tableView->columnWidth(i) + extra);
-	}
-#endif
 	dataResized = false;
 }
 
@@ -777,6 +762,7 @@ void DataViewer::tableView_dataChanged()
 {
 	removeErrorMessage();
 	updateButtons();
+	ui.tableView->viewport()->update();
 }
 
 void DataViewer::showSqlScriptResult(QString line)

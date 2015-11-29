@@ -6,14 +6,15 @@ for which a new license (GPL+exception) is in place.
 */
 #include <QDataWidgetMapper>
 #include <QGridLayout>
-#include <QSqlRecord>
-#include <QTextEdit>
 #include <QSqlQueryModel>
+#include <QSqlRecord>
 #include <QTableView>
+#include <QTextEdit>
 
+#include "database.h"
 #include "sqlitemview.h"
 #include "sqlmodels.h"
-#include "database.h"
+#include "utils.h"
 
 SqlItemView::SqlItemView(QWidget * parent)
 	: QWidget(parent),
@@ -101,9 +102,8 @@ void SqlItemView::updateButtons(int row)
 void SqlItemView::setCurrentIndex(int row, int column)
 {
 	m_row = row;
-	if ((row >= 0) && (column >= 0) && !m_changing)
+	if ((row >= 0) && (column >= 0))
 	{
-		m_changing = true;
 		bool writeable = qobject_cast<SqlTableModel *>(m_model) != 0;
 		for (m_column = 0; m_column < m_count; ++m_column)
 		{
@@ -118,33 +118,37 @@ void SqlItemView::setCurrentIndex(int row, int column)
 				p.setColor(QPalette::Active, QPalette::Base, color);
 				p.setColor(QPalette::Inactive, QPalette::Base, color);
 				te->setPalette(p);
-				QVariant rawdata = m_model->data(
-					m_model->index(row, m_column), Qt::EditRole);
-				if (rawdata.type() == QVariant::ByteArray)
+				if (!m_changing)
 				{
-					te->setText(m_model->data(
-						m_model->index(row, m_column), Qt::DisplayRole).toString());
-					te->setReadOnly(true);
-				}
-				else
-				{
-					te->setReadOnly(!writeable);
-					Qt::ItemDataRole role;
-					if (writeable && (m_column == column))
+					m_changing = true;
+					QVariant rawdata = m_model->data(
+						m_model->index(row, m_column), Qt::EditRole);
+					if (rawdata.type() == QVariant::ByteArray)
 					{
-						role = Qt::EditRole;
-						te->setFocus();
+						te->setText(m_model->data(
+							m_model->index(row, m_column), Qt::DisplayRole).toString());
+						te->setReadOnly(true);
 					}
 					else
 					{
-						role = Qt::DisplayRole;
+						te->setReadOnly(!writeable);
+						Qt::ItemDataRole role;
+						if (writeable && (m_column == column))
+						{
+							role = Qt::EditRole;
+							te->setFocus();
+						}
+						else
+						{
+							role = Qt::DisplayRole;
+						}
+						te->setText(m_model->data(
+							m_model->index(row, m_column), role).toString());
 					}
-					te->setText(m_model->data(
-						m_model->index(row, m_column), role).toString());
+					m_changing = false;
 				}
 			}
 		}
-		m_changing = false;
 	}
 	m_column = column;
 	updateButtons(row);
@@ -264,6 +268,7 @@ void SqlItemView::textChanged()
 		m_changing = true;
 		QModelIndex index = m_model->index(m_row, m_column);
 		m_model->setData(index, QVariant(te->toPlainText()));
+		setCurrentIndex(m_row, m_column);
 		emit dataChanged();
 		m_changing = false;
 	}

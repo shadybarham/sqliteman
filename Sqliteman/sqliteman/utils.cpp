@@ -270,6 +270,10 @@ void Utils::dump(QTextEdit * te)
 {
 	te ? dump(*te) : qDebug("Null QTextEdit");
 }
+void Utils::dump(QColor c)
+{
+	qDebug("Red %d, Blue %d, Green %d", c.red(), c.blue(), c.green());
+}
 QString Utils::variantToString(QVariant x)
 {
 	switch(x.type())

@@ -13,15 +13,16 @@ for which a new license (GPL+exception) is in place.
 #include "sqlparser.h"
 
 class QComboBox;
-class QItemSelection;
-class QTreeWidgetItem;
-class QTextEdit;
+class QColor;
 class QIcon;
+class QItemSelection;
+class QLineEdit;
 class QPixmap;
 class QSqlError;
 class QSqlRecord;
-class QLineEdit;
 class QTableView;
+class QTextEdit;
+class QTreeWidgetItem;
 
 //! Various helper functions
 namespace Utils {
@@ -72,6 +73,7 @@ void dump(QStringList sl);
 void dump(QList<int> il);
 void dump(QTextEdit & te);
 void dump(QTextEdit * te);
+void dump(QColor c);
 QString variantToString(QVariant x);
 void dump(QVariant x);
 void dump(QSqlRecord & rec);
