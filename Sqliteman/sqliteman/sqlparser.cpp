@@ -696,7 +696,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare("PRIMARY", Qt::CaseInsensitive) == 0)
 				{
-					state = 43; // look for KEY
+					state = 41; // look for KEY
 				}
 				else if (s.compare("UNIQUE", Qt::CaseInsensitive) == 0)
 				{
@@ -1782,7 +1782,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare(")") == 0)
 				{
-					state = 81; // check for WITHOUT ROWID or rubbish at end
+					state = 79; // check for WITHOUT ROWID or rubbish at end
 					m_isValid = true;
 				}
 				else { break; } // not a valid create statement
