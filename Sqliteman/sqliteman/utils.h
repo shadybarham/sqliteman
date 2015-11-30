@@ -56,7 +56,9 @@ QString backQuote(QStringList l);
 
 QString literal(QString s);
 
+#if 0 // not used, but kept in case needed in the future
 QString unQuote(QString s);
+#endif
 
 QString like(QString s);
 

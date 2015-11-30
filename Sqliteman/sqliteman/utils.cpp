@@ -111,7 +111,7 @@ QString Utils::literal(QString s)
 	return "'" + s.replace("'", "''") + "'";
 }
 
-//FIXME check where this is used
+#if 0 // not used, but kept in case needed in the future
 QString Utils::unQuote(QString s)
 {
 	if (s.startsWith("'")) {
@@ -124,6 +124,7 @@ QString Utils::unQuote(QString s)
 	}
 	else { return s; }
 }
+#endif
 
 QString Utils::like(QString s)
 {
