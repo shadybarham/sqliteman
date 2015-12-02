@@ -596,8 +596,16 @@ extern "C" void do_exec(sqlite3_context* context,
 extern "C" int do_localized(void * unused, int n1, const void *v1,
 							int n2, const void *v2)
 {
-	QString s1((const QChar *)v1, n1);
-	QString s2((const QChar *)v2, n2);
+	QString s1(QLocale().toLower(QString((const QChar *)v1, n1/2)));
+	QString s2(QLocale().toLower(QString((const QChar *)v2, n2/2)));
+	return s1.localeAwareCompare(s2);
+}
+
+extern "C" int do_localized_case(void * unused, int n1, const void *v1,
+							int n2, const void *v2)
+{
+	QString s1((const QChar *)v1, n1/2);
+	QString s2((const QChar *)v2, n2/2);
 	return s1.localeAwareCompare(s2);
 }
 
@@ -607,6 +615,9 @@ int Database::makeUserFunctions()
 	int res = sqlite3_create_function(
 		handle, "exec", 2, SQLITE_UTF8, NULL, do_exec, NULL, NULL);
 	if (res != SQLITE_OK) { return res; }
-	return sqlite3_create_collation(
+	res = sqlite3_create_collation(
 		handle, "LOCALIZED", SQLITE_UTF16, NULL, do_localized);
+	if (res != SQLITE_OK) { return res; }
+	return sqlite3_create_collation(
+		handle, "LOCALIZED_CASE", SQLITE_UTF16, NULL, do_localized_case);
 }
