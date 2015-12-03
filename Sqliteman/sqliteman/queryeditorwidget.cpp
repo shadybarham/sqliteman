@@ -399,6 +399,8 @@ void QueryEditorWidget::moreOrders()
 	collators->addItem("BINARY");
 	collators->addItem("NOCASE");
 	collators->addItem("RTRIM");
+	collators->addItem("LOCALIZED_CASE");
+	collators->addItem("LOCALIZED");
 	ordersTable->setCellWidget(i, 1, collators);
 	QComboBox * directions = new QComboBox();
 	directions->addItem("ASC");
