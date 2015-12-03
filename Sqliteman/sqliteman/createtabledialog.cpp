@@ -94,11 +94,6 @@ void CreateTableDialog::createButton_clicked()
 	resultAppend(tr("Table created successfully"));
 }
 
-bool CreateTableDialog::checkRetained(int i)
-{
-	return true;
-}
-
 bool CreateTableDialog::checkColumn(int i, QString cname,
 								   QString ctype, QString cextra)
 {

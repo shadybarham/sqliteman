@@ -137,48 +137,44 @@ QString TableEditorDialog::getSQLfromDesign()
 	QStringList primaryKeys;
 	for (int i = 0; i < ui.columnTable->rowCount(); i++)
 	{
-		if (   (oldColumnNumber(i) < 0)
-			|| (checkRetained(i)))
+		if (first)
 		{
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				sql += ",\n";
-			}
-			MyLineEdit * ed =
-				qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 0));
-			QString name(ed->text());
-			sql += Utils::quote(name);
-			QComboBox * box =
-				qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 1));
-			QString type(box->currentText());
-			if (box->currentIndex())
-			{
-				sql += " " + Utils::quote(type);
-			}
-			box = qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 2));
-			QString extra(box->currentText());
-			if (extra.contains("AUTOINCREMENT"))
-			{
-				sql += " PRIMARY KEY AUTOINCREMENT";
-			}
-			else if (extra.contains("PRIMARY KEY"))
-			{
-				primaryKeys.append(name);
-			}
-			if (extra.contains("NOT NULL"))
-			{
-				sql += " NOT NULL";
-			}
-			ed = qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 3));
-			QString defval(ed->text());
-			if (!defval.isEmpty())
-			{
-				sql += " DEFAULT " + defval;
-			}
+			first = false;
+		}
+		else
+		{
+			sql += ",\n";
+		}
+		MyLineEdit * ed =
+			qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 0));
+		QString name(ed->text());
+		sql += Utils::quote(name);
+		QComboBox * box =
+			qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 1));
+		QString type(box->currentText());
+		if (box->currentIndex())
+		{
+			sql += " " + Utils::quote(type);
+		}
+		box = qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 2));
+		QString extra(box->currentText());
+		if (extra.contains("AUTOINCREMENT"))
+		{
+			sql += " PRIMARY KEY AUTOINCREMENT";
+		}
+		else if (extra.contains("PRIMARY KEY"))
+		{
+			primaryKeys.append(name);
+		}
+		if (extra.contains("NOT NULL"))
+		{
+			sql += " NOT NULL";
+		}
+		ed = qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 3));
+		QString defval(ed->text());
+		if (!defval.isEmpty())
+		{
+			sql += " DEFAULT " + defval;
 		}
 	}
 	if (primaryKeys.count() > 0)
@@ -329,6 +325,11 @@ void TableEditorDialog::setDirty()
 	m_dirty = true;
 }
 
+void TableEditorDialog::resizeTable()
+{
+	Utils::setColumnWidths(ui.columnTable);
+}
+
 void TableEditorDialog::resizeEvent(QResizeEvent * event)
 {
 	resizeWanted = true;
@@ -339,7 +340,7 @@ void TableEditorDialog::paintEvent(QPaintEvent * event)
 {
 	if (resizeWanted)
 	{
-		Utils::setColumnWidths(ui.columnTable);
+		resizeTable();
 		resizeWanted = false;
 	}
 	QDialog::paintEvent(event);

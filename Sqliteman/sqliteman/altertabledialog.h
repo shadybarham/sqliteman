@@ -30,6 +30,16 @@ class AlterTableDialog : public TableEditorDialog
 {
 	Q_OBJECT
 
+	private:
+		void addField(QString oldName, QString oldType,
+					  int x, QString oldDefault);
+
+	private slots:
+		void addField();
+
+		//! \brief Fill the GUI with table structure.
+		void resetClicked();
+
 	public:
 		AlterTableDialog(LiteManWindow * parent = 0,
 						 QTreeWidgetItem * item = 0,
@@ -37,62 +47,48 @@ class AlterTableDialog : public TableEditorDialog
 						);
 		~AlterTableDialog(){};
 
-		// These ought to be enums, but they're so clumsy in C++
-		// 0 nothing yet
-		// 1 table has been renamed
-		// 2 table has been modified
-		int updateStage;
-
 	private:
 		QTreeWidgetItem * m_item;
 		QPushButton * m_alterButton;
-		
 		QList<FieldInfo> m_fields;
+		QVector<bool> m_isIndexed;
+		QVector<int> m_oldColumn; // -1 if no old column
 		bool m_hadRowid;
-		//! \brief Fill the GUI with table structure.
-		void resetStructure();
+		bool m_alteringActive; // true if altering currently active table
+		bool m_altered; // something changed other than the name
+		bool m_dropped; // a column has been dropped
 
-		/*! \brief Perform a rename table action if it's required.
-		This is done if user edits table name widget.
-		\retval true on success.
-		*/
-		bool renameTable(QString oldTableName, QString newTableName);
-
-		/*! \brief Execute statement, handle its errors and outputs message to the GUI.
+		/*! \brief Execute statement, handle errors,
+		and output message to the GUI.
 		\param statement a SQL statement as QString
 		\param message a text message to display in the log widget
 		\retval bool true on SQL succes
 		*/
 		bool execSql(const QString & statement, const QString & message);
+
+		//! \brief Roll back whole transaction after failure
 		bool doRollback(QString message);
 
-		int oldColumnNumber(int i);
-		bool checkRetained(int i);
-		bool checkColumn(int i, QString cname,
-						 QString ctype, QString cextra);
-
-		//! \brief Returns a list of DDL statements to recreate required obejcts after all.
+		//! \brief Returns a list of SQL statements to recreate triggers
 		QStringList originalSource(QString tableName);
+
+		//! \brief Returns a list of parsed create index statments
 		QList<SqlParser *> originalIndexes(QString tableName);
 
-		// true if altering currently active table
-		bool m_alteringActive;
+		/*! \brief Perform a rename table action if it's required.
+		\retval true on success.
+		*/
+		bool renameTable(QString oldTableName, QString newTableName);
 
-		// something changed other than the name
-		bool m_altered;
-
-		// list of column names not dropped
-		QList<int> m_keptColumns;
+		bool checkColumn(int i, QString cname,
+						 QString ctype, QString cextra);
+		void resizeTable();
+		void swap(int i, int j);
+		void drop (int i);
 
 	private slots:
-		void addField();
-		void removeField();
-		void fieldSelected();
-		//! \brief Check if to allow user changes in the table column (qtable row).
 		void cellClicked(int, int);
-
-		void alterButton_clicked();
-		void dropItemChanged(int);
+		void alterButton_clicked();;
 
 		//! \brief Setup the Alter button if there is something changed
 		void checkChanges();

@@ -33,7 +33,7 @@ class TableEditorDialog : public QDialog
 
 		void resultAppend(QString text);
 
-		void addField(QString oldName, QString oldType,
+		virtual void addField(QString oldName, QString oldType,
 					  int x, QString oldDefault);
 
 		bool checkOk(QString newName);
@@ -44,8 +44,6 @@ class TableEditorDialog : public QDialog
 		bool updated;
 
 	protected:
-		virtual int oldColumnNumber(int i) = 0;
-		virtual bool checkRetained(int i) = 0;
 		virtual bool checkColumn(int i, QString cname,
 								 QString type, QString cextra) = 0;
 		QString getSQLfromDesign();
@@ -53,6 +51,7 @@ class TableEditorDialog : public QDialog
 		QString getFullName();
 		void setFirstLine();
 		void setDirty();
+		virtual void resizeTable();
 		void paintEvent(QPaintEvent * event);
 		void resizeEvent(QResizeEvent * event);
 		QString m_tableOrView;

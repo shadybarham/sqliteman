@@ -102,11 +102,6 @@ void CreateViewDialog::createButton_clicked()
 	resultAppend(tr("View created successfully"));
 }
 
-bool CreateViewDialog::checkRetained(int i)
-{
-	return true;
-}
-
 bool CreateViewDialog::checkColumn(int i, QString cname,
 								   QString ctype, QString cextra)
 {
