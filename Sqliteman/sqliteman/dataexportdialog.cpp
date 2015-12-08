@@ -5,25 +5,28 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 */
 
-#include <QMessageBox>
-#include <QClipboard>
 #include <QCheckBox>
-#include <QFile>
-#include <QSqlRecord>
-#include <QFileDialog>
-#include <QDir>
-#include <QProgressDialog>
-#include <QTextCodec>
+#include <QClipboard>
 #include <QCompleter>
+#include <QDir>
 #include <QDirModel>
-#include <QSqlQueryModel>
+#include <QFile>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QProgressDialog>
 #include <QSettings>
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QSqlQueryModel>
+#include <QSqlRecord>
+#include <QTextCodec>
 
-#include "dataviewer.h"
-#include "dataexportdialog.h"
 #include "database.h"
+#include "dataexportdialog.h"
+#include "dataviewer.h"
 #include "preferences.h"
 #include "sqlmodels.h"
+#include "utils.h"
 
 #define LF QChar(0x0A)  /* '\n' */
 #define CR QChar(0x0D)  /* '\r' */
@@ -312,6 +315,34 @@ bool DataExportDialog::exportSql()
 {
 	out << "BEGIN TRANSACTION;" << endl();;
 	QString columns(m_header.join("\", \""));
+
+	if (header())
+	{
+		QString createStatement = "CREATE TABLE "
+								  + Utils::q(m_tableName)
+								  + " ("
+								  + columns
+								  + ")";
+		if (m_table)
+		{
+			QString createSQL = QString("SELECT sql FROM ")
+								+ Database::getMaster(m_table->schema())
+								+ " WHERE lower(name) = "
+								+ Utils::q(m_tableName.toLower())
+								+ ";";
+			// Run the query
+
+			QSqlQuery createQuery(createSQL, QSqlDatabase::database(SESSION_NAME));
+			// Make sure the query ran successfully
+			if (!createQuery.lastError().isValid())
+			{
+				createQuery.first();
+				createStatement = createQuery.value(0).toString();
+			}
+		}
+		out << createStatement << ";\n";
+	}
+
 
 	for (int i = 0; i < m_data->rowCount(); ++i)
 	{

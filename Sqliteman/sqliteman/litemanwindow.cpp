@@ -7,6 +7,7 @@ for which a new license (GPL+exception) is in place.
 	FIXME clicking on table of database attached by sql doesn't open it
 	FIXME ... appears to corrupt it too!
 	FIXME why do we do both both ATTACH DATABASE (same connection) and addDatabase (different connection)
+	FIXME refresh table list in query builder
 */
 #include <QTreeWidget>
 #include <QTableView>
