@@ -317,7 +317,7 @@ QString Database::describeObject(const QString & name,
     			  + getMaster(schema)
     			  + " where lower(name) = "
     			  + Utils::q(name.toLower(), "'")
-    			  + " and lower(type) = \""
+    			  + " and lower(type) = "
 				  + Utils::q(type.toLower())
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
