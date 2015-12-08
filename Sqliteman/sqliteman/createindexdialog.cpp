@@ -79,19 +79,18 @@ void CreateIndexDialog::createButton_clicked()
 				QComboBox* cb;
 				cb = qobject_cast<QComboBox*>
 					(ui.tableColumns->cellWidget(i, 2));
-				cols.append(Utils::quote(ui.tableColumns->item(i, 0)->text())
-							+ " "
-							+ cb->currentText());
+				cols.append(Utils::q(ui.tableColumns->item(i, 0)->text())
+							+ " " + cb->currentText());
 			}
 		}
 		QString sql = QString("create ")
 					  + (ui.uniqueCheckBox->isChecked() ? "unique" : "")
 					  + " index "
-					  + Utils::quote(m_schema)
+					  + Utils::q(m_schema)
 					  + "."
-					  + Utils::quote(ui.indexNameEdit->text())
+					  + Utils::q(ui.indexNameEdit->text())
 					  + " on "
-					  + Utils::quote(m_table)
+					  + Utils::q(m_table)
 					  + " ("
 					  + cols.join(", ")
 					  + ");";

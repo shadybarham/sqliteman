@@ -78,37 +78,23 @@ bool Utils::updateTables(const QString & sql)
 		    || tmp.contains("EXEC")); // crude, but will work for now
 }
 
-QString Utils::quote(QString s)
+QString Utils::q(QString s, QString c)
 {
-	return "\"" + s.replace("\"", "\"\"") + "\"";
+	return c + s.replace(c, c + c) + c;
 }
 
-QString Utils::backQuote(QString s)
+QString Utils::q(QString s)
 {
-	return "`" + s.replace("`", "``") + "`";
+	return q(s, "\"");
 }
 
-QString Utils::quote(QStringList l)
+QString Utils::q(QStringList l, QString c)
 {
 	for (int i = 0; i < l.count(); ++i)
 	{
-		l.replace(i, l[i].replace("\"", "\"\""));
+		l.replace(i, l[i].replace(c, c + c));
 	}
-	return "\"" + l.join("\", \"") + "\"";
-}
-
-QString Utils::backQuote(QStringList l)
-{
-	for (int i = 0; i < l.count(); ++i)
-	{
-		l.replace(i, l[i].replace("`", "``"));
-	}
-	return "`" + l.join("`, `") + "`";
-}
-
-QString Utils::literal(QString s)
-{
-	return "'" + s.replace("'", "''") + "'";
+	return c + l.join(c + ", " + c) + c;
 }
 
 #if 0 // not used, but kept in case needed in the future
@@ -259,6 +245,23 @@ void Utils::dump(QList<int> il)
 	{
 		QString s;
 		foreach (int i, il)
+		{
+			if (i != 0) { s.append(", "); }
+			s.append(QString("%1").arg(i));
+		}
+		dump(s);
+	}
+}
+void Utils::dump(QVector<int> iv)
+{
+	if (iv.count() == 0)
+	{
+		qDebug("Empty QVector<int>");
+	}
+	else
+	{
+		QString s;
+		foreach (int i, iv)
 		{
 			if (i != 0) { s.append(", "); }
 			s.append(QString("%1").arg(i));

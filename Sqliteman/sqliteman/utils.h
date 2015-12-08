@@ -40,21 +40,14 @@ bool updateObjectTree(const QString & sql);
 //! \brief Check if the current table may have changed depending on sql statement
 bool updateTables(const QString & sql);
 
-//! \brief Quote identifier for generated SQL statement
-QString quote(QString s);
+//! \brief Quote argument using specified quote character
+QString q(QString s, QString c);
 
-/*! \brief BackQuote identifier for generated SQL statement - needed because in
-		   some contexts quoted identifiers are treated as string literals if
-		   they don't match a column name. */
-QString backQuote(QString s);
+//! \brief Quote identifier for generated SQL statement
+QString q(QString s);
 
 //! \brief Quote list of identifiers for generated SQL statement
-QString quote(QStringList l);
-
-//! \brief BackQuote list of identifiers for generated SQL statement
-QString backQuote(QStringList l);
-
-QString literal(QString s);
+QString q(QStringList l, QString c);
 
 #if 0 // not used, but kept in case needed in the future
 QString unQuote(QString s);
@@ -73,6 +66,7 @@ void dump(QComboBox & box);
 void dump(QComboBox *box);
 void dump(QStringList sl);
 void dump(QList<int> il);
+void dump(QVector<int> iv);
 void dump(QTextEdit & te);
 void dump(QTextEdit * te);
 void dump(QColor c);

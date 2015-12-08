@@ -51,7 +51,7 @@ void VacuumDialog::tableButton_clicked()
 		for (int i = 0; i < list.size(); ++i)
 		{
 			if (!Database::execSql(QString("vacuum %1;")
-								   .arg(Utils::quote(list.at(i)->text()))))
+					.arg(Utils::q(list.at(i)->text()))))
 				break;
 		}
 	}

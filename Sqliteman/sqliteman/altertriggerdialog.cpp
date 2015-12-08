@@ -32,9 +32,9 @@ AlterTriggerDialog::AlterTriggerDialog(const QString & name, const QString & sch
 	setWindowTitle("Alter Trigger");
 
 	QString sql = QString("select sql from ")
-	              + Utils::quote(schema)
+	              + Utils::q(schema)
 				  + ".sqlite_master where name = "
-				  + Utils::quote(name)
+				  + Utils::q(name)
 				  + " and type = \"trigger\" ;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
@@ -70,9 +70,9 @@ void AlterTriggerDialog::createButton_clicked()
 {
 	ui.resultEdit->setHtml("");
 	QString sql = QString("DROP TRIGGER ")
-				  + Utils::quote(m_schema)
+				  + Utils::q(m_schema)
 				  + "."
-				  + Utils::quote(m_name)
+				  + Utils::q(m_name)
 				  + ";";
 	QSqlQuery drop(sql, QSqlDatabase::database(SESSION_NAME));
 	if(drop.lastError().isValid())

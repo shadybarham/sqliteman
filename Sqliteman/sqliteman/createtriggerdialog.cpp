@@ -33,10 +33,10 @@ CreateTriggerDialog::CreateTriggerDialog(QTreeWidgetItem * item,
 		ui.textEdit->setText(
 			QString("-- sqlite3 simple trigger template\n"
 					"CREATE TRIGGER [IF NOT EXISTS] ")
-			+ Utils::quote(item->text(1))
+			+ Utils::q(item->text(1))
 			+ ".\"<trigger_name>\"\n[ BEFORE | AFTER ]\n"
 		    + "DELETE | INSERT | UPDATE | UPDATE OF <column-list>\n ON "
-			+ Utils::quote(item->text(0))
+			+ Utils::q(item->text(0))
 			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
 			+ "BEGIN\n<statement-list>\nEND;");
 	}
@@ -45,10 +45,10 @@ CreateTriggerDialog::CreateTriggerDialog(QTreeWidgetItem * item,
 		ui.textEdit->setText(
 			QString("-- sqlite3 simple trigger template\n"
 					"CREATE TRIGGER [IF NOT EXISTS] ")
-			+ Utils::quote(item->text(1))
+			+ Utils::q(item->text(1))
 			+ ".\"<trigger_name>\"\nINSTEAD OF "
 			+ "[DELETE | INSERT | UPDATE | UPDATE OF <column-list>]\nON "
-			+ Utils::quote(item->text(0))
+			+ Utils::q(item->text(0))
 			+ "\n[ FOR EACH ROW | FOR EACH STATEMENT ] [ WHEN expression ]\n"
 			 + "BEGIN\n<statement-list>\nEND;");
 	}

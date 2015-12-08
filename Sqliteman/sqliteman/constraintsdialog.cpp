@@ -45,7 +45,7 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 		stmt = QString("SELECT RAISE(ABORT, 'New ")
 			   + column.name
 			   + " value IS NULL') WHERE new."
-			   + Utils::quote(column.name)
+			   + Utils::q(column.name)
 			   + " IS NULL;\n";
 		inserts << "-- NOT NULL check" << stmt;
 		updates << "-- NOT NULL check"<< stmt;
@@ -53,9 +53,9 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 
 	// get FKs
 	QString sql = QString("pragma ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + ".foreign_key_list ("
-				  + Utils::quote(tabName)
+				  + Utils::q(tabName)
 				  + ");";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
@@ -83,7 +83,7 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 		if (nnCols.contains(column, Qt::CaseInsensitive))
 		{
 			nnTemplate = QString("\n    new.%1 IS NOT NULL AND")
-								 .arg(Utils::quote(column));
+								 .arg(Utils::q(column));
 		}
 		thenTemplate = QString("\n    RAISE(ABORT, '")
 					   + column
@@ -97,26 +97,26 @@ ConstraintsDialog::ConstraintsDialog(const QString & tabName, const QString & sc
 			   + "\n    where "
 			   + nnTemplate
 			   + " SELECT "
-			   + Utils::quote(fkColumn)
+			   + Utils::q(fkColumn)
 			   + " FROM "
-			   + Utils::quote(fkTab)
+			   + Utils::q(fkTab)
 			   + " WHERE "
-			   + Utils::quote(fkColumn)
+			   + Utils::q(fkColumn)
 			   + " = new."
-			   + Utils::quote(column)
+			   + Utils::q(column)
 			   + ") IS NULL;\n";
 		inserts << "-- FK check" << stmt;
 		updates << "-- FK check" << stmt;
 		stmt = QString("SELECT ")
 			   + thenTemplate
 			   + " WHERE (SELECT "
-			   + Utils::quote(fkColumn)
+			   + Utils::q(fkColumn)
 			   + " FROM "
-			   + Utils::quote(fkTab)
+			   + Utils::q(fkTab)
 			   + " WHERE "
-			   + Utils::quote(fkColumn)
+			   + Utils::q(fkColumn)
 			   + " = old."
-			   + Utils::quote(column)
+			   + Utils::q(column)
 			   + ") IS NOT NULL;\n";
 		deletes << "-- FK check" << stmt;
 	}
@@ -146,11 +146,11 @@ void ConstraintsDialog::createButton_clicked()
 	if (ui.insertEdit->text().length() != 0)
 	{
 		if (execSql(QString("CREATE TRIGGER ")
-					 + Utils::quote(ui.insertName->text())
+					 + Utils::q(ui.insertName->text())
 					 + " BEFORE INSERT ON "
-					 + Utils::quote(m_schema)
+					 + Utils::q(m_schema)
 					 + "."
-					 + Utils::quote(m_table)
+					 + Utils::q(m_table)
 					 + " FOR EACH ROW\nBEGIN\n"
 					 + "-- created by Sqliteman tool\n\n"
 					 + ui.insertEdit->text()
@@ -174,11 +174,11 @@ void ConstraintsDialog::createButton_clicked()
 	if (ui.updateEdit->text().length() != 0)
 	{
 		if (execSql(QString("CREATE TRIGGER ")
-					 + Utils::quote(ui.updateName->text())
+					 + Utils::q(ui.updateName->text())
 					 + " BEFORE UPDATE ON "
-					 + Utils::quote(m_schema)
+					 + Utils::q(m_schema)
 					 + "."
-					 + Utils::quote(m_table)
+					 + Utils::q(m_table)
 					 + " FOR EACH ROW\nBEGIN\n"
 					 + "-- created by Sqliteman tool\n\n"
 					 + ui.updateEdit->text()
@@ -200,11 +200,11 @@ void ConstraintsDialog::createButton_clicked()
 	if (ui.deleteEdit->text().length() != 0)
 	{
 		if (execSql(QString("CREATE TRIGGER ")
-					 + Utils::quote(ui.updateName->text())
+					 + Utils::q(ui.updateName->text())
 					 + " BEFORE DELETE ON "
-					 + Utils::quote(m_schema)
+					 + Utils::q(m_schema)
 					 + "."
-					 + Utils::quote(m_table)
+					 + Utils::q(m_table)
 					 + " FOR EACH ROW\nBEGIN\n"
 					 + "-- created by Sqliteman tool\n\n"
 					 + ui.deleteEdit->text()

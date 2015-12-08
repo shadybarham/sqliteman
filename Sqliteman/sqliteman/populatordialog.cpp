@@ -108,9 +108,9 @@ void PopulatorDialog::checkActionTypes()
 qlonglong PopulatorDialog::tableRowCount()
 {
 	QString sql = QString("select count(1) from ")
-				  + Utils::quote(m_schema)
+				  + Utils::q(m_schema)
 				  + "."
-				  + Utils::quote(m_table)
+				  + Utils::q(m_table)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (!execSql(sql, tr("Cannot get statistics for table")))
@@ -130,7 +130,7 @@ QString PopulatorDialog::sqlColumns()
 		if (i.action != Populator::T_IGNORE)
 			s.append(i.name);
 	}
-	return Utils::quote(s);
+	return Utils::q(s, "\"");
 }
 
 void PopulatorDialog::populateButton_clicked()
@@ -194,14 +194,14 @@ void PopulatorDialog::populateButton_clicked()
 		QStringList slr;
 		for (int j = 0; j < values.count(); ++j)
 		{
-			slr.append(Utils::literal(values.at(j).at(i).toString()));
+			slr.append(Utils::q(values.at(j).at(i).toString()));
 		}
 		QString sql = QString("INSERT ")
 					  + (constraintBox->isChecked() ? "OR IGNORE" : "")
 					  + " INTO "
-					  + Utils::quote(m_schema)
+					  + Utils::q(m_schema)
 					  + "."
-					  + Utils::quote(m_table)
+					  + Utils::q(m_table)
 					  + " ("
 					  + sqlColumns()
 					  + ") VALUES ("
@@ -242,11 +242,11 @@ void PopulatorDialog::populateButton_clicked()
 QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 {
 	QString sql = QString("select max(")
-				  + Utils::quote(c.name)
+				  + Utils::q(c.name)
 				  + ") from "
-				  + Utils::quote(m_schema)
+				  + Utils::q(m_schema)
 				  + "."
-				  + Utils::quote(m_table)
+				  + Utils::q(m_table)
 				  + ";";
 
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));

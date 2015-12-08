@@ -214,12 +214,12 @@ QString QueryEditorWidget::statement()
 		sql += "* ";
 	else
 	{
-		sql += Utils::quote(selectModel->stringList());
+		sql += Utils::q(selectModel->stringList(), "\"");
 	}
 
 	// Add table name
-			sql += ("\nFROM " + Utils::quote(m_schema) + "." +
-					Utils::quote(tableList->currentText()));
+			sql += ("\nFROM " + Utils::q(m_schema) + "." +
+					Utils::q(tableList->currentText()));
 
 	// Optionaly add terms
 	if (termsTable->rowCount() > 0)
@@ -240,7 +240,7 @@ QString QueryEditorWidget::statement()
 			if (fields && relations && value)
 			{
 				if (i > 0) { sql += logicWord; }
-				sql += Utils::quote(fields->currentText());
+				sql += Utils::q(fields->currentText());
 
 				switch (relations->currentIndex())
 				{
@@ -254,19 +254,19 @@ QString QueryEditorWidget::statement()
 						break;
 
 					case 2:		// Equals
-						sql += (" = " + Utils::literal(value->text()));
+						sql += (" = " + Utils::q(value->text(), "'"));
 						break;
 
 					case 3:		// Not equals
-						sql += (" <> " + Utils::literal(value->text()));
+						sql += (" <> " + Utils::q(value->text(), "'"));
 						break;
 
 					case 4:		// Bigger than
-						sql += (" > " + Utils::literal(value->text()));
+						sql += (" > " + Utils::q(value->text(), "'"));
 						break;
 
 					case 5:		// Smaller than
-						sql += (" < " + Utils::literal(value->text()));
+						sql += (" < " + Utils::q(value->text(), "'"));
 						break;
 
 					case 6:		// is null
@@ -296,7 +296,8 @@ QString QueryEditorWidget::statement()
 			if (fields && collators && directions)
 			{
 				if (i > 0) { sql += ", "; }
-				sql += Utils::quote(fields->currentText()) + " COLLATE ";
+				sql += Utils::q(fields->currentText());
+				sql += " COLLATE ";
 				sql += collators->currentText() + " ";
 				sql += directions->currentText();
 			}

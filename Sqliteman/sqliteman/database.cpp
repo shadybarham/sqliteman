@@ -64,7 +64,7 @@ SqlParser * Database::parseTable(const QString & table, const QString & schema)
 	QString createSQL = QString("SELECT sql FROM ")
 						+ getMaster(schema)
 						+ " WHERE lower(name) = "
-						+ Utils::quote(table).toLower()
+						+ Utils::q(table.toLower())
 						+ ";";
 	// Run the query
 
@@ -96,9 +96,9 @@ QList<FieldInfo> Database::tableFields(const QString & table, const QString & sc
 QStringList Database::indexFields(const QString & index, const QString &schema)
 {
 	QString sql = QString("PRAGMA ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + ".INDEX_INFO("
-				  + Utils::quote(index)
+				  + Utils::q(index)
 				  + ");";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	QStringList fields;
@@ -134,7 +134,7 @@ DbObjects Database::getObjects(const QString type, const QString schema)
         sql = QString("SELECT name, tbl_name FROM ")
 			  + getMaster(schema)
 			  + " WHERE lower(type) = "
-			  + Utils::literal(type).toLower()
+			  + Utils::q(type.toLower())
 			  + " and name not like 'sqlite_%';";
 	}
 
@@ -157,9 +157,9 @@ QStringList Database::getSysIndexes(const QString & table, const QString & schem
 	// really all indexes
 	QStringList sysIx;
 	QSqlQuery query(QString("PRAGMA ")
-					+ Utils::quote(schema)
+					+ Utils::q(schema)
 					+ ".index_list("
-					+ Utils::quote(table)
+					+ Utils::q(table)
 					+ ");", QSqlDatabase::database(SESSION_NAME));
 
 	QString curr;
@@ -206,9 +206,9 @@ DbObjects Database::getSysObjects(const QString & schema)
 bool Database::dropView(const QString & view, const QString & schema)
 {
 	QString sql = QString("DROP VIEW ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + "."
-				  + Utils::quote(view)
+				  + Utils::q(view)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
@@ -226,9 +226,9 @@ bool Database::dropView(const QString & view, const QString & schema)
 bool Database::dropIndex(const QString & name, const QString & schema)
 {
 	QString sql = QString("DROP INDEX ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + "."
-				  + Utils::quote(name)
+				  + Utils::q(name)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
@@ -316,10 +316,10 @@ QString Database::describeObject(const QString & name,
     QString sql = QString("select sql from ")
     			  + getMaster(schema)
     			  + " where lower(name) = "
-    			  + Utils::quote(name).toLower()
-    			  + " and type = \""
-				  + type
-				  + "\";";
+    			  + Utils::q(name.toLower(), "'")
+    			  + " and lower(type) = \""
+				  + Utils::q(type.toLower())
+				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if (query.lastError().isValid())
@@ -340,9 +340,9 @@ QString Database::describeObject(const QString & name,
 bool Database::dropTrigger(const QString & name, const QString & schema)
 {
 	QString sql = QString("DROP TRIGGER ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + "."
-				  + Utils::quote(name)
+				  + Utils::q(name)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
@@ -467,7 +467,7 @@ QString Database::getMaster(const QString &schema)
 	}
 	else
 	{
-		return QString("%1.sqlite_master").arg(Utils::quote(schema));
+		return QString("%1.sqlite_master").arg(Utils::q(schema));
 	}
 }
 
@@ -512,7 +512,7 @@ extern "C" int do_exec_callback(void * p, int n, char ** data, char **names)
 			{
 				if (first) { first = false; }
 				else { create += ","; }
-				create += Utils::quote(names[i]);
+				create += Utils::q(names[i]);
 			}
 			create += ");"; 
 			sqlite3_exec(state->db, create.toUtf8().data(),
@@ -528,7 +528,7 @@ extern "C" int do_exec_callback(void * p, int n, char ** data, char **names)
 		{
 			if (first) { first = false; }
 			else { insert += ","; }
-			insert += Utils::literal(data[i]);
+			insert += Utils::q(data[i], "'");
 		}
 		insert += ");"; 
 		sqlite3_exec(state->db, insert.toUtf8().data(),

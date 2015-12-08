@@ -1043,9 +1043,9 @@ void LiteManWindow::dropTable()
 	{
 		// don't check for pending, we're dropping it anyway
 		QString sql = QString("DROP TABLE")
-					  + Utils::quote(item->text(1))
+					  + Utils::q(item->text(1))
 					  + "."
-					  + Utils::quote(item->text(0))
+					  + Utils::q(item->text(0))
 					  + ";";
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
@@ -1093,9 +1093,9 @@ void LiteManWindow::emptyTable()
 	{
 		// don't check for pending, we're dropping it anyway
 		QString sql = QString("DELETE FROM ")
-					  + Utils::quote(item->text(1))
+					  + Utils::q(item->text(1))
 					  + "."
-					  + Utils::quote(item->text(0))
+					  + Utils::q(item->text(0))
 					  + ";";
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
@@ -1206,9 +1206,9 @@ void LiteManWindow::dropView()
 	if(ret == QMessageBox::Yes)
 	{
 		QString sql = QString("DROP VIEW")
-					  + Utils::quote(item->text(1))
+					  + Utils::q(item->text(1))
 					  + "."
-					  + Utils::quote(item->text(0))
+					  + Utils::q(item->text(0))
 					  + ";";
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
@@ -1271,9 +1271,9 @@ void LiteManWindow::dropIndex()
 	if(ret == QMessageBox::Yes)
 	{
 		QString sql = QString("DROP INDEX")
-					  + Utils::quote(item->text(1))
+					  + Utils::q(item->text(1))
 					  + "."
-					  + Utils::quote(item->text(0))
+					  + Utils::q(item->text(0))
 					  + ";";
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
@@ -1314,9 +1314,9 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 		{
 			SqlQueryModel * model = new SqlQueryModel(0);
 			model->setQuery(QString("select * from ")
-							+ Utils::quote(item->text(1))
+							+ Utils::q(item->text(1))
 							+ "."
-							+ Utils::quote(item->text(0)),
+							+ Utils::q(item->text(0)),
 							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
 		}
@@ -1366,9 +1366,9 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 			{
 				SqlQueryModel model(0);
 				model.setQuery(QString("select * from ")
-							   + Utils::quote(cur->text(1))
+							   + Utils::q(cur->text(1))
 							   + "."
-							   + Utils::quote(cur->text(0)),
+							   + Utils::q(cur->text(0)),
 							   QSqlDatabase::database(SESSION_NAME));
 				if (model.rowCount() > 0)
 					{ contextMenu->addAction(emptyTableAct); }
@@ -1492,9 +1492,9 @@ void LiteManWindow::attachDatabase()
 	if (!ok || schema.isEmpty())
 		return;
 	QString sql = QString("ATTACH DATABASE ")
-				  + Utils::literal(fileName)
+				  + Utils::q(fileName, "'")
 				  + " as "
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
@@ -1522,7 +1522,7 @@ void LiteManWindow::attachDatabase()
 				+ ":<br/><span style=\" color:#ff0000;\">"
 				+ db.lastError().text());
 			QSqlQuery qundo(QString("DETACH DATABASE ")
-							+ Utils::quote(schema)
+							+ Utils::q(schema)
 							+ ";",
 							db);
 			attachedDb.remove(schema);
@@ -1540,7 +1540,7 @@ void LiteManWindow::attachDatabase()
 					+ "<br/></span>"
 					+ tr("It is probably not a database."));
 				QSqlQuery qundo(QString("DETACH DATABASE ")
-								+ Utils::quote(schema)
+								+ Utils::q(schema)
 								+ ";",
 								db);
 				db.close();
@@ -1561,7 +1561,7 @@ void LiteManWindow::detachDatabase()
 	QString dbname(schemaBrowser->tableTree->currentItem()->text(0));
 	removeRef(dbname);
 	QString sql = QString("DETACH DATABASE ")
-				  + Utils::quote(dbname)
+				  + Utils::q(dbname)
 				  + ";";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	if (query.lastError().isValid())
@@ -1676,9 +1676,9 @@ void LiteManWindow::dropTrigger()
 	if(ret == QMessageBox::Yes)
 	{
 		QString sql = QString("DROP TRIGGER ")
-					  + Utils::quote(item->text(1))
+					  + Utils::q(item->text(1))
 					  + "."
-					  + Utils::quote(item->text(0))
+					  + Utils::q(item->text(0))
 					  + ";";
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())
@@ -1723,9 +1723,9 @@ void LiteManWindow::reindex()
 	if (item)
 	{
 		QString sql(QString("REINDEX ")
-					+ Utils::quote(item->text(1))
+					+ Utils::q(item->text(1))
 					+ "."
-					+ Utils::quote(item->text(0))
+					+ Utils::q(item->text(0))
 					+ ";");
 		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 		if (query.lastError().isValid())

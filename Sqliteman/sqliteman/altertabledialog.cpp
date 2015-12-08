@@ -197,7 +197,7 @@ QStringList AlterTableDialog::originalSource(QString tableName)
 	QString ixsql = QString("select sql from ")
 					+ Database::getMaster(m_item->text(1))
 					+ " where type = 'trigger' and tbl_name = "
-					+ Utils::quote(tableName)
+					+ Utils::q(tableName)
 					+ ";";
 	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
 
@@ -224,7 +224,7 @@ QList<SqlParser *> AlterTableDialog::originalIndexes(QString tableName)
 	QString ixsql = QString("select sql from ")
 					+ Database::getMaster(m_item->text(1))
 					+ " where type = 'index' and tbl_name = "
-					+ Utils::quote(tableName)
+					+ Utils::q(tableName)
 					+ ";";
 	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
 
@@ -251,11 +251,11 @@ QList<SqlParser *> AlterTableDialog::originalIndexes(QString tableName)
 bool AlterTableDialog::renameTable(QString oldTableName, QString newTableName)
 {
 	QString sql = QString("ALTER TABLE ")
-				  + Utils::quote(m_item->text(1))
+				  + Utils::q(m_item->text(1))
 				  + "."
-				  + Utils::quote(oldTableName)
+				  + Utils::q(oldTableName)
 				  + " RENAME TO "
-				  + Utils::quote(newTableName)
+				  + Utils::q(newTableName)
 				  + ";";
 	QString message = tr("Cannot rename table ")
 					  + oldTableName
@@ -639,8 +639,8 @@ void AlterTableDialog::alterButton_clicked()
 			{
 				first = false;
 				insert += (QString("INSERT INTO %1.%2 (")
-					.arg(Utils::quote(ui.databaseCombo->currentText()),
-						 Utils::quote(ui.nameEdit->text())));
+						   .arg(Utils::q(ui.databaseCombo->currentText()),
+								Utils::q(ui.nameEdit->text())));
 
 		    select += " ) SELECT ";
 			}
@@ -651,17 +651,17 @@ void AlterTableDialog::alterButton_clicked()
 			}
 			QLineEdit * nameItem =
 				qobject_cast<QLineEdit *>(ui.columnTable->cellWidget(i, 0));
-			insert += Utils::quote(nameItem->text());
-	        select += Utils::quote(m_fields[j].name);
+			insert += Utils::q(nameItem->text());
+	        select += Utils::q(m_fields[j].name);
 			columnMap.insert(m_fields[j].name, nameItem->text());
 		}
 	}
 	if (!insert.isEmpty())
 	{
 		select += " FROM "
-				  + Utils::quote(m_item->text(1))
+				  + Utils::q(m_item->text(1))
 				  + "."
-				  + Utils::quote(oldTableName)
+				  + Utils::q(oldTableName)
 				  + ";";
 		message = tr("Cannot insert data into ")
 				  + newTableName;
@@ -678,9 +678,9 @@ void AlterTableDialog::alterButton_clicked()
 
 	// drop old table
 	sql = "DROP TABLE ";
-	sql += Utils::quote(m_item->text(1))
+	sql += Utils::q(m_item->text(1))
 		   + "."
-		   + Utils::quote(oldTableName)
+		   + Utils::q(oldTableName)
 		   + ";";
 	message = tr("Cannot drop table ")
 			  + oldTableName;

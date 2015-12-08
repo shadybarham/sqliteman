@@ -125,9 +125,9 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 QString TableEditorDialog::getFullName()
 {
 	return QString("CREATE %1 ").arg(m_tableOrView)
-		   + Utils::quote(ui.databaseCombo->currentText())
+		   + Utils::q(ui.databaseCombo->currentText())
 		   + "."
-		   + Utils::quote(ui.nameEdit->text());
+		   + Utils::q(ui.nameEdit->text());
 }
 
 QString TableEditorDialog::getSQLfromDesign()
@@ -148,13 +148,13 @@ QString TableEditorDialog::getSQLfromDesign()
 		MyLineEdit * ed =
 			qobject_cast<MyLineEdit *>(ui.columnTable->cellWidget(i, 0));
 		QString name(ed->text());
-		sql += Utils::quote(name);
+		sql += Utils::q(name);
 		QComboBox * box =
 			qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 1));
 		QString type(box->currentText());
 		if (box->currentIndex())
 		{
-			sql += " " + Utils::quote(type);
+			sql += " " + Utils::q(type);
 		}
 		box = qobject_cast<QComboBox *>(ui.columnTable->cellWidget(i, 2));
 		QString extra(box->currentText());
@@ -180,7 +180,7 @@ QString TableEditorDialog::getSQLfromDesign()
 	if (primaryKeys.count() > 0)
 	{
 		sql += ",\nPRIMARY KEY ( ";
-		sql += Utils::quote(primaryKeys);
+		sql += Utils::q(primaryKeys, "\"");
 		sql += " )";
 	}
 	sql += "\n)";

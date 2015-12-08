@@ -2267,7 +2267,7 @@ QString SqlParser::defaultToken(FieldInfo &f)
 	if (result.isEmpty()) { return QString(); }
 	else if (f.defaultisQuoted)
 	{
-		return Utils::literal(result);
+		return Utils::q(result, "'");
 	}
 	else {return result; }
 }
@@ -2278,13 +2278,13 @@ QString SqlParser::toString(Token t)
 	switch (t.type)
 	{
 		case tokenQuotedIdentifier:
-			return s + Utils::quote(t.name);
+			return s + Utils::q(t.name);
 		case tokenSquareIdentifier:
 			return s + "[" + t.name + "]";
 		case tokenBackQuotedIdentifier:
-			return s + Utils::backQuote(t.name);
+			return s + Utils::q(t.name, "`");
 		case tokenStringLiteral:
-			return s + Utils::literal(t.name);
+			return s + Utils::q(t.name, "'");
 		case tokenBlobLiteral:
 		case tokenIdentifier:
 		case tokenNumeric:
@@ -2339,21 +2339,21 @@ QString SqlParser::toString()
 				if (first)
 				{
 					first = false;
-					s += Utils::quote(f.name);
+					s += Utils::q(f.name);
 				}
 				else
 				{
-					s += ", " + Utils::quote(f.name);
+					s += ", " + Utils::q(f.name);
 				}
 				if (!f.type.isEmpty())
 				{
-					s += " " + Utils::quote(f.type);
+					s += " " + Utils::q(f.type);
 				}
 				if (!f.defaultValue.isEmpty())
 				{
 					if (f.defaultisQuoted)
 					{
-						s += " DEFAULT " + Utils::literal(f.defaultValue);
+						s += " DEFAULT " + Utils::q(f.defaultValue, "'");
 					}
 					else
 					{
@@ -2364,7 +2364,7 @@ QString SqlParser::toString()
 				if (f.isAutoIncrement) { s += " PRIMARY KEY AUTOINCREMENT"; }
 				else if (f.isPartOfPrimaryKey)
 				{
-					pk.append(Utils::quote(f.name));
+					pk.append(Utils::q(f.name));
 				}
 			}
 			if (!pk.isEmpty()) { s += pk.join(", "); }
@@ -2375,8 +2375,8 @@ QString SqlParser::toString()
 		case createIndex:
 		{
 			if (m_isUnique) { s += "UNIQUE "; }
-			s += "INDEX " + Utils::quote(m_indexName);
-			s += " ON " + Utils::quote(m_tableName) + " (\n";
+			s += "INDEX " + Utils::q(m_indexName);
+			s += " ON " + Utils::q(m_tableName) + " (\n";
 			bool first = true;
 			foreach (Expression * expr, m_columns)
 			{

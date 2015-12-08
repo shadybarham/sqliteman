@@ -645,9 +645,9 @@ void DataViewer::openStandaloneWindow()
 				+ QDateTime::currentDateTime().toString() + " - " 
 				+ tr("Data Snapshot"));
 		qm->setQuery(QString("select * from ")
-					 + Utils::quote(tm->schema())
+					 + Utils::q(tm->schema())
 					 + "."
-					 + Utils::quote(tm->tableName())
+					 + Utils::q(tm->tableName())
 					 + ";",
 					 QSqlDatabase::database(SESSION_NAME));
 	}

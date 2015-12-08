@@ -33,9 +33,9 @@ AlterViewDialog::AlterViewDialog(const QString & name, const QString & schema,
 	ui.nameEdit->setDisabled(true);
 
 	QString sql = QString("select sql from ")
-				  + Utils::quote(schema)
+				  + Utils::q(schema)
 				  + ".sqlite_master where name = "
-				  + Utils::quote(name)
+				  + Utils::q(name)
 				  + " and type = \"view\" ;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	while (query.next())
@@ -88,9 +88,9 @@ void AlterViewDialog::createButton_clicked()
 		return;
 	}
 	sql = QString("DROP VIEW ")
-		  + Utils::quote(ui.databaseCombo->currentText())
+		  + Utils::q(ui.databaseCombo->currentText())
 		  + "."
-		  + Utils::quote(ui.nameEdit->text())
+		  + Utils::q(ui.nameEdit->text())
 		  + ";";
 	QSqlQuery q2(sql, db);
 	if (q2.lastError().isValid())
@@ -124,9 +124,9 @@ void AlterViewDialog::createButton_clicked()
 	update = true;
 
 	sql = QString("CREATE VIEW ")
-		  + Utils::quote(ui.databaseCombo->currentText())
+		  + Utils::q(ui.databaseCombo->currentText())
 		  + "."
-		  + Utils::quote(ui.nameEdit->text())
+		  + Utils::q(ui.nameEdit->text())
 		  + " AS\n"
 		  + ui.sqlEdit->text()
 		  + ";";

@@ -147,9 +147,9 @@ void ImportTableDialog::slotAccepted()
 	QStringList binds;
 	for (int i = 0; i < cols; ++i) { binds << "?"; }
 	QString sql = QString("insert into ")
-				  + Utils::quote(schemaComboBox->currentText())
+				  + Utils::q(schemaComboBox->currentText())
 				  + "."
-				  + Utils::quote(tableComboBox->currentText())
+				  + Utils::q(tableComboBox->currentText())
 				  + " values ("
 				  + binds.join(", ")
 				  + ");";
