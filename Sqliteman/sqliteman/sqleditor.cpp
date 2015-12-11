@@ -3,6 +3,7 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME handle very long lines better
 */
 #include <QMessageBox>
 #include <QFile>
@@ -256,6 +257,8 @@ void SqlEditor::action_Run_SQL_triggered()
 	{
 		QString sql(query());
 		emit showSqlResult(sql);
+		if (Utils::updateObjectTree(sql)) { emit buildTree(); }
+		if (Utils::updateTables(sql)) { emit refreshTable(); }
 	    appendHistory(sql);
 		creator->buildPragmasTree();
 	}

@@ -95,6 +95,7 @@ class LiteManWindow : public QMainWindow
 
 		void setActiveItem(QTreeWidgetItem * item);
 		void describeObject(QString type);
+		void updateContextMenu(QTreeWidgetItem * item);
 
 	protected:
 		/*! \brief This method handles closing of the main window by saving the window's state and accepting
@@ -141,7 +142,8 @@ class LiteManWindow : public QMainWindow
 		void describeIndex();
 		void reindex();
 
-		void treeItemActivated(QTreeWidgetItem * item, int column);
+		void treeItemActivated(QTreeWidgetItem * item);
+		void updateContextMenu();
 		void treeContextMenuOpened(const QPoint & pos);
 		void tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* prev);
 

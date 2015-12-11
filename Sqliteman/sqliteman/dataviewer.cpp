@@ -317,8 +317,11 @@ bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
 	}
 	ui.itemView->setModel(model);
 	ui.itemView->setTable(ui.tableView);
-	ui.tabWidget->setCurrentIndex(0);
-	resizeViewToContents(model);
+	if (model->columnCount() > 0)
+	{
+		ui.tabWidget->setCurrentIndex(0);
+		resizeViewToContents(model);
+	}
 	updateButtons();
 	
 	rowCountChanged();
@@ -560,6 +563,7 @@ void DataViewer::commit()
 	reSelect();
 	resizeViewToContents(model);
 	updateButtons();
+	emit tableUpdated();
 }
 
 void DataViewer::rollback()
@@ -774,6 +778,7 @@ void DataViewer::showSqlScriptResult(QString line)
 	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
 	ui.tabWidget->setCurrentIndex(2);
 	updateButtons();
+	emit tableUpdated();
 }
 
 void DataViewer::sqlScriptStart()

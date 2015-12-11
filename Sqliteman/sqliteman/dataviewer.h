@@ -60,7 +60,10 @@ class DataViewer : public QMainWindow
 		void saveSelection();
 		void reSelect();
 
-	public slots:
+	signals:
+		void tableUpdated();
+
+public slots:
 		//! \brief Append the line to the "Script Result" tab.
 		void showSqlScriptResult(QString line);
 		//! \brief Clean the "Script Result" report

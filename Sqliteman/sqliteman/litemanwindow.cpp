@@ -218,7 +218,7 @@ void LiteManWindow::initUI()
 
 	connect(schemaBrowser->tableTree,
 			SIGNAL(itemActivated(QTreeWidgetItem *, int)),
-			this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+			this, SLOT(treeItemActivated(QTreeWidgetItem *)));
 	connect(schemaBrowser->tableTree,
 			SIGNAL(customContextMenuRequested(const QPoint &)),
 			this, SLOT(treeContextMenuOpened(const QPoint &)));
@@ -238,6 +238,9 @@ void LiteManWindow::initUI()
 			schemaBrowser->tableTree, SLOT(buildTree()));
 	connect(sqlEditor, SIGNAL(refreshTable()),
 			this, SLOT(refreshTable()));
+
+	connect(dataViewer, SIGNAL(tableUpdated()),
+			this, SLOT(updateContextMenu()));
 }
 
 void LiteManWindow::initActions()
@@ -728,14 +731,14 @@ void LiteManWindow::setActiveItem(QTreeWidgetItem * item)
 	// used when the item was already active but has been recreated
 	disconnect(schemaBrowser->tableTree,
 			   SIGNAL(itemActivated(QTreeWidgetItem *, int)),
-			   this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+			   this, SLOT(treeItemActivated(QTreeWidgetItem *)));
 	disconnect(schemaBrowser->tableTree,
 		SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
 		this,
 		SLOT(tableTree_currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
 	connect(schemaBrowser->tableTree,
 			SIGNAL(itemActivated(QTreeWidgetItem *, int)),
-			this, SLOT(treeItemActivated(QTreeWidgetItem *, int)));
+			this, SLOT(treeItemActivated(QTreeWidgetItem *)));
 	schemaBrowser->tableTree->setCurrentItem(item);
 	m_activeItem = item;
 	connect(schemaBrowser->tableTree,
@@ -753,7 +756,7 @@ void LiteManWindow::checkForCatalogue()
 		dataViewer->saveSelection();
 		QTreeWidgetItem * item = m_activeItem;
 		m_activeItem = 0;
-		treeItemActivated(item, 0);
+		treeItemActivated(item);
 		dataViewer->reSelect();
 	}
 }
@@ -977,7 +980,7 @@ void LiteManWindow::alterTable()
 		if (isActive)
 		{
 			m_activeItem = 0; // we've changed it
-			treeItemActivated(item, 0);
+			treeItemActivated(item);
 			dataViewer->reSelect();
 		}
 		queryEditor->tableAltered(oldName, item);
@@ -997,7 +1000,7 @@ void LiteManWindow::populateTable()
 	if (isActive && dlg.updated) {
 		dataViewer->saveSelection();
 		m_activeItem = 0; // we've changed it
-		treeItemActivated(item, 0);
+		treeItemActivated(item);
 		dataViewer->reSelect();
 	}
 }
@@ -1013,15 +1016,14 @@ void LiteManWindow::importTable()
 							    item ? item->text(1) : "main");
 	if (dlg.exec() == QDialog::Accepted)
 	{
-		queryEditor->tableAltered(item->text(0), item);
 		dataViewer->saveSelection();
 		if (isActive)
 		{
 			m_activeItem = 0; // we've changed it
-			treeItemActivated(item, 0);
+			treeItemActivated(item);
 			dataViewer->reSelect();
 		}
-		tableTree_currentItemChanged(item, 0);
+		updateContextMenu();
 	}
 }
 
@@ -1114,10 +1116,10 @@ void LiteManWindow::emptyTable()
 			if (isActive)
 			{
 				dataViewer->setNotPending();
-				dataViewer->setTableModel(new QSqlQueryModel(), false);
 				m_activeItem = 0;
+				treeItemActivated(item);
 			}
-			tableTree_currentItemChanged(item, 0);
+			updateContextMenu();
 		}
 	}
 }
@@ -1183,7 +1185,7 @@ void LiteManWindow::alterView()
 		{
 			dataViewer->saveSelection();
 			m_activeItem = 0; // we've changed it
-			treeItemActivated(item, 0);
+			treeItemActivated(item);
 			dataViewer->reSelect();
 		}
 	}
@@ -1297,7 +1299,12 @@ void LiteManWindow::dropIndex()
 	}
 }
 
-void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
+void LiteManWindow::describeTable() { describeObject("table"); }
+void LiteManWindow::describeTrigger() { describeObject("trigger"); }
+void LiteManWindow::describeView() { describeObject("view"); }
+void LiteManWindow::describeIndex() { describeObject("index"); }
+
+void LiteManWindow::treeItemActivated(QTreeWidgetItem * item)
 {
 	dataViewer->removeErrorMessage();
 	if (   (!item)
@@ -1343,12 +1350,39 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item, int /*column*/)
 	}
 }
 
+void LiteManWindow::updateContextMenu()
+{
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	updateContextMenu(item);
+}
+
 void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* /*prev*/)
 {
 	dataViewer->removeErrorMessage();
+	updateContextMenu(cur);
+}
+
+
+void LiteManWindow::treeContextMenuOpened(const QPoint & pos)
+{
+	if (contextMenu->actions().count() != 0)
+		contextMenu->exec(schemaBrowser->tableTree->viewport()->mapToGlobal(pos));
+}
+
+void LiteManWindow::describeObject(QString type)
+{
+	dataViewer->removeErrorMessage();
+	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
+	QString desc(Database::describeObject(item->text(0), item->text(1), type));
+	dataViewer->sqlScriptStart();
+	dataViewer->showSqlScriptResult("-- " + tr("Describe %1").arg(item->text(0).toUpper()));
+	dataViewer->showSqlScriptResult(desc);
+}
+
+void LiteManWindow::updateContextMenu(QTreeWidgetItem * cur)
+{
 	contextMenu->clear();
-	if (!cur)
-		return;
+	if (!cur) { return; }
 
 	switch(cur->type())
 	{
@@ -1422,29 +1456,6 @@ void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidg
 	}
 	contextMenu->setDisabled(contextMenu->actions().count() == 0);
 }
-
-
-void LiteManWindow::treeContextMenuOpened(const QPoint & pos)
-{
-	if (contextMenu->actions().count() != 0)
-		contextMenu->exec(schemaBrowser->tableTree->viewport()->mapToGlobal(pos));
-}
-
-void LiteManWindow::describeObject(QString type)
-{
-	dataViewer->removeErrorMessage();
-	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	QString desc(Database::describeObject(item->text(0), item->text(1), type));
-	dataViewer->sqlScriptStart();
-	dataViewer->showSqlScriptResult("-- " + tr("Describe %1").arg(item->text(0).toUpper()));
-	dataViewer->showSqlScriptResult(desc);
-}
-
-void LiteManWindow::describeTable() { describeObject("table"); }
-void LiteManWindow::describeTrigger() { describeObject("trigger"); }
-void LiteManWindow::describeView() { describeObject("view"); }
-void LiteManWindow::describeIndex() { describeObject("index"); }
-
 
 void LiteManWindow::analyzeDialog()
 {
@@ -1748,6 +1759,7 @@ void LiteManWindow::refreshTable()
 	 * table.
 	 */
 	dataViewer->setTableModel(new QSqlQueryModel(), false);
+	updateContextMenu();
 	m_activeItem = 0;
 	queryEditor->treeChanged();
 }
