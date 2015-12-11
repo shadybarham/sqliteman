@@ -1021,6 +1021,7 @@ void LiteManWindow::importTable()
 			treeItemActivated(item, 0);
 			dataViewer->reSelect();
 		}
+		tableTree_currentItemChanged(item, 0);
 	}
 }
 
