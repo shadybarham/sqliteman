@@ -236,7 +236,17 @@ bool DataExportDialog::exportCSV()
 		QSqlRecord r = m_data->record(i);
 		for (int j = 0; j < m_header.size(); ++j)
 		{
-			out << '"' << r.value(j).toString().replace('"', "\"\"").replace('\n', "\\n") << '"';
+			if (r.value(j).type() == QVariant::ByteArray)
+			{
+				out << Database::hex(r.value(j).toByteArray());
+			}
+			else
+			{
+				out << '"'
+					<< r.value(j).toString().replace('"', "\"\"")
+											.replace('\n', "\\n")
+					<< '"';
+			}
 			if (j != (m_header.size() - 1))
 				out << ", ";
 		}
@@ -340,7 +350,7 @@ bool DataExportDialog::exportSql()
 				createStatement = createQuery.value(0).toString();
 			}
 		}
-		out << createStatement << ";\n";
+		out << createStatement << ";" << endl();
 	}
 
 
