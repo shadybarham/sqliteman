@@ -52,6 +52,7 @@ class DataViewer : public QMainWindow
 
 		QString canFetchMore;
 		bool isTopLevel;
+		int columnSelected;
 
 		/*! \brief Free locked resources */
 		void freeResources(QAbstractItemModel * old);
@@ -59,6 +60,7 @@ class DataViewer : public QMainWindow
 		// reselect active row and full/item view after doing some changes
 		void saveSelection();
 		void reSelect();
+		bool incrementalSearch(QKeyEvent *keyEvent);
 
 	signals:
 		void tableUpdated();
@@ -76,6 +78,8 @@ public slots:
 		int activeRow;
 		int savedActiveRow;
 		bool wasItemView;
+		QString searchString;
+		int topRow;
 
         QAction * actOpenEditor;
         QAction * actOpenMultiEditor;
@@ -139,6 +143,8 @@ public slots:
         void actInsertNull_triggered();
 
 		void rowDoubleClicked(int);
+		void nonColumnClicked();
+		void columnClicked(int);
 };
 
 
@@ -157,7 +163,9 @@ namespace DataViewerTools {
 		Q_OBJECT
 
 		public:
-			KeyPressEater(QObject * parent = 0) : QObject(parent) {};
+			KeyPressEater(DataViewer * parent = 0) : QObject(parent) {
+				m_owner = parent;
+			};
 			~KeyPressEater(){};
 
 		signals:
@@ -168,6 +176,9 @@ namespace DataViewerTools {
 		protected:
 			//! \brief Just catch keys.
 			bool eventFilter(QObject *obj, QEvent *event);
+
+		private:
+			DataViewer * m_owner;
 	};
 
 }

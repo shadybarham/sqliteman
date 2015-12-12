@@ -127,10 +127,17 @@ DataViewer::DataViewer(QWidget * parent)
 			this, SLOT(tableView_dataResized(int, int, int)));
 	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
 			this, SLOT(rowDoubleClicked(int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(nonColumnClicked()));
+	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(columnClicked(int)));
 	connect(ui.tableView->verticalScrollBar(), SIGNAL(valueChanged(int)),
 					this, SLOT(rowCountChanged()));
+	connect(ui.tableView, SIGNAL(clicked(const QModelIndex &)),
+			this, SLOT(nonColumnClicked()));
 
 	activeRow = -1;
+	columnSelected = -1;
 }
 
 DataViewer::~DataViewer()
@@ -366,6 +373,49 @@ void DataViewer::reSelect()
 	}
 }
 
+bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
+{
+	QString s (keyEvent->text());
+	if (keyEvent->key() == Qt::Key_Backspace)
+	{
+		if (searchString.isEmpty()) { return false; }
+		searchString.chop(1);
+		while (topRow > 0)
+		{
+			QModelIndex index(
+				ui.tableView->model()->index(topRow - 1, columnSelected));
+			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
+			if (searchString.compare(data.toString(), Qt::CaseInsensitive) >= 0)
+			{
+				ui.tableView->scrollTo(
+					ui.tableView->model()->index(topRow, columnSelected),
+					QAbstractItemView::PositionAtTop);
+				break;
+			}
+			--topRow;
+		}
+		return true;
+	}
+	else if (s.isEmpty()) { return false; }
+	else
+	{
+		searchString.append(s);
+		int rows = ui.tableView->model()->rowCount();
+		for (int i = topRow; i < rows; ++i)
+		{
+			QModelIndex index(ui.tableView->model()->index(i, columnSelected));
+			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
+			if (searchString.compare(data.toString(), Qt::CaseInsensitive) <= 0)
+			{
+				topRow = i;
+				ui.tableView->scrollTo(index, QAbstractItemView::PositionAtTop);
+				break;
+			}
+		}
+		return true;
+	}
+}
+
 void DataViewer::tableView_dataResized(int column, int oldWidth, int newWidth) 
 {
 	dataResized = true;
@@ -426,6 +476,7 @@ void DataViewer::addRow()
 {
 	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
 	removeErrorMessage();
+	nonColumnClicked();
 	SqlTableModel * model
 		= qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
@@ -446,6 +497,8 @@ void DataViewer::addRow()
 
 void DataViewer::copyRow()
 {
+	removeErrorMessage();
+	nonColumnClicked();
     SqlTableModel * model =
 	    qobject_cast<SqlTableModel *>(ui.tableView->model());
     if (model)
@@ -481,6 +534,7 @@ void DataViewer::copyRow()
 void DataViewer::removeRow()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	SqlTableModel * model =
 		qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
@@ -508,6 +562,7 @@ void DataViewer::deletingRow(int row)
 void DataViewer::exportData()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	QString tmpTableName("<any_table>");
 	SqlTableModel * m = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (m)
@@ -539,6 +594,7 @@ QStringList DataViewer::tableHeader()
 void DataViewer::commit()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	saveSelection();
 	// HACK: some Qt4 versions crash on commit/rollback when there
 	// is a new - currently edited - row in a transaction. This
@@ -569,6 +625,7 @@ void DataViewer::commit()
 void DataViewer::rollback()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	saveSelection();
 	// HACK: some Qt4 versions crash on commit/rollback when there
 	// is a new - currently edited - row in a transaction. This
@@ -625,6 +682,7 @@ void DataViewer::copyHandler()
 void DataViewer::openStandaloneWindow()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
 
 #ifdef WIN32
@@ -681,6 +739,7 @@ void DataViewer::openStandaloneWindow()
 
 void DataViewer::handleBlobPreview(bool state)
 {
+	nonColumnClicked();
 	if (state)
 		tableView_selectionChanged(QItemSelection(), QItemSelection());
 	updateButtons();
@@ -728,6 +787,7 @@ void DataViewer::tableView_currentChanged(const QModelIndex & current,
 void DataViewer::tabWidget_currentChanged(int ix)
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	QModelIndex ci = ui.tableView->currentIndex();
 	if (ix == 0)
 	{
@@ -789,6 +849,7 @@ void DataViewer::sqlScriptStart()
 void DataViewer::gotoLine()
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	bool ok;
 	int row = QInputDialog::getInt(this, tr("Goto Line"), tr("Goto Line:"),
 								   ui.tableView->currentIndex().row(), // value
@@ -858,7 +919,20 @@ void DataViewer::actInsertNull_triggered()
 void DataViewer::rowDoubleClicked(int)
 {
 	removeErrorMessage();
+	nonColumnClicked();
 	ui.tabWidget->setCurrentIndex(1);
+}
+
+void DataViewer::nonColumnClicked()
+{
+	columnSelected = -1;
+}
+
+void DataViewer::columnClicked(int col)
+{
+	columnSelected = col;
+	topRow = 0;
+	searchString.clear();
 }
 
 void DataViewer::rowCountChanged()
@@ -892,6 +966,10 @@ bool DataViewerTools::KeyPressEater::eventFilter(QObject *obj, QEvent *event)
 		{
 			emit copyRequest();
 			return true;
+		}
+		else if (m_owner->columnSelected >= 0)
+		{
+			if (m_owner->incrementalSearch(keyEvent)) { return true; }
 		}
 		return QObject::eventFilter(obj, event);
 	}
