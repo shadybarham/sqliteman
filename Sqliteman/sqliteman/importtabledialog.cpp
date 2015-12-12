@@ -4,14 +4,15 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	
-	FIXME make cancel work properly
 	FIXME handle column names in first row
 	FIXME we seem to be importing twice
-	FIXME re-add Psion foramt
+	FIXME re-add Psion format
+	FIXME deal with embedded newlines in CSV format
 */
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStandardItemModel>
 
 #if QT_VERSION >= 0x040300
 #include <QXmlStreamReader>
@@ -49,13 +50,13 @@ ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 	int currIx = 0;
 	foreach (n, Database::getDatabases().keys())
 	{
-		if (n == m_schema)
-			currIx = i;
+		if (n == m_schema) { currIx = i; }
 		schemaComboBox->addItem(n);
 		++i;
 	}
 	schemaComboBox->setCurrentIndex(currIx);
 	setTablesForSchema(m_schema);
+	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 
 #if QT_VERSION < 0x040300
 	tabWidget->setTabEnabled(1, false);
@@ -66,20 +67,14 @@ ImportTableDialog::ImportTableDialog(LiteManWindow * parent,
 	connect(fileButton, SIGNAL(clicked()), this, SLOT(fileButton_clicked()));
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(slotAccepted()));
 	connect(tabWidget, SIGNAL(currentChanged(int)),
-			this, SLOT(createPreview(int)));
+			this, SLOT(createPreview()));
 	// csv
-	connect(pipeRadioButton, SIGNAL(clicked(bool)),
-			this, SLOT(createPreview(bool)));
-	connect(commaRadioButton, SIGNAL(clicked(bool)),
-			this, SLOT(createPreview(bool)));
-	connect(semicolonRadioButton, SIGNAL(clicked(bool)),
-			this, SLOT(createPreview(bool)));
-	connect(tabelatorRadioButton, SIGNAL(clicked(bool)),
-			this, SLOT(createPreview(bool)));
-	connect(customRadioButton, SIGNAL(clicked(bool)),
-			this, SLOT(createPreview(bool)));
-	connect(customEdit, SIGNAL(textChanged(QString)),
-			this, SLOT(customEdit_textChanged(QString)));
+	colSep->setText(",");
+	connect(colSep, SIGNAL(textChanged(QString)),
+			this, SLOT(createPreview()));
+	quoteChar->setText("\"");
+	connect(quoteChar, SIGNAL(textChanged(QString)),
+			this, SLOT(createPreview()));
 	connect(skipHeaderCheck, SIGNAL(toggled(bool)),
 			this, SLOT(skipHeaderCheck_toggled(bool)));
 
@@ -93,6 +88,96 @@ ImportTableDialog::~ImportTableDialog()
     settings.setValue("importtable/width", QVariant(width()));
 }
 
+QStringList ImportTableDialog::splitLine(QTextStream * in,
+										 QString sep, QString q)
+{
+	QStringList result;
+	QString line = in->readLine();
+	int state = 0; // not in quotes
+	QString item;
+	while (true)
+	{
+		switch (state)
+		{
+			case 0: // not in quotes
+				if (line.length() == 0)
+				{
+					result.append(item);
+					return result;
+				}
+				else if (line.startsWith(sep))
+				{
+					result.append(item);
+					item.clear();
+					line.remove(0, sep.length());
+				}
+				else if ((q.length() > 0) && line.startsWith(q))
+				{
+					line.remove(0, 1);
+					state = 1; // in quotes
+				}
+				else
+				{
+					item.append(line.at(0));
+					line.remove(0, 1);
+				}
+				break;
+			case 1: // in quotes
+				if (line.length() == 0)
+				{
+					if (!in->atEnd())
+					{
+						item.append('\n');
+						line = in->readLine();
+					}
+					else
+					{
+						// file ends with unmatched quote
+						result.append(item);
+						return result;
+					}
+				}
+				else if (line.startsWith(q))
+				{
+					line.remove(0, 1);
+					state = 2; // seen quote in quotes
+				}
+				else
+				{
+					item.append(line.at(0));
+					line.remove(0, 1);
+				}
+				break;
+			case 2: // seen quote in quotes
+				if (line.length() == 0)
+				{
+					result.append(item);
+					return result;
+				}
+				else if (line.startsWith(sep))
+				{
+					result.append(item);
+					item.clear();
+					line.remove(0, sep.length());
+					state = 0; // not in quotes
+				}
+				else if (line.startsWith(q))
+				{
+					item.append(line.at(0));
+					line.remove(0, 1);
+					state = 1; // in quotes
+				}
+				else
+				{
+					item.append(line.at(0));
+					line.remove(0, 1);
+					state = 0; // not in quotes
+				}
+				break;
+		}
+	}
+}
+
 void ImportTableDialog::fileButton_clicked()
 {
 	QString pth(fileEdit->text());
@@ -104,6 +189,7 @@ void ImportTableDialog::fileButton_clicked()
 		return;
 
 	fileEdit->setText(fname);
+	updateButton();
 	createPreview();
 }
 
@@ -117,23 +203,21 @@ void ImportTableDialog::slotAccepted()
 	}
 
 	int skipHeader = skipHeaderCheck->isChecked() ? skipHeaderBox->value() : 0;
+	QList<FieldInfo> fields
+		= Database::tableFields(tableComboBox->currentText(),
+								schemaComboBox->currentText());
 
 	switch (tabWidget->currentIndex())
 	{
 		case 0:
-			if (sqliteSeparator().length() == 0)
-			{
-				QMessageBox::warning(this, tr("Data Import"),
-									tr("Fields separator must be given"));
-				return;
-			}
-			values = ImportTable::CSVModel(fileEdit->text(),
-										   skipHeader,
-										   sqliteSeparator(),
+			values = ImportTable::CSVModel(fileEdit->text(), fields,
+										   skipHeader, colSep->text(),
+										   quoteChar->text(),
 										   this, 0).m_values;
 			break;
 		case 1:
-			values = ImportTable::XMLModel(fileEdit->text(), skipHeader, this, 0).m_values;
+			values = ImportTable::XMLModel(fileEdit->text(), fields,
+										   skipHeader, this, 0).m_values;
 	}
 
 	// base import
@@ -173,7 +257,8 @@ void ImportTableDialog::slotAccepted()
 		++row;
 		if (l.count() != cols)
 		{
-			log.append(tr("Row = %1; Imported values = %2; Table columns count = %3; Values = (%4)")
+			log.append(tr("Row = %1; Imported values = %2; "
+						  "Table columns count = %3; Values = (%4)")
 					.arg(row).arg(l.count()).arg(cols).arg(l.join(", ")));
 			result = false;
 			continue;
@@ -181,12 +266,37 @@ void ImportTableDialog::slotAccepted()
 
 		query.prepare(sql);
 		for (int i = 0; i < cols ; ++i)
-			query.addBindValue(l.at(i));
+		{
+			if (l.at(i).isEmpty())
+			{
+				query.addBindValue(QVariant(QVariant::String));
+			}
+			else
+			{
+				QString s(l.at(i));
+				if (s.startsWith("X'", Qt::CaseInsensitive))
+				{
+					QByteArray b;
+					while (!s.startsWith("'"))
+					{
+						// blob
+						s = s.remove(0, 2);
+						b.append((hexValue(s[0]) << 4) + hexValue(s[1]));
+					}
+					query.addBindValue(QVariant(b));
+				}
+				else
+				{
+					query.addBindValue(l.at(i));
+				}
+			}
+		}
 
 		query.exec();
 		if (query.lastError().isValid())
 		{
-			log.append(tr("Row = %1; %2").arg(row).arg(query.lastError().text()));
+			log.append(tr("Row = %1; %2")
+					   .arg(row).arg(query.lastError().text()));
 			result = false;
 		}
 		else
@@ -208,7 +318,6 @@ void ImportTableDialog::slotAccepted()
 			{
 				update = m_alteringActive;
 				accept();
-				// FIXME we seem to be redisplaying the dialog here.
 				return;
 			}
 		}
@@ -217,43 +326,63 @@ void ImportTableDialog::slotAccepted()
 	}
 }
 
-QString ImportTableDialog::sqliteSeparator()
+void ImportTableDialog::updateButton()
 {
-	if (pipeRadioButton->isChecked())
-		return "|";
-	else if (commaRadioButton->isChecked())
-		return ",";
-	else if (semicolonRadioButton->isChecked())
-		return ";";
-	else if (tabelatorRadioButton->isChecked())
-		return "\t";
-	return customEdit->text();
+	bool enabled = !(fileEdit->text().isEmpty());
+	if (tabWidget->currentIndex() == 0)
+	{
+		if (colSep->text().length() == 0) { enabled = false; }
+		if (quoteChar->text().length() > 1) { enabled = false; }
+		if (   (quoteChar->text().length() == 1)
+			&& (colSep->text().startsWith(quoteChar->text())))
+		{ enabled = false; }
+	}
+	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(enabled);
+}
+
+char ImportTableDialog::hexValue(QChar c)
+{
+	char a = c.toAscii();
+	if ((a >= '0') && (a <= '9')) { return a - '0'; }
+	else if ((a >= 'A') && (a <= 'F')) { return a - 'A' + 10; }
+	else if ((a >= 'a') && (a <= 'f')) { return a - 'a' + 10; }
+	else { return 0; } // invalid
 }
 
 void ImportTableDialog::createPreview(int)
 {
-	if (fileEdit->text().isEmpty())
-		return;
-	switch (tabWidget->currentIndex())
+	updateButton();
+	QItemSelectionModel *m = previewView->selectionModel();
+	if (buttonBox->button(QDialogButtonBox::Ok)->isEnabled())
 	{
-		case 0:
-			previewView->setModel(new ImportTable::CSVModel(fileEdit->text(), 0, sqliteSeparator(), this, 3));
-			break;
-		case 1:
-			previewView->setModel(new ImportTable::XMLModel(fileEdit->text(), 0, this, 3));
-			break;
+		int skipHeader
+			= skipHeaderCheck->isChecked() ? skipHeaderBox->value() : 0;
+		QList<FieldInfo> fields
+			= Database::tableFields(tableComboBox->currentText(),
+									schemaComboBox->currentText());
+		switch (tabWidget->currentIndex())
+		{
+			case 0:
+				previewView->setModel(new ImportTable::CSVModel(
+					fileEdit->text(), fields, skipHeader,
+					colSep->text(), quoteChar->text(), this, 3));
+				break;
+			case 1:
+				previewView->setModel(new ImportTable::XMLModel(
+					fileEdit->text(), fields, skipHeader, this, 3));
+				break;
+		}
 	}
+	else
+	{
+		previewView->setModel(new QStandardItemModel());
+	}
+	delete m;
 }
 
 void ImportTableDialog::createPreview(bool)
 {
 	createPreview();
-}
-
-void ImportTableDialog::customEdit_textChanged(QString)
-{
-	if (customRadioButton->isChecked())
-		createPreview();
 }
 
 void ImportTableDialog::skipHeaderCheck_toggled(bool checked)
@@ -264,12 +393,17 @@ void ImportTableDialog::skipHeaderCheck_toggled(bool checked)
 /*
 Models
  */
-ImportTable::BaseModel::BaseModel(QObject * parent)
+ImportTable::BaseModel::BaseModel(QList<FieldInfo> fields, QObject * parent)
 	: QAbstractTableModel(),
-	m_columns(0),
-	m_header(0)
+	m_columns(0)
 {
+	m_columnNames.clear();
 	m_values.clear();
+	m_columns = fields.count();
+	for (int i = 0; i < m_columns; ++i)
+	{
+		m_columnNames.append(fields[i].name);
+	}
 }
 
 int ImportTable::BaseModel::rowCount(const QModelIndex & /*parent*/) const
@@ -299,24 +433,28 @@ QVariant ImportTable::BaseModel::data(const QModelIndex & index, int role) const
 
 QVariant ImportTable::BaseModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-	if (role != Qt::DisplayRole)
-         return QVariant();
+	if (role != Qt::DisplayRole) { return QVariant(); }
 
 	if (orientation == Qt::Horizontal)
-		return QString("%1").arg(section + 1);
+	{
+		return m_columnNames[section];
+	}
 
 	return QVariant();
 }
 
-//FIXME handle quoted strings
-ImportTable::CSVModel::CSVModel(QString fileName, int skipHeader, QString separator, QObject * parent, int maxRows)
-	: BaseModel(parent)
+ImportTable::CSVModel::CSVModel(QString fileName, QList<FieldInfo> fields,
+								int skipHeader,
+								QString separator, QString quote,
+								QObject * parent, int maxRows)
+	: BaseModel(fields, parent)
 {
 	QFile f(fileName);
 	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
 		QMessageBox::warning(qobject_cast<QWidget*>(parent), tr("Data Import"),
-							 tr("Cannot open file %1 for reading.").arg(fileName));
+							 tr("Cannot open file %1 for reading.")
+							 .arg(fileName));
 		return;
 	}
 
@@ -326,14 +464,12 @@ ImportTable::CSVModel::CSVModel(QString fileName, int skipHeader, QString separa
 	int tmpSkipHeader = 0;
 	while (!in.atEnd())
 	{
-		row = in.readLine().split(separator);
+		row = ImportTableDialog::splitLine(&in, separator, quote);
 		if (tmpSkipHeader < skipHeader)
 		{
 			tmpSkipHeader++;
 			continue;
 		}
-		if (row.count() > m_columns)
-			m_columns = row.count();
 		m_values.append(row);
 		if (r > maxRows)
 			break;
@@ -343,8 +479,9 @@ ImportTable::CSVModel::CSVModel(QString fileName, int skipHeader, QString separa
 	f.close();
 }
 
-ImportTable::XMLModel::XMLModel(QString fileName, int skipHeader, QObject * parent, int maxRows)
-	: BaseModel(parent)
+ImportTable::XMLModel::XMLModel(QString fileName, QList<FieldInfo> fields,
+								int skipHeader, QObject * parent, int maxRows)
+	: BaseModel(fields, parent)
 {
 #if QT_VERSION >= 0x040300
 	QFile file(fileName);

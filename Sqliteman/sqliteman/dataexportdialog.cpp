@@ -244,7 +244,6 @@ bool DataExportDialog::exportCSV()
 			{
 				out << '"'
 					<< r.value(j).toString().replace('"', "\"\"")
-											.replace('\n', "\\n")
 					<< '"';
 			}
 			if (j != (m_header.size() - 1))

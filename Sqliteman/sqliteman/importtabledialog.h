@@ -9,9 +9,11 @@ for which a new license (GPL+exception) is in place.
 #define IMPORTTABLEDIALOG_H
 
 #include "litemanwindow.h"
+#include "sqlparser.h"
 #include "ui_importtabledialog.h"
 
 class QTreeWidgetItem;
+
 
 
 /*! \brief Import data into table using various importer types.
@@ -27,6 +29,7 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 						  const QString & tableName = 0,
 						  const QString & schema = 0);
 		~ImportTableDialog();
+		static QStringList splitLine(QTextStream * in, QString sep, QString q);
 
 		bool update;
 	private:
@@ -39,13 +42,11 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 		// We ought to be able use use parent() for this, but for some reason
 		// qobject_cast<LiteManWindow*>(parent()) doesn't work
 		LiteManWindow * creator;
-
-		QString sqliteSeparator();
-
-		void sqlitePreview();
-
 		// true if altering currently active table
 		bool m_alteringActive;
+
+		void updateButton();
+		char hexValue(QChar c);
 		
 	private slots:
 		void fileButton_clicked();
@@ -55,7 +56,6 @@ class ImportTableDialog : public QDialog, public Ui::ImportTableDialog
 		void createPreview(int i = 0);
 		//! \brief Overloaded due the defined Qt signal/slot
 		void createPreview(bool);
-		void customEdit_textChanged(QString);
 		//
 		void setTablesForSchema(const QString & schema);
 		void skipHeaderCheck_toggled(bool checked);
@@ -75,7 +75,7 @@ namespace ImportTable
 		Q_OBJECT
 
 		public:
-			BaseModel(QObject * parent = 0);
+			BaseModel(QList<FieldInfo> fields, QObject * parent = 0);
 
 			int rowCount(const QModelIndex & parent = QModelIndex()) const;
 			int columnCount(const QModelIndex & parent = QModelIndex()) const;
@@ -84,13 +84,12 @@ namespace ImportTable
 
 			QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
-			//! \brief Maximum columns of all rows in the model. See columnCount();
+			//! \brief Number of columns in table;
 			int m_columns;
 			/*! \brief Internal structure of values.
 			It's filled by format parsers in inherited classes */
 			QList<QStringList> m_values;
-			
-			int m_header;
+			QStringList m_columnNames;
 	};
 
 
@@ -100,7 +99,9 @@ namespace ImportTable
 		Q_OBJECT
 
 		public:
-			CSVModel(QString fileName, int skipHeader, QString separator, QObject * parent = 0, int maxRows = 0);
+			CSVModel(QString fileName, QList<FieldInfo> fields, int skipHeader,
+					 QString separator, QString quote,
+					 QObject * parent = 0, int maxRows = 0);
 	};
 
 	/*! \brief MS Excel XML importer
@@ -111,7 +112,8 @@ namespace ImportTable
 		Q_OBJECT
 
 		public:
-			XMLModel(QString fileName, int skipHeader, QObject * parent = 0, int maxRows = 0);
+			XMLModel(QString fileName, QList<FieldInfo> fields, int skipHeader,
+					 QObject * parent = 0, int maxRows = 0);
 	};
 
 };

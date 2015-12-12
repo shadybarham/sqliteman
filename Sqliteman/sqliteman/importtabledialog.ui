@@ -65,17 +65,17 @@
    <item row="4" column="0" colspan="3">
     <widget class="QTabWidget" name="tabWidget">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="importTab">
       <attribute name="title">
-       <string>Sqlite .import</string>
+       <string>CSV-like</string>
       </attribute>
       <layout class="QGridLayout">
        <property name="leftMargin">
@@ -94,101 +94,28 @@
         <number>6</number>
        </property>
        <item row="0" column="0">
-        <widget class="QGroupBox" name="groupBox">
-         <property name="title">
-          <string>Column Separators</string>
-         </property>
-         <layout class="QGridLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <item row="0" column="0">
-           <widget class="QRadioButton" name="pipeRadioButton">
-            <property name="text">
-             <string>Pipe Symbol (Default)</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QRadioButton" name="commaRadioButton">
-            <property name="text">
-             <string>Comma</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QRadioButton" name="semicolonRadioButton">
-            <property name="text">
-             <string>Semicolon</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QRadioButton" name="tabelatorRadioButton">
-            <property name="text">
-             <string>Tabelator</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0" colspan="2">
-           <layout class="QHBoxLayout">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QRadioButton" name="customRadioButton">
-              <property name="text">
-               <string>Custom:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="customEdit"/>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <spacer>
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>41</height>
-          </size>
-         </property>
-        </spacer>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Column Separator</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Quote character</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="colSep"/>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="quoteChar"/>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -212,15 +139,16 @@
        <property name="spacing">
         <number>6</number>
        </property>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>There are no options for this import type.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
-        </widget>
+       <item row="2" column="0">
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>There are no options for this input type</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -247,7 +175,7 @@
       <property name="spacing">
        <number>6</number>
       </property>
-      <item row="0" column="0">
+      <item row="1" column="0">
        <widget class="QTableView" name="previewView">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -260,8 +188,14 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="0">
+       <layout class="QGridLayout" name="gridLayout_2"/>
+      </item>
      </layout>
     </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="schemaComboBox"/>
    </item>
    <item row="6" column="0" colspan="3">
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -282,9 +216,6 @@
       <cstring>schemaComboBox</cstring>
      </property>
     </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QComboBox" name="schemaComboBox"/>
    </item>
    <item row="3" column="1">
     <widget class="QCheckBox" name="skipHeaderCheck">
