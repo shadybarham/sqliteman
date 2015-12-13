@@ -85,6 +85,9 @@ protected:
 							Qt::Orientation orientation,
 							int role = Qt::DisplayRole) const;
 
+		// override the one in QSqlTableModel
+		bool insertRowIntoTable(const QSqlRecord &values);
+
 	private slots:
 		//! \brief Called when is new row created in the view (not in the model).
 		void doPrimeInsert(int, QSqlRecord &);

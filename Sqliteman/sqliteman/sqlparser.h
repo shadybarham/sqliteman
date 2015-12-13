@@ -64,6 +64,8 @@ typedef struct
 	bool defaultIsExpression;
 	bool defaultisQuoted;
 	bool isPartOfPrimaryKey;
+	bool isColumnPkDesc;
+	bool isTablePkDesc;
 	bool isAutoIncrement;
 	bool isNotNull;
 } FieldInfo;

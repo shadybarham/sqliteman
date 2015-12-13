@@ -8,13 +8,13 @@ If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
 This is a QT bug.
 
-FIXME column default (expression) still not done correctly
-
 */
 #include <time.h>
 
 #include <QColor>
+#include <QSqlError>
 #include <QSqlField>
+#include <QSqlQuery>
 
 #include "sqlmodels.h"
 #include "database.h"
@@ -174,6 +174,25 @@ QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int
 	return QSqlTableModel::headerData(section, orientation, role);
 }
 
+bool SqlTableModel::insertRowIntoTable(const QSqlRecord &values)
+{
+	bool generated = false;
+	for (int i = 0; i < values.count(); ++i)
+	{
+		generated |= values.isGenerated(i);
+	}
+	if (generated)
+	{
+		return QSqlTableModel::insertRowIntoTable(values);
+	}
+	// QSqlTableModel::insertRowIntoTable will fail, so we do the right thing...
+	QString sql("INSERT INTO ");
+	sql += Utils::q(m_schema) + "." + Utils::q(tableName());
+	sql += " DEFAULT VALUES;";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+	return !query.lastError().isValid();
+}
+
 void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 {
 	QList<FieldInfo> fl = Database::tableFields(tableName(), m_schema);
@@ -186,13 +205,10 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 		{
 			// prevent integer type being displayed as 0
 			record.setValue(column.name, QVariant());
-			// prevent failure on all-null record
-			record.setGenerated(column.name, true);
 		}
 		else if (column.defaultisQuoted)
 		{
 			record.setValue(column.name, QVariant(column.defaultValue));
-			record.setGenerated(column.name, true);
 		}
 		else if (column.defaultIsExpression)
 		{
@@ -227,7 +243,6 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 				if (ok)
 				{
 					record.setValue(column.name, QVariant(i));
-					record.setGenerated(column.name, true);
 				}
 				else
 				{
@@ -235,12 +250,10 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 					if (ok)
 					{
 						record.setValue(column.name, QVariant(d));
-						record.setGenerated(column.name, true);
 					}
 					else
 					{
 						record.setValue(column.name, QVariant(defval));
-						record.setGenerated(column.name, true);
 					}
 				}
 			}

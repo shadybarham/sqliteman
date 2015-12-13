@@ -406,6 +406,8 @@ void SqlParser::clearField(FieldInfo &f)
 	f.defaultIsExpression = false;
 	f.defaultisQuoted = false;
 	f.isPartOfPrimaryKey = false;
+	f.isColumnPkDesc = false;
+	f.isTablePkDesc = false;
 	f.isAutoIncrement = false;
 	f.isNotNull = false;
 }
@@ -889,6 +891,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare("DESC", Qt::CaseInsensitive) == 0)
 				{
+					f.isColumnPkDesc = true;
 					state = 12; // look for conflict clause
 				}
 				else if (s.compare("ON", Qt::CaseInsensitive) == 0)
@@ -897,6 +900,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare("AUTOINCREMENT", Qt::CaseInsensitive) == 0)
 				{
+					//FIXME DESC or ASC is allowed after AUTOINCREMENT
 					f.isAutoIncrement = true;
 					state = 7; // look for column constraint or , or )
 				}
@@ -947,6 +951,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare("AUTOINCREMENT", Qt::CaseInsensitive) == 0)
 				{
+					//FIXME DESC or ASC is allowed after AUTOINCREMENT
 					f.isAutoIncrement = true;
 					state = 7; // look for column constraint or , or )
 				}
@@ -1025,6 +1030,7 @@ SqlParser::SqlParser(QString input)
 			case 15: // look for AUTOINCREMENT or next
 				if (s.compare("AUTOINCREMENT", Qt::CaseInsensitive) == 0)
 				{
+					//FIXME DESC or ASC is allowed after AUTOINCREMENT
 					f.isAutoIncrement = true;
 					state = 7; // look for column constraint or , or )
 				}
@@ -1625,6 +1631,7 @@ SqlParser::SqlParser(QString input)
 				}
 				else if (s.compare("DESC", Qt::CaseInsensitive) == 0)
 				{
+					f.isTablePkDesc = true;
 					state = 47; // look for , or )
 				}
 				else if (s.compare(",") == 0)
