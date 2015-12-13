@@ -225,7 +225,7 @@ QList<SqlParser *> AlterTableDialog::originalIndexes(QString tableName)
 					+ Database::getMaster(m_item->text(1))
 					+ " where type = 'index' and tbl_name = "
 					+ Utils::q(tableName)
-					+ ";";
+					+ " and name not like 'sqlite_autoindex_%' ;";
 	QSqlQuery query(ixsql, QSqlDatabase::database(SESSION_NAME));
 
 	if (query.lastError().isValid())
@@ -363,7 +363,7 @@ void AlterTableDialog::resizeTable()
 		}
 		++i;
 	}
-	/* Now allocate to other columns, giveing smaller ones a larger proportion
+	/* Now allocate to other columns, giving smaller ones a larger proportion
 	 * of what they want;
 	 */
 	for (i = 0; i < columns; ++i)
@@ -608,7 +608,7 @@ void AlterTableDialog::alterButton_clicked()
 
 	// Here newTableName differs from oldTableName in more than case,
 	// and we have column changes to make.
-	// SAve indexes and triggers on the original table
+	// Save indexes and triggers on the original table
 	QStringList originalSrc = originalSource(oldTableName);
 	QList<SqlParser *> originalIx(originalIndexes(oldTableName));
 

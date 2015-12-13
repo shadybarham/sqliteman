@@ -4,11 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
-	FIXME handle things better when not in autocommit mode
-	FIXME use explicit string NULL
-	FIXME messy column widths
-	FIXME moving mouse out of window loses edits
-	FIXME deleting last record leaves blank after committing
 */
 
 #include <QMessageBox>
