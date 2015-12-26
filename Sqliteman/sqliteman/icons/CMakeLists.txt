@@ -26,7 +26,6 @@ extensions.png
 go-next.png
 go-next-use.png
 go-previous.png
-index.png
 insert_table_row.png
 kate.png
 key.png
