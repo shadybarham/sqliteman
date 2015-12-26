@@ -227,7 +227,7 @@ ELSE (WIN32)
         # install desktop
         INSTALL(FILES
             sqliteman/icons/sqliteman.png
-            DESTINATION "${CMAKE_INSTALL_PREFIX}/share/icons/hicolor"
+            DESTINATION "${CMAKE_INSTALL_PREFIX}/share/icons/hicolor/32x32/apps"
         )
         INSTALL(FILES
             sqliteman.desktop
