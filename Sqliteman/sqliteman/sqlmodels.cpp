@@ -29,6 +29,7 @@ SqlTableModel::SqlTableModel(QObject * parent, QSqlDatabase db)
 	m_useCount(1)
 {
 	m_deleteCache.clear();
+	m_insertCache.clear();
 	Preferences * prefs = Preferences::instance();
 	switch (prefs->rowsToRead())
 	{
@@ -59,11 +60,21 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 
 	if (role == Qt::BackgroundColorRole)
     {
-        for (int i = 0; i < columnCount(); ++i)
-        {
-            if (isDirty(index(item.row(), i)))
-                return QVariant(Qt::cyan);
-        }
+		// QSqlTableModel::isDirty() always returns true for an inserted
+		// row but we only want to show it as modified if user has changed
+		// it since insertion.
+		int row = item.row();
+		if (m_insertCache.contains(row))
+		{
+			if (m_insertCache.value(row)) { return QVariant(Qt::cyan); }
+		}
+		else
+		{
+	        for (int i = 0; i < columnCount(); ++i)
+	        {
+	            if (isDirty(index(row, i))) { return QVariant(Qt::cyan); }
+	        }
+		}
     }
 
 	Preferences * prefs = Preferences::instance();
@@ -122,13 +133,20 @@ QVariant SqlTableModel::data(const QModelIndex & item, int role) const
 
 bool SqlTableModel::setData ( const QModelIndex & ix, const QVariant & value, int role)
 {
-    if (! ix.isValid())
-        return false;
-
-	if (role == Qt::EditRole)
-		m_pending = true;
-
-	return QSqlTableModel::setData(ix, value, role);
+	if (QSqlTableModel::setData(ix, value, role))
+	{
+		if (role == Qt::EditRole)
+		{
+			m_pending = true;
+			int row = ix.row();
+			if (m_insertCache.contains(row))
+			{
+				m_insertCache.insert(row, true);
+			}
+		}
+		return true;
+	}
+	else { return false; }
 }
 
 QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -263,22 +281,35 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 
 bool SqlTableModel::insertRows ( int row, int count, const QModelIndex & parent)
 {
-	m_pending = true;
-	return QSqlTableModel::insertRows(row, count, parent);
+	if (QSqlTableModel::insertRows(row, count, parent))
+	{
+		m_pending = true;
+		for (int i = 0; i < count; ++i)
+		{
+			m_insertCache.insert(row + i, false);
+		}
+		return true;
+	}
+	else { return false; }
 }
 
 bool SqlTableModel::removeRows ( int row, int count, const QModelIndex & parent)
 {
-	m_pending = true;
 	// this is a workaround to allow mark heading as deletion
 	// (as it's propably a bug in Qt QSqlTableModel ManualSubmit handling
-	bool ret = QSqlTableModel::removeRows(row, count, parent);
-	emit dataChanged( index(row, 0), index(row+count-1, columnCount()-1) );
-	emit headerDataChanged(Qt::Vertical, row, row+count-1);
-	for (int i = 0; i < count; ++i)
-		m_deleteCache.append(row+i);
-
-	return ret;
+	if (QSqlTableModel::removeRows(row, count, parent))
+	{
+		m_pending = true;
+		emit dataChanged(index(row, 0), index(row+count-1, columnCount()-1));
+		emit headerDataChanged(Qt::Vertical, row, row+count-1);
+		for (int i = 0; i < count; ++i)
+		{
+			m_deleteCache.append(row+i);
+			m_insertCache.remove(row+i);
+		}
+		return true;
+	}
+	else { return false; }
 }
 
 bool SqlTableModel::isDeleted(int row)
@@ -286,9 +317,16 @@ bool SqlTableModel::isDeleted(int row)
 	return m_deleteCache.contains(row);
 }
 
+bool SqlTableModel::isNewRow(int row)
+{
+	return m_insertCache.contains(row) && !m_insertCache.value(row);
+}
+
 void SqlTableModel::setTable(const QString &tableName)
 {
 	m_header.clear();
+	m_deleteCache.clear();
+	m_insertCache.clear();
 	QStringList indexes = Database::getSysIndexes(tableName, m_schema);
 	QList<FieldInfo> columns = Database::tableFields(tableName, m_schema);
 
@@ -352,9 +390,13 @@ void SqlTableModel::setPendingTransaction(bool pending)
 	if (!pending)
 	{
 		for (int i = 0; i < m_deleteCache.size(); ++i)
-			emit headerDataChanged(Qt::Vertical, m_deleteCache[i], m_deleteCache[i]);
+		{
+			emit headerDataChanged(
+				Qt::Vertical, m_deleteCache[i], m_deleteCache[i]);
+		}
+		m_deleteCache.clear();
+		m_insertCache.clear();
 	}
-	m_deleteCache.clear();
 }
 
 bool SqlTableModel::deleteRowFromTable(int row)

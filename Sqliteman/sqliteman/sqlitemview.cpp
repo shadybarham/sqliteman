@@ -92,6 +92,8 @@ void SqlItemView::updateButtons(int row)
 	QVariant data
 		= m_model->data(m_model->index(m_row, m_column), Qt::EditRole);
 	bool editable = (m_row >= 0) && (m_column >= 0) && m_writeable;
+	SqlTableModel * table = qobject_cast<SqlTableModel *>(m_model);
+	bool newRow = table ? table->isNewRow(row) : false;
 	for (int i = 0; i < rowcount; ++i)
 	{
 		if (m_table->isRowHidden(i))
@@ -100,7 +102,9 @@ void SqlItemView::updateButtons(int row)
 		}
 		else { ++notDeleted; }
 	}
-	positionLabel->setText(tr("row %1 of %2").arg(adjRow + 1).arg(notDeleted));
+	positionLabel->setText(
+		tr("%1row %2 of %3").arg(newRow ? "new " : "")
+							.arg(adjRow + 1).arg(notDeleted));
 	previousButton->setEnabled(findDown(row) != row);
 	firstButton->setEnabled(findUp(-1) != row);
 	nextButton->setEnabled(findUp(row) != row);

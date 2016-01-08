@@ -53,6 +53,7 @@ class SqlTableModel : public QSqlTableModel
 		void fetchAll();
 
 		bool isDeleted(int row);
+		bool isNewRow(int row);
 		void initRecord(int row);
 
 	signals:
@@ -77,6 +78,11 @@ protected:
 		QList<int> m_deleteCache;
 		QMap<int,IndexType> m_header;
 		int m_readRowsCount;
+
+		// ****ing broken QSqlTableModel....
+		// contains an entry for each inserted row
+		// value is true if row has been edited since it was created
+		QMap<int,bool> m_insertCache;
 
 		QVariant data(const QModelIndex & item, int role = Qt::DisplayRole) const;
 		bool setData(const QModelIndex & ix, const QVariant & value, int role = Qt::EditRole);

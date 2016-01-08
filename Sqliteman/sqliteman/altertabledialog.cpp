@@ -638,7 +638,7 @@ void AlterTableDialog::alterButton_clicked()
 			if (first)
 			{
 				first = false;
-				insert += (QString("INSERT INTO %1.%2 (")
+				insert += (QString("INSERT OR ABORT INTO %1.%2 (")
 						   .arg(Utils::q(ui.databaseCombo->currentText()),
 								Utils::q(ui.nameEdit->text())));
 

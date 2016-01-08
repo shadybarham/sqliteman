@@ -520,7 +520,6 @@ void DataViewer::copyRow()
 					ui.itemView->setCurrentIndex(
 						ui.tableView->currentIndex().row(),
 						ui.tableView->currentIndex().column());
-					ui.itemView->textChanged();
 				}
 			}
         }
