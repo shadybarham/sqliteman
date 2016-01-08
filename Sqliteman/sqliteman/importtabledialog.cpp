@@ -5,9 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	
 	FIXME handle column names in first row
-	FIXME we seem to be importing twice
 	FIXME re-add Psion format
-	FIXME deal with embedded newlines in CSV format
 */
 #include <QFileDialog>
 #include <QMessageBox>

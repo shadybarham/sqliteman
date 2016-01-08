@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME view not updating after populate
 */
 #include <QSqlQuery>
 #include <QSqlError>
@@ -275,8 +274,6 @@ QVariantList PopulatorDialog::autoValues(Populator::PopColumn c)
 
 QVariantList PopulatorDialog::autoFromValues(Populator::PopColumn c)
 {
-	// TODO/FIXME: possible string to number conversion error
-	// It will need to change PopulatorColumnWidget behavior probably
 	int min = c.userValue.toInt();
 
 	QVariantList ret;

@@ -14,8 +14,6 @@ for which a new license (GPL+exception) is in place.
 #include "tableeditordialog.h"
 #include "utils.h"
 
-//FIXME resizing window needs to set resizeWanted
-
 TableEditorDialog::TableEditorDialog(LiteManWindow * parent)
 {
 	creator = parent;
