@@ -4,9 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
-	FIXME clicking on table of database attached by sql doesn't open it
-	FIXME ... appears to corrupt it too!
-	FIXME why do we do both both ATTACH DATABASE (same connection) and addDatabase (different connection)
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -91,7 +88,6 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 #endif
 
 	recentDocs.clear();
-	attachedDb.clear();
 	initUI();
 	initActions();
 	initMenus();
@@ -171,13 +167,11 @@ void LiteManWindow::closeEvent(QCloseEvent * e)
 	writeSettings();
 
 	dataViewer->setTableModel(new QSqlQueryModel(), false);
-	QMapIterator<QString, QString> i(attachedDb);
-	while (i.hasNext())
+	if (QSqlDatabase::contains(SESSION_NAME))
 	{
-		i.next();
-		QSqlDatabase::database(i.value()).rollback();
-		QSqlDatabase::database(i.value()).close();
-		QSqlDatabase::removeDatabase(i.value());
+		QSqlDatabase::database(SESSION_NAME).rollback();
+		QSqlDatabase::database(SESSION_NAME).close();
+		QSqlDatabase::removeDatabase(SESSION_NAME);
 	}
 
 	// It has to go after writeSettings()!
@@ -668,9 +662,6 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		}
 #endif
 
-		attachedDb.clear();
-		attachedDb["main"] = SESSION_NAME;
-	
 		QFileInfo fi(fileName);
 		QDir::setCurrent(fi.absolutePath());
 		m_mainDbPath = QDir::toNativeSeparators(QDir::currentPath() + "/" + fi.fileName());
@@ -1339,7 +1330,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item)
 		}
 		else
 		{
-			SqlTableModel * model = new SqlTableModel(0, QSqlDatabase::database(attachedDb[item->text(1)]));
+			SqlTableModel * model = new SqlTableModel(0, QSqlDatabase::database(SESSION_NAME));
 			model->setSchema(item->text(1));
 			model->setTable(item->text(0));
 			model->select();
@@ -1436,7 +1427,7 @@ void LiteManWindow::updateContextMenu(QTreeWidgetItem * cur)
 
 		case TableTree::DatabaseItemType:
 			contextMenu->addAction(refreshTreeAct);
-			if (cur->text(0) != "main")
+			if ((cur->text(0) != "main") && (cur->text(0) != "temp"))
 				contextMenu->addAction(detachAct);
 			contextMenu->addAction(createTableAct);
 			contextMenu->addAction(createViewAct);
@@ -1495,14 +1486,35 @@ void LiteManWindow::attachDatabase()
 		if (ret == QMessageBox::Cancel) { return; }
 	}
 
-	bool ok;
 	QFileInfo f(fileName);
-	QString schema = QInputDialog::getText(this, tr("Attach Database"),
-										   tr("Enter a Schema Alias:"),
-										   QLineEdit::Normal,
-										   f.baseName(), &ok);
-	if (!ok || schema.isEmpty())
-		return;
+	QString schema;
+	bool ok = false;
+	while (!ok)
+	{
+		schema = QInputDialog::getText(this, tr("Attach Database"),
+									   tr("Enter a Schema Alias:"),
+									   QLineEdit::Normal, f.baseName(), &ok);
+		if (!ok) { return; }
+		if (   schema.isEmpty()
+			|| (schema.compare("temp", Qt::CaseInsensitive) == 0))
+		{
+			QMessageBox::critical(this, tr("Attach Database"),
+				tr("\"temp\" or empty is not a valid schema name"));
+			ok = false;
+			continue;
+		}
+		QStringList databases(Database::getDatabases().keys());
+		foreach(QString db, databases)
+		{
+			if (db.compare(schema, Qt::CaseInsensitive) == 0)
+			{
+				QMessageBox::critical(this, tr("Attach Database"),
+					tr("%1 is already in use as a schema name")
+						.arg(Utils::q(schema)));
+				ok = false;
+			}
+		}
+	}
 	QString sql = QString("ATTACH DATABASE ")
 				  + Utils::q(fileName, "'")
 				  + " as "
@@ -1522,47 +1534,28 @@ void LiteManWindow::attachDatabase()
 	}
 	else
 	{
-		attachedDb[schema] = Database::sessionName(schema);
-		QSqlDatabase db =
-			QSqlDatabase::addDatabase("QSQLITE", attachedDb[schema]);
-		db.setDatabaseName(fileName);
-		if (!db.open())
+		QString sql = QString("select 1 from ")
+					  + Utils::q(schema)
+					  + ".sqlite_master where 1=2 ;";
+		QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+		if (query.lastError().isValid())
 		{
 			dataViewer->setStatusText(
-				tr("Cannot open or create ")
+				tr("Cannot access ")
 				+ QFileInfo(fileName).fileName()
 				+ ":<br/><span style=\" color:#ff0000;\">"
-				+ db.lastError().text());
+				+ query.lastError().text()
+				+ "<br/></span>"
+				+ tr("It is probably not a database."));
 			QSqlQuery qundo(QString("DETACH DATABASE ")
 							+ Utils::q(schema)
 							+ ";",
-							db);
-			attachedDb.remove(schema);
+							QSqlDatabase::database(SESSION_NAME));
 		}
 		else
 		{
-			QSqlQuery q("select 1 from sqlite_master where 1=2", db);
-			if (!q.exec())
-			{
-				dataViewer->setStatusText(
-					tr("Cannot access ")
-					+ QFileInfo(fileName).fileName()
-					+ ":<br/><span style=\" color:#ff0000;\">"
-					+ db.lastError().text()
-					+ "<br/></span>"
-					+ tr("It is probably not a database."));
-				QSqlQuery qundo(QString("DETACH DATABASE ")
-								+ Utils::q(schema)
-								+ ";",
-								db);
-				db.close();
-				attachedDb.remove(schema);
-			}
-			else
-			{
-				schemaBrowser->tableTree->buildDatabase(schema);
-				queryEditor->treeChanged();
-			}
+			schemaBrowser->tableTree->buildDatabase(schema);
+			queryEditor->treeChanged();
 		}
 	}
 }
@@ -1589,9 +1582,6 @@ void LiteManWindow::detachDatabase()
 	}
 	else
 	{
-		QSqlDatabase::database(attachedDb[dbname]).rollback();
-		QSqlDatabase::database(attachedDb[dbname]).close();
-		attachedDb.remove(dbname);
 		// this removes the item from the tree as well as deleting it
 		delete schemaBrowser->tableTree->currentItem();
 		queryEditor->treeChanged();

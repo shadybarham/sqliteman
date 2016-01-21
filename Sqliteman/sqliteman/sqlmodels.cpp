@@ -350,8 +350,14 @@ void SqlTableModel::setTable(const QString &tableName)
 		m_header[colnum] = SqlTableModel::None;
 		++colnum;
 	}
-
-	QSqlTableModel::setTable(tableName);
+	if (m_schema.isEmpty())
+	{
+		QSqlTableModel::setTable(tableName);
+	}
+	else
+	{
+		QSqlTableModel::setTable(m_schema + "." + tableName);
+	}
 }
 
 void SqlTableModel::detach (SqlTableModel * model)
