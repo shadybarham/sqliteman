@@ -459,24 +459,33 @@ void DataViewer::removeErrorMessage()
 	QString s = ui.statusText->toHtml();
 	if (s.contains("<span style=\" color:#ff0000;\">"))
 	{
-		ui.statusText->setPlainText("");
+		showStatusText(false);
 	}
 }
 
 void DataViewer::showStatusText(bool show)
 {
-	(show) ? ui.statusText->show() : ui.statusText->hide();
+	if (show)
+	{
+		ui.statusText->show();
+	}
+	else
+	{
+		ui.statusText->hide();
+		ui.statusText->setFixedHeight(0);
+	}
 }
 
 void DataViewer::addRow()
 {
 	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
-	removeErrorMessage();
+	showStatusText(false);
 	nonColumnClicked();
 	SqlTableModel * model
 		= qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
 	{
+		while (model->canFetchMore()) { model->fetchMore(); }
 		activeRow = model->rowCount();
 		model->insertRows(activeRow, 1);
 		ui.tableView->scrollToBottom();
@@ -493,7 +502,7 @@ void DataViewer::addRow()
 
 void DataViewer::copyRow()
 {
-	removeErrorMessage();
+	showStatusText(false);
 	nonColumnClicked();
     SqlTableModel * model =
 	    qobject_cast<SqlTableModel *>(ui.tableView->model());
@@ -509,6 +518,7 @@ void DataViewer::copyRow()
 			 * such that if we do so, we get a reference to the same record
 			 * rather than a new different one.
 			 */
+			while (model->canFetchMore()) { model->fetchMore(); }
 			if (model->insertRecord(-1, rec))
 			{
 				QModelIndex newIndex = ui.tableView->model()->index(
@@ -528,7 +538,7 @@ void DataViewer::copyRow()
 
 void DataViewer::removeRow()
 {
-	removeErrorMessage();
+	showStatusText(false);
 	nonColumnClicked();
 	SqlTableModel * model =
 		qobject_cast<SqlTableModel *>(ui.tableView->model());
@@ -794,6 +804,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	}
 	if (ix == 1)
 	{
+		ui.statusText->setPlainText("");
 		ui.itemView->setCurrentIndex(ci.row(), ci.column());
 		// be careful with this. See itemView_indexChanged() docs.
 		connect(ui.itemView, SIGNAL(indexChanged()),
@@ -804,7 +815,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	
 	if (ui.actionBLOB_Preview->isChecked())
 		ui.blobPreviewBox->setVisible(ix!=2);
-	ui.statusText->setVisible(ix != 2);
+	showStatusText(ix == 0);
 	updateButtons();
 }
 
@@ -913,7 +924,6 @@ void DataViewer::actInsertNull_triggered()
 
 void DataViewer::rowDoubleClicked(int)
 {
-	removeErrorMessage();
 	nonColumnClicked();
 	ui.tabWidget->setCurrentIndex(1);
 }
@@ -932,7 +942,6 @@ void DataViewer::columnClicked(int col)
 
 void DataViewer::rowCountChanged()
 {
-	removeErrorMessage();
 	QString cached;
 	QSqlQueryModel * model = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
 	if ((model != 0) && (model->columnCount() > 0))

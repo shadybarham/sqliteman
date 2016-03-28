@@ -248,6 +248,19 @@ void SqlItemView::toNext()
 
 void SqlItemView::toLast()
 {
+	SqlTableModel * table = qobject_cast<SqlTableModel *>(m_model);
+	if (table)
+	{
+		while (table->canFetchMore()) { table->fetchMore(); }
+	}
+	else
+	{
+		SqlQueryModel * q = qobject_cast<SqlQueryModel *>(m_model);
+		if (q)
+		{
+			while (q->canFetchMore()) { q->fetchMore(); }
+		}
+	}
 	int row = findDown(m_model->rowCount());
 	if (row != m_row) {
 		setCurrentIndex(row, m_column);

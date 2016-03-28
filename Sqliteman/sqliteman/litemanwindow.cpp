@@ -4,6 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
+	FIXME creating table right at start crashes on SIGNAL 11
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -1319,15 +1320,6 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item)
 							QSqlDatabase::database(SESSION_NAME));
 			dataViewer->setTableModel(model, false);
 		}
-		else if (item->text(1).compare("temp") == 0)
-		{
-			SqlTableModel * model = new SqlTableModel(0, QSqlDatabase::database(SESSION_NAME));
-			model->setSchema(item->text(1));
-			model->setTable(item->text(0));
-			model->select();
-			model->setEditStrategy(SqlTableModel::OnManualSubmit);
-			dataViewer->setTableModel(model, true);
-		}
 		else
 		{
 			SqlTableModel * model = new SqlTableModel(0, QSqlDatabase::database(SESSION_NAME));
@@ -1560,6 +1552,7 @@ void LiteManWindow::attachDatabase()
 	}
 }
 
+//FIXME detaching a database should close any open table in it
 void LiteManWindow::detachDatabase()
 {
 	dataViewer->removeErrorMessage();
