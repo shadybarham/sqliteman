@@ -173,6 +173,7 @@ class LiteManWindow : public QMainWindow
 		QString m_lang;
 		QTreeWidgetItem * m_activeItem;
 		QLabel * m_sqliteVersionLabel;
+		bool tableTreeTouched;
 
 		// \brief True if is sqlite3 binary available in the path
 // 		bool m_sqliteBinAvailable;

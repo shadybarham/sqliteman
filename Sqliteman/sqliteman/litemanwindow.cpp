@@ -88,6 +88,7 @@ LiteManWindow::LiteManWindow(const QString & fileToOpen)
 	}
 #endif
 
+	tableTreeTouched = false;
 	recentDocs.clear();
 	initUI();
 	initActions();
@@ -915,10 +916,16 @@ void LiteManWindow::dumpDatabase()
 	}
 }
 
+// FIXME allow create temporary table here
 void LiteManWindow::createTable()
 {
-	QTreeWidgetItem * item = schemaBrowser->tableTree->currentItem();
-	QTreeWidgetItem old(*item);
+	QTreeWidgetItem * item = NULL;
+	QTreeWidgetItem old;
+	if (tableTreeTouched)
+	{
+		item = schemaBrowser->tableTree->currentItem();
+		old = QTreeWidgetItem(*item);
+	}
 	dataViewer->removeErrorMessage();
 	CreateTableDialog dlg(this, item);
 	dlg.exec();
@@ -932,7 +939,7 @@ void LiteManWindow::createTable()
 				&& (it->text(1) == dlg.schema()))
 			{
 				schemaBrowser->tableTree->buildTables(it, it->text(1));
-				if (m_activeItem)
+				if (m_activeItem && (item != NULL))
 				{
 					// item recreated but should still be current
 					if (dlg.schema() == old.text(1))
@@ -1341,6 +1348,7 @@ void LiteManWindow::updateContextMenu()
 
 void LiteManWindow::tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* /*prev*/)
 {
+	tableTreeTouched = (cur != NULL);
 	dataViewer->removeErrorMessage();
 	updateContextMenu(cur);
 }
