@@ -53,6 +53,7 @@ class DataViewer : public QMainWindow
 		QString canFetchMore;
 		bool isTopLevel;
 		int columnSelected;
+		bool haveBuiltQuery;
 
 		/*! \brief Free locked resources */
 		void freeResources(QAbstractItemModel * old);
@@ -61,9 +62,11 @@ class DataViewer : public QMainWindow
 		void saveSelection();
 		void reSelect();
 		bool incrementalSearch(QKeyEvent *keyEvent);
+		void setBuiltQuery(bool value);
 
 	signals:
 		void tableUpdated();
+		void deleteMultiple();
 
 public slots:
 		//! \brief Append the line to the "Script Result" tab.

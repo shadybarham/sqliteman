@@ -39,6 +39,11 @@ QString QueryEditorDialog::statement()
 	return queryEditor->statement();
 }
 
+QString QueryEditorDialog::deleteStatement()
+{
+	return queryEditor->deleteStatement();
+}
+
 void QueryEditorDialog::treeChanged()
 {
 	queryEditor->treeChanged();

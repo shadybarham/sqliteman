@@ -32,6 +32,7 @@ class QueryEditorDialog : public QDialog, public Ui::QueryEditorDialog
 		void setItem(QTreeWidgetItem * item);
 		//! \brief generates a valid SQL statement using the values in the dialog
 		QString statement();
+		QString deleteStatement();
 		void treeChanged();
 		void tableAltered(QString oldName, QTreeWidgetItem * item);
 };

@@ -103,7 +103,7 @@ class LiteManWindow : public QMainWindow
 		void closeEvent(QCloseEvent * e);
 
 	private slots:
-		/*! \brief A slot to handle a new database file createion action */
+		/*! \brief A slot to handle a new database file creation action */
 		void newDB();
 
 		/*! \brief A slot to handle an opening of an existing database file action.
@@ -118,7 +118,8 @@ class LiteManWindow : public QMainWindow
 
 		void buildQuery();
 		void contextBuildQuery();
-		void execSql(QString query);
+		void execSql(QString query, bool isBuilt);
+		void execSqlFalse(QString query);
 		void exportSchema();
 		void dumpDatabase();
 
@@ -164,6 +165,7 @@ class LiteManWindow : public QMainWindow
 		void constraintTriggers();
 
 		void refreshTable();
+		void doMultipleDeletion();
 
 	private:
 		QStringList recentDocs;

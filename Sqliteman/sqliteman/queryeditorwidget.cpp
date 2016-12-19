@@ -317,6 +317,82 @@ QString QueryEditorWidget::statement()
 	return sql;
 }
 
+QString QueryEditorWidget::deleteStatement()
+{
+	QString logicWord;
+	QString sql = "DELETE\n";
+
+	// Add table name
+			sql += ("\nFROM " + Utils::q(m_schema) + "." +
+					Utils::q(tableList->currentText()));
+
+	// Optionaly add terms
+	if (termsTable->rowCount() > 0)
+	{
+		// But first determine what is the chosen logic word (And/Or)
+		(andButton->isChecked()) ? logicWord = " AND " : logicWord = " OR ";
+
+		sql += "\nWHERE ";
+
+		for(int i = 0; i < termsTable->rowCount(); i++)
+		{
+			QComboBox * fields =
+				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 0));
+			QComboBox * relations =
+				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 1));
+			QLineEdit * value =
+				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			if (fields && relations && value)
+			{
+				if (i > 0) { sql += logicWord; }
+				sql += Utils::q(fields->currentText());
+
+				switch (relations->currentIndex())
+				{
+					case 0:	// Contains
+						sql += (" LIKE " + Utils::like(value->text()));
+						break;
+
+					case 1: 	// Doesn't contain
+						sql += (" NOT LIKE "
+								+ Utils::like(value->text()));
+						break;
+
+					case 2:		// Equals
+						sql += (" = " + Utils::q(value->text(), "'"));
+						break;
+
+					case 3:		// Not equals
+						sql += (" <> " + Utils::q(value->text(), "'"));
+						break;
+
+					case 4:		// Bigger than
+						sql += (" > " + Utils::q(value->text(), "'"));
+						break;
+
+					case 5:		// Smaller than
+						sql += (" < " + Utils::q(value->text(), "'"));
+						break;
+
+					case 6:		// is null
+						sql += (" ISNULL");
+						break;
+
+					case 7:		// is not null
+						sql += (" NOTNULL");
+						break;
+				}
+			}
+		}
+		sql += ";";
+		return sql;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 void QueryEditorWidget::addAllSelect()
 {
 	QStringList list(columnModel->stringList());

@@ -225,7 +225,7 @@ void LiteManWindow::initUI()
 
 	// sql editor
 	connect(sqlEditor, SIGNAL(showSqlResult(QString)),
-			this, SLOT(execSql(QString)));
+			this, SLOT(execSqlFalse(QString)));
 	connect(sqlEditor, SIGNAL(sqlScriptStart()),
 			dataViewer, SLOT(sqlScriptStart()));
 	connect(sqlEditor, SIGNAL(showSqlScriptResult(QString)),
@@ -237,6 +237,8 @@ void LiteManWindow::initUI()
 
 	connect(dataViewer, SIGNAL(tableUpdated()),
 			this, SLOT(updateContextMenu()));
+	connect(dataViewer, SIGNAL(deleteMultiple()),
+			this, SLOT(doMultipleDeletion()));
 }
 
 void LiteManWindow::initActions()
@@ -674,6 +676,7 @@ void LiteManWindow::openDatabase(const QString & fileName)
 		schemaBrowser->tableTree->buildTree();
 		schemaBrowser->buildPragmasTree();
 		queryEditor->treeChanged();
+		dataViewer->setBuiltQuery(false);
 		dataViewer->setTableModel(new QSqlQueryModel(), false);
 		m_activeItem = 0;
 	
@@ -703,6 +706,7 @@ void LiteManWindow::removeRef(const QString & dbname)
 	SqlTableModel * m = qobject_cast<SqlTableModel *>(dataViewer->tableData());
 	if (m && dbname.compare(m->schema()))
 	{
+		dataViewer->setBuiltQuery(false);
 		dataViewer->setTableModel(new QSqlQueryModel(), false);
 		m_activeItem = 0;
 	}
@@ -800,7 +804,7 @@ void LiteManWindow::buildQuery()
 	if (ret == QDialog::Accepted)
 	{
 		/*runQuery*/
-		execSql(queryEditor->statement());
+		execSql(queryEditor->statement(), true);
 	}
 }
 
@@ -816,7 +820,7 @@ void LiteManWindow::contextBuildQuery()
 	if(ret == QDialog::Accepted)
 	{
 		/*runQuery*/
-		execSql(queryEditor->statement());
+		execSql(queryEditor->statement(), true);
 	}
 }
 
@@ -838,7 +842,7 @@ void LiteManWindow::handleDataViewer()
 	dataViewerAct->setChecked(dataViewer->isVisible());
 }
 
-void LiteManWindow::execSql(QString query)
+void LiteManWindow::execSql(QString query, bool isBuilt)
 {
 	if (query.isEmpty() || query.isNull())
 	{
@@ -867,6 +871,7 @@ void LiteManWindow::execSql(QString query)
 	// Check For Error in the SQL
 	if(model->lastError().isValid())
 	{
+		dataViewer->setBuiltQuery(false);
 		dataViewer->setStatusText(
 			tr("Query Error: <span style=\" color:#ff0000;\">")
 			+ model->lastError().text()
@@ -877,6 +882,7 @@ void LiteManWindow::execSql(QString query)
 	}
 	else
 	{
+		dataViewer->setBuiltQuery(isBuilt && (model->rowCount() != 0));
 		dataViewer->rowCountChanged();
 		if (Utils::updateObjectTree(query))
 		{
@@ -884,6 +890,11 @@ void LiteManWindow::execSql(QString query)
 			queryEditor->treeChanged();
 		}
 	}
+}
+
+void LiteManWindow::execSqlFalse(QString query)
+{
+	execSql(query, false);
 }
 
 void LiteManWindow::exportSchema()
@@ -982,6 +993,7 @@ void LiteManWindow::alterTable()
 			treeItemActivated(item);
 			dataViewer->reSelect();
 		}
+		dataViewer->setBuiltQuery(false);
 		queryEditor->tableAltered(oldName, item);
 	}
 }
@@ -1066,9 +1078,11 @@ void LiteManWindow::dropTable()
 												  item->text(1));
 			queryEditor->treeChanged();
 			checkForCatalogue();
+			dataViewer->setBuiltQuery(false);
 			if (isActive)
 			{
 				dataViewer->setNotPending();
+				dataViewer->setBuiltQuery(false);
 				dataViewer->setTableModel(new QSqlQueryModel(), false);
 				m_activeItem = 0;
 			}
@@ -1112,6 +1126,7 @@ void LiteManWindow::emptyTable()
 		}
 		else
 		{
+			dataViewer->setBuiltQuery(false);
 			if (isActive)
 			{
 				dataViewer->setNotPending();
@@ -1325,6 +1340,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item)
 							+ "."
 							+ Utils::q(item->text(0)),
 							QSqlDatabase::database(SESSION_NAME));
+			dataViewer->setBuiltQuery(false);
 			dataViewer->setTableModel(model, false);
 		}
 		else
@@ -1334,6 +1350,7 @@ void LiteManWindow::treeItemActivated(QTreeWidgetItem * item)
 			model->setTable(item->text(0));
 			model->select();
 			model->setEditStrategy(SqlTableModel::OnManualSubmit);
+			dataViewer->setBuiltQuery(false);
 			dataViewer->setTableModel(model, true);
 		}
 		m_activeItem = item;
@@ -1586,6 +1603,7 @@ void LiteManWindow::detachDatabase()
 		// this removes the item from the tree as well as deleting it
 		delete schemaBrowser->tableTree->currentItem();
 		queryEditor->treeChanged();
+		dataViewer->setBuiltQuery(false);
 	}
 }
 
@@ -1753,6 +1771,27 @@ void LiteManWindow::refreshTable()
 	updateContextMenu();
 	m_activeItem = 0;
 	queryEditor->treeChanged();
+}
+
+void LiteManWindow::doMultipleDeletion()
+{
+	dataViewer->removeErrorMessage();
+	QString sql = queryEditor->deleteStatement();
+	SqlQueryModel * m =
+		qobject_cast<SqlQueryModel *>(dataViewer->tableData());
+	if (m && !sql.isNull())
+	{
+		int com = QMessageBox::question(this, tr("Sqliteman"),
+			tr("Do you want to delete these %1 records\n\n"
+			   "Yes = delete them\n"
+			   "Cancel = do not delete").arg(m->rowCount()),
+			QMessageBox::Yes, QMessageBox::No);
+		if (com == QMessageBox::Yes)
+		{
+			execSql(sql, false);
+			dataViewer->setTableModel(new QSqlQueryModel(), false);
+		}
+	}
 }
 
 void LiteManWindow::preferences()

@@ -11,7 +11,18 @@ from SQL Editor. You cannot commit your changes by <span><strong class="command"
     </span></dt><dd><p><span class="action">This button is enabled only when viewing a table and a current row is selected. It creates a copy of the current row at the end of the table (this can be useful when creating rows which differ only in one field).
     <a href="ch07s12.html#commit">Commit</a> action is required to make this permanent.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="delete_table_row.png">Delete Row</span>
     </span></dt><dd><p><span class="action">This button is enabled only when viewing a table and a current row is selected. It deletes the selected row from the table.
-    <a href="ch07s12.html#commit">Commit</a> action is required to make this permanent.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="database_commit.png"><dfn id = "commit">Commit</dfn></span>
+    <a href="ch07s12.html#commit">Commit</a> action is required to make this permanent.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="delete_multiple.png">Delete Multiple</span>
+    </span></dt><dd><p><span class="action">This button replaces the Delete Row
+    button when you have just executed a query created by the Query Builder.
+    It deletes all the records
+    found by the query from the table against which the query was run. It will
+    ask you if you really want to first as this can delete a lot of records.
+    This is an immediate action and does not require
+    <a href="ch07s12.html#commit">Commit</a> action to update the database.
+    Note this button is not available after executing a query from the
+    <a href="ch07s11.html">SQL Editor</a>
+    widget, since this can contain a more complex SELECT which cannot be
+    simply modified into a DELETE statment.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="database_commit.png"><dfn id = "commit">Commit</dfn></span>
     </span></dt><dd><p><span class="action">This button is enabled only when changes have been made in the DataViewer. It promotes the  changes into the database.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="database_rollback.png"><dfn id ="rollback">Rollback</dfn></span>
     </span></dt><dd><p><span class="action">This button is eanbled only when changes have been made in the DataViewer. It rejects the changes and reloads the Data Viewer from the database.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="blob.png">Blob Preview</span>
     </span></dt><dd><p><span class="action">Enable or disable BLOB preview widget. The blob preview widget can only be enabled when a field containing a blob is selected, but it can be disabled whenever it is enabled. If the blob preview is enabled, it will appear whenever a field containing a blob is selected and it will attempt to display the blob as an image.

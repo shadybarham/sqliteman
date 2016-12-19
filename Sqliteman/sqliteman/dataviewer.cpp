@@ -49,6 +49,7 @@ DataViewer::DataViewer(QWidget * parent)
     ui.exportToolBar->setIconSize(QSize(16, 16));
 #endif
 
+	haveBuiltQuery = false;
 	ui.splitter->setCollapsible(0, false);
 	ui.splitter->setCollapsible(1, false);
 	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
@@ -267,7 +268,16 @@ void DataViewer::updateButtons()
 	}
 	ui.actionNew_Row->setEnabled(editable);
 	ui.actionCopy_Row->setEnabled(editable && rowSelected);
-	ui.actionRemove_Row->setEnabled(editable && rowSelected);
+	if (haveBuiltQuery)
+	{
+		ui.actionRemove_Row->setIcon(Utils::getIcon("delete_multiple.png"));
+		ui.actionRemove_Row->setEnabled(true);
+	}
+	else
+	{
+		ui.actionRemove_Row->setIcon(Utils::getIcon("delete_table_row.png"));
+		ui.actionRemove_Row->setEnabled(editable && rowSelected);
+	}
 	ui.actionCommit->setEnabled(pending);
 	ui.actionRollback->setEnabled(pending);
 	if (canPreview || ui.actionBLOB_Preview->isChecked())
@@ -536,26 +546,39 @@ void DataViewer::copyRow()
     }
 }
 
+void DataViewer::setBuiltQuery(bool value)
+{
+	haveBuiltQuery = value;
+	updateButtons();
+}
+
 void DataViewer::removeRow()
 {
 	showStatusText(false);
-	nonColumnClicked();
-	SqlTableModel * model =
-		qobject_cast<SqlTableModel *>(ui.tableView->model());
-	if (model)
+	if (haveBuiltQuery)
 	{
-		int row = ui.tableView->currentIndex().row();
-		ui.tableView->hideRow(row);
-		model->removeRows(row, 1);
-		if (ui.tabWidget->currentIndex() == 1)
+		emit deleteMultiple();
+	}
+	else
+	{
+		nonColumnClicked();
+		SqlTableModel * model =
+			qobject_cast<SqlTableModel *>(ui.tableView->model());
+		if (model)
 		{
-			if (ui.itemView->rowDeleted())
+			int row = ui.tableView->currentIndex().row();
+			ui.tableView->hideRow(row);
+			model->removeRows(row, 1);
+			if (ui.tabWidget->currentIndex() == 1)
 			{
-				// no rows left
-				ui.tabWidget->setCurrentIndex(0);
+				if (ui.itemView->rowDeleted())
+				{
+					// no rows left
+					ui.tabWidget->setCurrentIndex(0);
+				}
 			}
+			updateButtons();
 		}
-		updateButtons();
 	}
 }
 
@@ -843,6 +866,7 @@ void DataViewer::showSqlScriptResult(QString line)
 	ui.scriptEdit->append("\n");
 	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
 	ui.tabWidget->setCurrentIndex(2);
+	haveBuiltQuery = false;
 	updateButtons();
 	emit tableUpdated();
 }
