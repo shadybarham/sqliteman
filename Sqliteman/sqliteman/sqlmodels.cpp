@@ -7,6 +7,8 @@ for which a new license (GPL+exception) is in place.
 If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
 This is a QT bug.
+FIXME get rid of QSqlQuery::value: not positioned on a valid record emitted
+      on stderr when creating new row
 
 */
 #include <time.h>
@@ -192,6 +194,7 @@ QVariant SqlTableModel::headerData(int section, Qt::Orientation orientation, int
 	return QSqlTableModel::headerData(section, orientation, role);
 }
 
+// seems to be never called ???
 bool SqlTableModel::insertRowIntoTable(const QSqlRecord &values)
 {
 	bool generated = false;
@@ -205,7 +208,7 @@ bool SqlTableModel::insertRowIntoTable(const QSqlRecord &values)
 	}
 	// QSqlTableModel::insertRowIntoTable will fail, so we do the right thing...
 	QString sql("INSERT INTO ");
-	sql += Utils::q(m_schema) + "." + Utils::q(tableName());
+	sql += Utils::q(m_schema) + "." + Utils::q(objectName());
 	sql += " DEFAULT VALUES;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	return !query.lastError().isValid();
@@ -358,6 +361,9 @@ void SqlTableModel::setTable(const QString &tableName)
 	{
 		QSqlTableModel::setTable(m_schema + "." + tableName);
 	}
+	// For some strange reason QSqlTableModel::tableName gives us back
+	// schema.table, so we stash the undecorated table name in the object name
+	setObjectName(tableName);
 }
 
 void SqlTableModel::detach (SqlTableModel * model)

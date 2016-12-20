@@ -173,7 +173,7 @@ bool DataViewer::checkForPending()
 				 "\nYes = save changes\nNo = discard changes\n"
 				 "Cancel = skip this operation and stay in %1.%2"));
 		int com = QMessageBox::question(this, tr("Sqliteman"),
-			msg.arg(old->schema(), old->tableName()),
+			msg.arg(old->schema(), old->objectName()),
 			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
 		if (com == QMessageBox::No)
 		{
@@ -603,7 +603,7 @@ void DataViewer::exportData()
 	QString tmpTableName("<any_table>");
 	SqlTableModel * m = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (m)
-		tmpTableName = m->tableName();
+		tmpTableName = m->objectName();
 
 	DataExportDialog *dia = new DataExportDialog(this, tmpTableName);
 	if (dia->exec())
@@ -746,7 +746,7 @@ void DataViewer::openStandaloneWindow()
 		qm->setQuery(QString("select * from ")
 					 + Utils::q(tm->schema())
 					 + "."
-					 + Utils::q(tm->tableName())
+					 + Utils::q(tm->objectName())
 					 + ";",
 					 QSqlDatabase::database(SESSION_NAME));
 	}
