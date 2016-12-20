@@ -34,6 +34,7 @@ Preferences::Preferences(QObject *parent)
 	m_openLastSqlFile = s.value("prefs/openLastSqlFile", true).toBool();
 	m_readRows = s.value("prefs/readRowsComboBox", 0).toInt();
 	m_lastDB = s.value("lastDatabase", QString()).toString();
+	m_newInItemView = s.value("prefs/openNewInItemView", false).toBool();
 	m_GUItranslator = s.value("prefs/languageComboBox", 0).toInt();
 	m_GUIstyle = s.value("prefs/styleComboBox", 0).toInt();
 	m_GUIfont = s.value("prefs/applicationFont", f).value<QFont>();
@@ -85,6 +86,7 @@ Preferences::~Preferences()
 	settings.setValue("prefs/recentlyUsedSpinBox", m_recentlyUsedCount);
 	settings.setValue("prefs/openLastDB", m_openLastDB);
 	settings.setValue("prefs/openLastSqlFile", m_openLastSqlFile);
+	settings.setValue("prefs/openNewInItemView", m_newInItemView);
 	settings.setValue("prefs/readRowsComboBox", m_readRows);
 	// data results
 	settings.setValue("prefs/nullCheckBox", m_nullHighlight);

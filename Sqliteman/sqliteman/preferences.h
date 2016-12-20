@@ -60,6 +60,9 @@ class Preferences : public QObject
 		
 		int rowsToRead() { return m_readRows; };
 		void setRowsToRead(int index) { m_readRows = index; };
+		
+		bool openNewInItemView() { return m_newInItemView; }
+		void setOpenNewInItemView(bool v) { m_newInItemView = v; }
 
 		int GUItranslator() { return m_GUItranslator; };
 		void setGUItranslator(int v) { m_GUItranslator = v; };
@@ -167,6 +170,7 @@ class Preferences : public QObject
 		bool m_openLastSqlFile;
 		int m_readRows;
 		QString m_lastDB;
+		bool m_newInItemView;
 		int m_GUItranslator;
 		int m_GUIstyle;
 		QFont m_GUIfont;

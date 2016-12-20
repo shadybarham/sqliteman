@@ -185,10 +185,16 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="rowsToRead">
-      </widget>
+      <widget class="QComboBox" name="rowsToRead"/>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="newInItemCheckBox">
+     <property name="text">
+      <string>Open New Row in Item View</string>
+     </property>
+    </widget>
    </item>
    <item>
     <spacer>

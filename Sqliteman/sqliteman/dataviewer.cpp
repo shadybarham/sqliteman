@@ -5,6 +5,7 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME Add row not honouring autoincrement
+	FIXME Reinstate field context menu in item view
 */
 
 #include <QMessageBox>
@@ -500,6 +501,10 @@ void DataViewer::addRow()
 		model->insertRows(activeRow, 1);
 		ui.tableView->scrollToBottom();
 		ui.tableView->selectRow(activeRow);
+		if (Preferences::instance()->openNewInItemView())
+		{
+			rowDoubleClicked(activeRow);
+		}
 		updateButtons();
 		if (ui.tabWidget->currentIndex() == 1)
 		{
@@ -534,6 +539,10 @@ void DataViewer::copyRow()
 				QModelIndex newIndex = ui.tableView->model()->index(
 					model->rowCount() - 1, index.column());
 				ui.tableView->setCurrentIndex(newIndex);
+				if (Preferences::instance()->openNewInItemView())
+				{
+					rowDoubleClicked(activeRow);
+				}
 				updateButtons();
 				if (ui.tabWidget->currentIndex() == 1)
 				{
