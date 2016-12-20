@@ -357,7 +357,7 @@ bool DataExportDialog::exportSql()
 	{
 		if (!setProgress(i)) { return false; }
 		if (m_table && m_table->isDeleted(i)) { continue; }
-		out << "insert into " << m_tableName << " (\"" << columns << "\") values (";
+		out << "insert into " << Utils::q(m_tableName) << " (\"" << columns << "\") values (";
 		QSqlRecord r = m_data->record(i);
 
 		for (int j = 0; j < m_header.size(); ++j)
@@ -499,7 +499,7 @@ void DataExportDialog::searchButton_clicked()
 
 bool DataExportDialog::header()
 {
-	return (ui.headerCheckBox->checkState() == Qt::Checked);
+	return (ui.headerCheckBox->isChecked());
 }
 
 QString DataExportDialog::endl()
