@@ -114,7 +114,7 @@ public slots:
 
 		/*! \brief Open current results in a new standalone window.
 		Based on the user RFE. Used for e.g. comparing 2 select results etc.
-		It's a little bit hackish - the new window shoudl contain read
+		It's a little bit hackish - the new window should contain read
 		only snapshot of the current data result - even if it is a editable
 		table snapshot. User is not allowed to edit it as it's "freezed
 		in time" to prevent all transaction blocking.

@@ -5,7 +5,6 @@ a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME Add row not honouring autoincrement
-	FIXME Reinstate field context menu in item view
 */
 
 #include <QMessageBox>
@@ -72,12 +71,19 @@ DataViewer::DataViewer(QWidget * parent)
 	
 	handleBlobPreview(false);
 
-	actInsertNull = new QAction(Utils::getIcon("setnull.png"), tr("Insert NULL"), ui.tableView);
-    connect(actInsertNull, SIGNAL(triggered()), this, SLOT(actInsertNull_triggered()));
-    actOpenEditor = new QAction(Utils::getIcon("edit.png"), tr("Open Data Editor..."), ui.tableView);
-    connect(actOpenEditor, SIGNAL(triggered()), this, SLOT(actOpenEditor_triggered()));
-    actOpenMultiEditor = new QAction(tr("Open Multiline Editor..."),
+	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
+								tr("Insert NULL"), ui.tableView);
+	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+    connect(actInsertNull, SIGNAL(triggered()), this,
+			SLOT(actInsertNull_triggered()));
+    actOpenEditor = new QAction(tr("Open Data Editor..."), ui.tableView);
+	actOpenEditor->setShortcut(QKeySequence("Ctrl+ "));
+    connect(actOpenEditor, SIGNAL(triggered()), this,
+			SLOT(actOpenEditor_triggered()));
+    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
+									 tr("Open Multiline Editor..."),
 									 ui.tableView);
+	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
     connect(actOpenMultiEditor, SIGNAL(triggered()),
 			this, SLOT(actOpenMultiEditor_triggered()));
     ui.tableView->addAction(actInsertNull);
@@ -925,22 +931,32 @@ void DataViewer::gotoLine()
 
 void DataViewer::actOpenEditor_triggered()
 {
-	removeErrorMessage();
-    ui.tableView->edit(ui.tableView->currentIndex());
+	QModelIndex index(ui.tableView->currentIndex());
+	if (index.isValid())
+	{
+		removeErrorMessage();
+	    ui.tableView->edit(index);
+	}
 }
 
 void DataViewer::actOpenMultiEditor_triggered()
 {
-	MultiEditDialog dia(this);
 	QAbstractItemModel * model = ui.tableView->model();
-	QVariant data = model->data(ui.tableView->currentIndex(), Qt::EditRole);
-	dia.setData(data);
-	if (dia.exec())
+	QModelIndex index(ui.tableView->currentIndex());
+	if (model && index.isValid())
 	{
-		data = dia.data();
-		ui.tableView->model()->setData(ui.tableView->currentIndex(),
-									   data, Qt::EditRole);
-		tableView_dataChanged();
+		QVariant data = model->data(index, Qt::EditRole);
+		if (data.isValid())
+		{
+			MultiEditDialog dia(this);
+			dia.setData(data);
+			if (dia.exec())
+			{
+				data = dia.data();
+				ui.tableView->model()->setData(index, data, Qt::EditRole);
+				tableView_dataChanged();
+			}
+		}
 	}
 }
 
@@ -948,7 +964,9 @@ void DataViewer::actInsertNull_triggered()
 {
 	QAbstractItemModel * model = ui.tableView->model();
 	QModelIndex index(ui.tableView->currentIndex());
-	if (!(model->data(index, Qt::EditRole).isNull()))
+	if (   index.isValid()
+		&& model
+		&& !(model->data(index, Qt::EditRole).isNull()))
 	{
 	    model->setData(index, QString(), Qt::EditRole);
 		tableView_dataChanged();

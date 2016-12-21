@@ -3,6 +3,7 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
+	FIXME looking for null and multiline buttons in current directory
 */
 #include <QDataWidgetMapper>
 #include <QGridLayout>
@@ -36,8 +37,10 @@ SqlItemView::SqlItemView(QWidget * parent)
 			this, SLOT(toLast()));
 	connect(nullButton, SIGNAL(clicked()),
 			this, SLOT(insertNull()));
+	nullButton->setIcon(Utils::getIcon("setnull.png"));
 	connect(multiButton, SIGNAL(clicked()),
 			this, SLOT(openMultiEditor()));
+	multiButton->setIcon(Utils::getIcon("edit.png"));
 	connect(qApp, SIGNAL(focusChanged(QWidget*,QWidget*)),
 			 this, SLOT(aApp_focusChanged(QWidget*,QWidget*)));
 }
@@ -109,8 +112,8 @@ void SqlItemView::updateButtons(int row)
 	firstButton->setEnabled(findUp(-1) != row);
 	nextButton->setEnabled(findUp(row) != row);
 	lastButton->setEnabled(findDown(rowcount) != row);
-	nullButton->setEnabled(editable && !data.isNull());
-	multiButton->setEnabled(editable);
+	nullButton->setVisible(editable && !data.isNull());
+	multiButton->setVisible(editable);
 }
 
 void SqlItemView::setCurrentIndex(int row, int column)
