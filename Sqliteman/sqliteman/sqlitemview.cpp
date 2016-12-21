@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME looking for null and multiline buttons in current directory
 */
 #include <QDataWidgetMapper>
 #include <QGridLayout>
@@ -60,6 +59,25 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	QWidget * layoutWidget = new QWidget(scrollWidget);
 	m_gridLayout = new QGridLayout(layoutWidget);
 	QString tmp("%1:");
+	actCopy = new QAction(tr("Copy"), layoutWidget);
+	actCopy->setShortcut(QKeySequence("Ctrl+C"));
+    connect(actCopy, SIGNAL(triggered()), this,
+			SLOT(doCopy()));
+	actPaste = new QAction(tr("Paste"), layoutWidget);
+	actPaste->setShortcut(QKeySequence("Ctrl+V"));
+    connect(actPaste, SIGNAL(triggered()), this,
+			SLOT(doPaste()));
+	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
+								tr("Insert NULL"), layoutWidget);
+	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+    connect(actInsertNull, SIGNAL(triggered()), this,
+			SLOT(insertNull()));
+    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
+									 tr("Open Multiline Editor..."),
+									 this);
+	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
+    connect(actOpenMultiEditor, SIGNAL(triggered()),
+			this, SLOT(openMultiEditor()));
 
 	for (int i = 0; i < rec.count(); ++i)
 	{
@@ -76,6 +94,11 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 		m_gridLayout->setRowMinimumHeight(i, mh);
 		connect(w, SIGNAL(textChanged()),
 				this, SLOT(textChanged()));
+		w->addAction(actCopy);
+		w->addAction(actPaste);
+		w->addAction(actInsertNull);
+		w->addAction(actOpenMultiEditor);
+		w->setContextMenuPolicy(Qt::ActionsContextMenu);
 	}
 	scrollWidget->setWidget(layoutWidget);
 
@@ -309,6 +332,27 @@ void SqlItemView::aApp_focusChanged(QWidget* old, QWidget* now)
 		}
 	}
 }
+
+void SqlItemView::doCopy()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	if (te)
+	{
+		te->copy();
+	}
+}
+
+void SqlItemView::doPaste()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	if (te)
+	{
+		te->paste();
+	}
+}
+
 
 void SqlItemView::textChanged()
 {

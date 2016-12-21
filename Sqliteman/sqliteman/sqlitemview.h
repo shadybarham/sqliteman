@@ -68,6 +68,10 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 
 		int findUp(int row);
 		int findDown(int row);
+        QAction * actCopy;
+        QAction * actPaste;
+        QAction * actInsertNull;
+        QAction * actOpenMultiEditor;
 
 	private slots:
 		void toFirst();
@@ -81,6 +85,8 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		/*! Handle app focus change. It chatches only m_mapper's
 		widgets. It emits indexChanged() for DataViewer. */
 		void aApp_focusChanged(QWidget* old, QWidget* now);
+		void doCopy();
+		void doPaste();
 
 	public slots:
 		void textChanged();
