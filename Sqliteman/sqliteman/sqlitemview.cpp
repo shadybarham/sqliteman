@@ -51,6 +51,7 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	m_model = model;
 	QSqlQueryModel * t = qobject_cast<QSqlQueryModel *>(model);
 	if (!t)  { return; }
+	QSqlTableModel * table = qobject_cast<QSqlTableModel *>(model);
 	QSqlRecord rec(t->record());
 
 	if (scrollWidget->widget())
@@ -69,36 +70,39 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
     connect(actCopyWhole, SIGNAL(triggered()), this,
 			SLOT(doCopyWhole()));
-	actCut = new QAction(tr("Cut"), layoutWidget);
-	actCut->setShortcut(QKeySequence("Ctrl+X"));
-    connect(actCut, SIGNAL(triggered()), this,
-			SLOT(doCut()));
-	actPaste = new QAction(tr("Paste"), layoutWidget);
-	actPaste->setShortcut(QKeySequence("Ctrl+V"));
-    connect(actPaste, SIGNAL(triggered()), this,
-			SLOT(doPaste()));
-	actPasteOver = new QAction(tr("Paste Over"), layoutWidget);
-	actPasteOver->setShortcut(QKeySequence("Ctrl+Alt+V"));
-    connect(actPasteOver, SIGNAL(triggered()), this,
-			SLOT(doPasteOver()));
-	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
-								tr("Insert NULL"), layoutWidget);
-	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
-    connect(actInsertNull, SIGNAL(triggered()), this,
-			SLOT(insertNull()));
-    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
-									 tr("Open Multiline Editor..."),
-									 this);
-	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
-    connect(actOpenMultiEditor, SIGNAL(triggered()),
-			this, SLOT(openMultiEditor()));
+	if (table)
+	{
+		actCut = new QAction(tr("Cut"), layoutWidget);
+		actCut->setShortcut(QKeySequence("Ctrl+X"));
+	    connect(actCut, SIGNAL(triggered()), this,
+				SLOT(doCut()));
+		actPaste = new QAction(tr("Paste"), layoutWidget);
+		actPaste->setShortcut(QKeySequence("Ctrl+V"));
+	    connect(actPaste, SIGNAL(triggered()), this,
+				SLOT(doPaste()));
+		actPasteOver = new QAction(tr("Paste Over"), layoutWidget);
+		actPasteOver->setShortcut(QKeySequence("Ctrl+Alt+V"));
+	    connect(actPasteOver, SIGNAL(triggered()), this,
+				SLOT(doPasteOver()));
+		actInsertNull = new QAction(Utils::getIcon("setnull.png"),
+									tr("Insert NULL"), layoutWidget);
+		actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+	    connect(actInsertNull, SIGNAL(triggered()), this,
+				SLOT(insertNull()));
+	    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
+										 tr("Open Multiline Editor..."),
+										 this);
+		actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
+	    connect(actOpenMultiEditor, SIGNAL(triggered()),
+				this, SLOT(openMultiEditor()));
+	}
 
 	for (int i = 0; i < rec.count(); ++i)
 	{
 		m_gridLayout->addWidget(
 			new QLabel(tmp.arg(rec.fieldName(i)), layoutWidget), i, 0);
 		QTextEdit * w = new QTextEdit(layoutWidget);
-		w->setReadOnly(false);
+		w->setReadOnly(table ? false : true);
 		w->setAcceptRichText(false);
 		int mh = QFontMetrics(w->currentFont()).lineSpacing();
 		w->setMinimumHeight(mh);
@@ -110,11 +114,14 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 				this, SLOT(textChanged()));
 		w->addAction(actCopy);
 		w->addAction(actCopyWhole);
-		w->addAction(actCut);
-		w->addAction(actPaste);
-		w->addAction(actPasteOver);
-		w->addAction(actInsertNull);
-		w->addAction(actOpenMultiEditor);
+		if (table)
+		{
+			w->addAction(actCut);
+			w->addAction(actPaste);
+			w->addAction(actPasteOver);
+			w->addAction(actInsertNull);
+			w->addAction(actOpenMultiEditor);
+		}
 		w->setContextMenuPolicy(Qt::ActionsContextMenu);
 	}
 	scrollWidget->setWidget(layoutWidget);

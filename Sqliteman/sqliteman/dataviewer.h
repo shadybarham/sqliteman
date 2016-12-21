@@ -84,6 +84,8 @@ public slots:
 		QString searchString;
 		int topRow;
 
+        QAction * actCopyWhole;
+        QAction * actPasteOver;
         QAction * actOpenEditor;
         QAction * actOpenMultiEditor;
         QAction * actInsertNull;
@@ -148,6 +150,8 @@ public slots:
 		void rowDoubleClicked(int);
 		void nonColumnClicked();
 		void columnClicked(int);
+		void doCopyWhole();
+		void doPasteOver();
 };
 
 

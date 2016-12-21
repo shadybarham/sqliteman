@@ -71,6 +71,14 @@ DataViewer::DataViewer(QWidget * parent)
 	
 	handleBlobPreview(false);
 
+	actCopyWhole = new QAction(tr("Copy Whole"), ui.tableView);
+	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
+    connect(actCopyWhole, SIGNAL(triggered()), this,
+			SLOT(doCopyWhole()));
+	actPasteOver = new QAction(tr("Paste"), ui.tableView);
+	actPasteOver->setShortcut(QKeySequence("Ctrl+V"));
+    connect(actPasteOver, SIGNAL(triggered()), this,
+			SLOT(doPasteOver()));
 	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
 								tr("Insert NULL"), ui.tableView);
 	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
@@ -86,6 +94,8 @@ DataViewer::DataViewer(QWidget * parent)
 	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
     connect(actOpenMultiEditor, SIGNAL(triggered()),
 			this, SLOT(actOpenMultiEditor_triggered()));
+    ui.tableView->addAction(actCopyWhole);
+    ui.tableView->addAction(actPasteOver);
     ui.tableView->addAction(actInsertNull);
     ui.tableView->addAction(actOpenEditor);
     ui.tableView->addAction(actOpenMultiEditor);
@@ -800,6 +810,7 @@ void DataViewer::tableView_selectionChanged(const QItemSelection & current,
 	removeErrorMessage();
 	SqlTableModel *tm = qobject_cast<SqlTableModel*>(ui.tableView->model());
     bool enable = (tm != 0);
+    actPasteOver->setEnabled(enable);
     actInsertNull->setEnabled(enable);
     actOpenEditor->setEnabled(enable);
     actOpenMultiEditor->setEnabled(enable);
@@ -1009,6 +1020,27 @@ void DataViewer::rowCountChanged()
 	}
 	else { showStatusText(false); }
 }
+
+void DataViewer::doCopyWhole()
+{
+	QAbstractItemModel * model = ui.tableView->model();
+	QModelIndex index(ui.tableView->currentIndex());
+	QVariant data = model->data(index, Qt::EditRole);
+	QApplication::clipboard()->setText(data.toString());
+}
+
+void DataViewer::doPasteOver()
+{
+	QSqlTableModel * model =
+		qobject_cast<QSqlTableModel*>(ui.tableView->model());
+	QModelIndex index(ui.tableView->currentIndex());
+	const QMimeData *mimeData = QApplication::clipboard()->mimeData();
+	if (model && index.isValid() && mimeData->hasText())
+	{
+		model->setData(index, mimeData->text(), Qt::EditRole);
+	}
+}
+
 
 /* Tools *************************************************** */
 

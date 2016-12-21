@@ -307,12 +307,95 @@
 				</div>
 				<dd>
 					<p>
-						Display data as  a table. It's the most common view on
-						SQL results. For details of how to edit in this view see
-						<a href="ch07s12.html#dataViewer-editor">
-							Data Editing
-						</a>
+						Display data as  a table. This is the most common view
+						on SQL results.
 					</p>
+					<p>
+						Clicking on the Item View tab will display the
+						<a href="ch07s12.itemview">Item View</a>
+						for the currently selected row (the tab is disabled
+						when there is no current row). Double-clicking on a row
+						number in the Full View will open the
+						<a href="ch07s12.itemview">Item View</a>
+						for that row.
+					</p>
+					<p>
+						The following functions are available from the context
+						menu invoked by right-clicking in a field, or with the
+						keyboard shortcuts shown:-
+					</p>
+					<dl>
+						<dt>
+							Copy Whole
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">W</strong>
+							</strong>
+						</dt>
+						<dd>
+							Copies the whole field to the Clipboard.
+						</dd>
+						<dt>
+							Paste Over
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">V</strong>
+							</strong>
+						</dt>
+						<dd>
+							If there is text in the Clipboard, replace the
+							whole field with that text: otherwise do nothing.
+						</dd>
+						<dt>
+							<span class="guiicon">
+								<img src="setnull.png">Insert NULL
+							</span>
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">N</strong>
+							</strong>
+						</dt>
+						<dd>
+							Replace the contents of the field with a Null: SQL 
+							does not treat a Null field the same as an empty
+							one.
+						</dd>
+						<dt>
+							Open In-line Editor
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Space</strong>
+							</strong>
+						</dt>
+						<dd>
+							Open the
+							<a href="ch07s12.html#line-edit">In-line Editor</a>
+							in the field. This can also be invoked by
+							double-clicking on the field.
+						<dt>
+							<span class="guiicon">
+								<img src="edit.png">Open Multiline Editor
+							</span>
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">E</strong>
+							</strong>
+						</dt>
+						<dd>
+							Bring up the
+							<a href="ch07s12.html#advanced">Multiline Editor</a>
+							to edit the contents of the field in a pop-up
+							window.
+						</dd>
+					</dl>
 				</dd>
 				<dt>
 					<span class="term">
@@ -326,21 +409,13 @@
 				</div>
 				<dd>
 					<p>
-						Clicking on the Item View tab will display the Item
-						View for the currently selected row (the tab is
-						disabled when there is no current row). Double-
-						clicking on a row number in the Full View will open
-						the Item View for that row.
-					</p>
-					<p>
 						The Item View displays only one row at a time, but
 						with more space to edit each field. The navigation
 						buttons at the right move to the first, previous, next, and last row respectively, and are disabled if
 						you are already at that row. Below the navigation
 						buttons there are two small buttons to overwrite the
 						selected field with a NULL and to open the
-						<a href="ch07s12.html#advanced">Multiline
-							Editor</a>:
+						<a href="ch07s12.html#advanced">Multiline Editor</a>:
 						these are only visible if the table is editable.
 						You can also use the go to line number button.
 					</p>
@@ -354,7 +429,7 @@
 					<p>
 						The following functions are available from the context
 						menu invoked by right-clicking in a field, or with the
-						keyvoard shortcuts shown:-
+						keyboard shortcuts shown:-
 					</p>
 					<dl>
 						<dt>
@@ -419,7 +494,7 @@
 						</dd>
 						<dt>
 							<span class="guiicon">
-								<img src="setnull.png">Set NULL
+								<img src="setnull.png">Insert NULL
 							</span>
 							<strong class="shortcut">
 								<strong
@@ -474,33 +549,6 @@
 		<div class="titlepage">
 			<h2 class="title"><a name="dataViewer-editor"></a>Data Editing</h2>
 		</div>
-		<p>
-			The context menu in a table cell can insert a NULL or invoke the
-			<a href="ch07s12.html#line-edit">In-line Editor</a>
-			or invoke the
-			<a href="ch07s12.html#advanced">Multiline Editor</a>.
-			The
-			<a href="ch07s12.html#line-edit">In-line Editor</a>
-			can also be invoked by double-clicking on a field or
-			<strong class="shortcut">
-				<strong
-					class="keycap">Ctrl</strong>+<strong
-						class="keycap">Space</strong>
-			</strong>
-			when a field is selected.
-		</p>
-		<div class="important" style="margin-left: 0.5in; margin-right: 0.5in;">
-			<h3 class="title">Important</h3>
-			<p>
-				Remember that Sqlite recognizes NULL and empty string as two independent values. So inserting an empty string does not mean
-				you are inserting a NULL. Use the NULL button to do it.
-			</p>
-		</div>
-		<div class="screenshot">
-			<div class="mediaobject">
-				<img src="dataViewer-editor.png" alt="Simple Data Editor">
-			</div>
-		</div>
 		<div class="variablelist">
 			<dl>
 				<dt>
@@ -509,6 +557,12 @@
 					</h3>
 				</dt>
 				<dd>
+					<div class="screenshot">
+						<div class="mediaobject">
+							<img src="dataViewer-editor.png"
+							alt="Simple Data Editor">
+						</div>
+					</div>
 					<p>
 						Simple strings can be edited in this widget. There are
 						also two buttons:-
