@@ -351,6 +351,106 @@
 						click on a NULL field in an editable table, so that
 						you can type something in there.
 					</p>
+					<p>
+						The following functions are available from the context
+						menu invoked by right-clicking in a field, or with the
+						keyvoard shortcuts shown:-
+					</p>
+					<dl>
+						<dt>
+							Copy
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">C</strong>
+							</strong>
+						</dt>
+						<dd>
+							Copies the selected text to the Clipboard.
+						</dd>
+						<dt>
+							Copy Whole
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">W</strong>
+							</strong>
+						</dt>
+						<dd>
+							Copies the whole field to the Clipboard.
+						</dd>
+						<dt>
+							Cut
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">X</strong>
+							</strong>
+						</dt>
+						<dd>
+							Copies the selected text to the Clipboard and
+							deletes it from the field.
+						</dd>
+						<dt>
+							Paste
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">V</strong>
+							</strong>
+						</dt>
+						<dd>
+							Pastes text from the Clipboard in place of the
+							selection or at the cursor position if nothing is
+							selected.
+						</dd>
+						<dt>
+							Paste Over
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">V</strong>
+							</strong>
+						</dt>
+						<dd>
+							If there is text in the Clipboard, replace the
+							whole field with that text: otherwise do nothing.
+						</dd>
+						<dt>
+							<span class="guiicon">
+								<img src="setnull.png">Set NULL
+							</span>
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">N</strong>
+							</strong>
+						</dt>
+						<dd>
+							Replace the contents of the field with a Null: SQL 
+							does not treat a Null field the same as an empty
+							one.
+						</dd>
+						<dt>
+							<span class="guiicon">
+								<img src="edit.png">Open Multiline Editor
+							</span>
+							<strong class="shortcut">
+								<strong
+									class="keycap">Ctrl</strong>+<strong
+									class="keycap">Alt</strong>+<strong
+									class="keycap">E</strong>
+							</strong>
+						</dt>
+						<dd>
+							Bring up the
+							<a href="ch07s12.html#advanced">Multiline Editor</a>
+							to edit the contents of the field in a pop-up
+							window.
+						</dd>
+					</dl>
 				</dd>
 				<dt>
 					<span class="term">
@@ -457,7 +557,7 @@
 	</div>
 	<div class="sect2" lang="en">
 		<h3>
-			<dfn id = "advanced">Multiline Editor</dfn>
+			<dfn id="advanced">Multiline Editor</dfn>
 		</h3>
 		<p>
 			This dialog is designed because the In-line Editor cannot handle

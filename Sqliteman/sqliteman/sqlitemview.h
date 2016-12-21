@@ -69,7 +69,10 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		int findUp(int row);
 		int findDown(int row);
         QAction * actCopy;
+        QAction * actCopyWhole;
+        QAction * actCut;
         QAction * actPaste;
+        QAction * actPasteOver;
         QAction * actInsertNull;
         QAction * actOpenMultiEditor;
 
@@ -86,7 +89,10 @@ class SqlItemView : public QWidget, public Ui::SqlItemView
 		widgets. It emits indexChanged() for DataViewer. */
 		void aApp_focusChanged(QWidget* old, QWidget* now);
 		void doCopy();
+		void doCopyWhole();
+		void doCut();
 		void doPaste();
+		void doPasteOver();
 
 	public slots:
 		void textChanged();

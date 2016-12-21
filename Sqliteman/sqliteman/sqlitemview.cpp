@@ -4,8 +4,10 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 */
+#include <QClipboard>
 #include <QDataWidgetMapper>
 #include <QGridLayout>
+#include <QMimeData>
 #include <QSqlQueryModel>
 #include <QSqlRecord>
 #include <QTableView>
@@ -63,10 +65,22 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	actCopy->setShortcut(QKeySequence("Ctrl+C"));
     connect(actCopy, SIGNAL(triggered()), this,
 			SLOT(doCopy()));
+	actCopyWhole = new QAction(tr("Copy Whole"), layoutWidget);
+	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
+    connect(actCopyWhole, SIGNAL(triggered()), this,
+			SLOT(doCopyWhole()));
+	actCut = new QAction(tr("Cut"), layoutWidget);
+	actCut->setShortcut(QKeySequence("Ctrl+X"));
+    connect(actCut, SIGNAL(triggered()), this,
+			SLOT(doCut()));
 	actPaste = new QAction(tr("Paste"), layoutWidget);
 	actPaste->setShortcut(QKeySequence("Ctrl+V"));
     connect(actPaste, SIGNAL(triggered()), this,
 			SLOT(doPaste()));
+	actPasteOver = new QAction(tr("Paste Over"), layoutWidget);
+	actPasteOver->setShortcut(QKeySequence("Ctrl+Alt+V"));
+    connect(actPasteOver, SIGNAL(triggered()), this,
+			SLOT(doPasteOver()));
 	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
 								tr("Insert NULL"), layoutWidget);
 	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
@@ -95,7 +109,10 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 		connect(w, SIGNAL(textChanged()),
 				this, SLOT(textChanged()));
 		w->addAction(actCopy);
+		w->addAction(actCopyWhole);
+		w->addAction(actCut);
 		w->addAction(actPaste);
+		w->addAction(actPasteOver);
 		w->addAction(actInsertNull);
 		w->addAction(actOpenMultiEditor);
 		w->setContextMenuPolicy(Qt::ActionsContextMenu);
@@ -343,6 +360,26 @@ void SqlItemView::doCopy()
 	}
 }
 
+void SqlItemView::doCopyWhole()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	if (te)
+	{
+		QApplication::clipboard()->setText(te->toPlainText());
+	}
+}
+
+void SqlItemView::doCut()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	if (te)
+	{
+		te->cut();
+	}
+}
+
 void SqlItemView::doPaste()
 {
 	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
@@ -353,6 +390,16 @@ void SqlItemView::doPaste()
 	}
 }
 
+void SqlItemView::doPasteOver()
+{
+	QWidget * w = m_gridLayout->itemAtPosition(m_column, 1)->widget();
+	QTextEdit * te = qobject_cast<QTextEdit *>(w);
+	const QMimeData *mimeData = QApplication::clipboard()->mimeData();
+	if (te && mimeData->hasText())
+	{
+		te->setText(mimeData->text());
+	}
+}
 
 void SqlItemView::textChanged()
 {
