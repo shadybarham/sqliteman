@@ -71,6 +71,7 @@ private slots:
 		void lessOrders();
 		void relationsIndexChanged(const QString &);
 		void resetClicked();
+		void copySql();
 };
 
 #endif //QUERYEDITORWIDGET_H

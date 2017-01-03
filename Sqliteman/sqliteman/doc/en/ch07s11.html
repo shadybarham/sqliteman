@@ -1,27 +1,231 @@
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>SQL Editor</title><link rel="stylesheet" href="kde-default.css" type="text/css"><meta name="generator" content="DocBook XSL Stylesheets V1.67.2"><meta name="keywords" content="Sqliteman, SQL, Sqlite, development, database"><link rel="start" href="index.html" title="The Sqliteman Handbook"><link rel="up" href="ch07.html" title="Chapter 7. Features and Dialogs"><link rel="prev" href="ch07s10.html" title="Schema Browser"><link rel="next" href="ch07s12.html" title="Data Viewer"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">SQL Editor</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s10.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Features and Dialogs</th><td width="20%" align="right"> <a accesskey="n" href="ch07s12.html">Next</a></td></tr></table><hr></div><div class="sect1" lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sqlEditor"></a>SQL Editor</h2></div></div></div><p>The SQL Editor is the place to create, test and examine your statements.
-There are some additional features made for your easier life. Of course you
-can <a href="ch07.html#preferences-sqlEditor" title="SQL Editor">customize editor behavior in Preferences</a>.</p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>Transaction handling. Transactions in the SQL scripts (in this editor)
-are under user control. There is no autocommit and automatic transaction starting.
-You can use PRAGMAs on your own of course.</p><p>It's strongly recommended not to mix transaction started in SQL Editor and
-in Data Viewer. You can get some ugly collisions then.</p></div><p>
-          </p><div class="screenshot"><div class="mediaobject"><img src="sqlEditor.png" alt="SQL editor"></div></div><p>
-          </p><div class="variablelist"><dl><dt><span class="term"><span class="guiicon"><img src="runsql.png">Run current statement</span>
-    <span><strong class="shortcut"><span><strong class="keycap">F9</strong></span></strong></span>
-    <span><strong class="shortcut"><span><strong class="keycap">Ctrl</strong></span>+<span><strong class="keycap">Return</strong></span></strong></span>
-    </span></dt><dd><p><span class="action">The current statement is the SQL block under cursor or
-     the text in editor selection.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="runexplain.png">Explain Plan</span>
-    <span><strong class="shortcut"><span><strong class="keycap">F6</strong></span></strong></span>
-    </span></dt><dd><p><span class="action">The EXPLAIN tool is used for the current statement.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="runscript.png">Run Multiple Statements</span>
-    <span><strong class="shortcut"><span><strong class="keycap">F5</strong></span></strong></span>
-    </span></dt><dd><p><span class="action">Use this action when you need to run more statements in one batch.</span></p><p>If there is a selection in editor, all statements in this selection will be used. If there is no
-    selection, all statements <span class="emphasis"><em>from cursor position</em></span> will be used.</p><p>The "Start from cursor" feature is very useful when your script contains an error.
-    You can continue after correction from the middle of file.  </p></dd><dt><span class="term"><span class="guiicon"><img src="view.png">Create View</span>
-    </span></dt><dd><p><span class="action">Create a view from the current statement. The <a href="ch07s06.html" title="View related dialogs">Create View Dialog</a>
-    with the current statement will be shown.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="document-new.png">New Document</span>
-    </span></dt><dd><p><span class="action">Create a new empty document in the editor. User is asked for save if there are any unsaved changes.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="document-open.png">Open Document</span>
-    </span></dt><dd><p><span class="action">Open an existing file.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="document-save.png">Save Document</span>
-    </span></dt><dd><p><span class="action">Save the current file. If the document does not have file name,
-    the Save As dialog is shown.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="document-save-as.png">Save Document As</span>
-    </span></dt><dd><p><span class="action">Save the current file with changed name.</span></p></dd><dt><span class="term"><span class="guiicon"><img src="system-search.png">Search in the document</span>
-    <span><strong class="shortcut"><span><strong class="keycap">Ctrl</strong></span>+<span><strong class="keycap">F</strong></span></strong></span>
-    </span></dt><dd><p><span class="action">Open or close the Search panel in the bottom of the SQL Editor.</span></p></dd></dl></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s10.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s12.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Schema Browser </td><td width="20%" align="center"><a accesskey="h" href="index.html">Contents</a></td><td width="40%" align="right" valign="top"> Data Viewer</td></tr></table></div></body></html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Query Builder</title>
+		<link rel="stylesheet" href="kde-default.css" type="text/css">
+		<meta name="generator" content="DocBook XSL Stylesheets V1.67.2">
+		<meta name="keywords"
+			content="Sqliteman, SQL, Sqlite, development, database">
+		<link rel="start" href="index.html" title="The Sqliteman Handbook">
+		<link rel="up" href="ch07.html" title="Chapter 7. Features and Dialogs">
+		<link rel="prev" href="ch07s10.html" title="Schema Browser">
+		<link rel="next" href="ch07s12.html" title="Data Viewer">
+	</head>
+	<body bgcolor="white" text="black" link="#0000FF"
+		vlink="#840084" alink="#0000FF">
+		<div class="navheader">
+			<table width="100%" summary="Navigation header">
+				<tr><th colspan="3" align="center">Query Builder</th></tr>
+				<tr>
+					<td width="20%" align="left">
+						<a accesskey="p" href="ch07s10.html">Prev</a>
+					</td>
+					<th width="60%" align="center">
+						Chapter 7. Features and Dialogs
+					</th>
+					<td width="20%" align="right">
+						<a accesskey="n" href="ch07s12.html">Next</a>
+					</td>
+				</tr>
+			</table>
+			<hr>
+		</div>
+		<div class="sect1" lang="en">
+			<div class="titlepage">
+				<h2 class="title" style="clear: both">
+					<a name="queryBuilder"></a>Query Builder
+				</h2>
+			</div>
+		<p>
+			The Query Builder enables you to interactively build and execute
+			simple queries on a table without having to write SQL. This is
+			distinct from the
+			<a href="ch07s12.html">SQL Editor</a>
+			which allows you to create any SQL statement you want, but you have
+			to understand the SQL syntax to use it.
+		</p>
+		<p></p>
+		<p>
+			The Query Builder dialog is persistent through an sqliteman session.
+			It is still there even if it is not being shown, and it remembers
+			the last query that you built with it: this means that query will
+			reappear if you open the dialog again. This can be useful if you did
+			not get your query quite right and want to modify it. Pressing the
+			<a href="ch07s11.html#reset">Reset</a>
+			button will remove the old query if you want to create a completely
+			new one.
+		</p>
+		<dl>
+			<dt>
+				<span class="term">Database Name</span>
+			</dt>
+			<dd>
+				<span class="action">
+					If you invoked the Query Builder from the
+					<a href="ch06s02.html">
+						<span class="guimenu">Context</span> Menu</a>,
+					this field will be prefilled with the relevant Database
+					name. If you invoked it from the
+					<a href="ch06s03.html">
+						<span class="guimenu">Database</span> Menu</a>,
+					you can select an attached database from the dropdown list.
+				</span>
+			</dd>
+			<dt>
+				<span class="term">Table Name</span>
+			</dt>
+			<dd>
+				<span class="action">
+					If you invoked the Query Builder from the
+					<a href="ch06s02.html">
+						<span class="guimenu">Context</span> Menu</a>,
+					this field will be prefilled with the relevant table
+					name. If you invoked it from the
+					<a href="ch06s03.html">
+						<span class="guimenu">Database</span> Menu</a>,
+					you can select a table in the chosen Database from the
+					dropdown list.
+				</span>
+			</dd>
+			<dt>
+				<span class="term">Fields tab</span>
+					<div class="screenshot">
+						<div class="mediaobject">
+							<img src="queryFields.png" alt="Query Fields">
+						</div>
+					</div>
+			</dt>
+			<dd>
+				<p>
+					This tab allows you to choose the columns selected in
+					your query. The left box lists the names of the columns
+					not selected and the right box lists the names of the
+					columns selected. You can move a column name by
+					double-clicking on its name or move several column
+					names by clicking on them and then clicking on one of
+					the arrow buttons in the middle. Clicking on the double
+					left arrow will remove all column names from the
+					selected box. Clicking on the double right arrow will
+					move all remaining column names except the rowid, which
+					isn't usually wanted, to the selected box.
+				</p>
+				<p>
+					The order of the column names in the selected box will
+					become the order of the columns in the query result.
+					Sqlite allows a column to appear more than once in a
+					query result, but this Query Builder does not enable you
+					to build such a query.
+				</p>
+			</dd>
+			<dt>
+				<span class="term">Terms tab</span>
+					<div class="screenshot">
+						<div class="mediaobject">
+							<img src="queryTerms.png" alt="Query Terms">
+						</div>
+					</div>
+			</dt>
+			<dd>
+				<p>
+					This tab allows you to add match conditions to your
+					query. If you add several terms you can choose whether
+					the query returns rows which match all of them or match
+					any of them. The
+					<span class="guibutton">More</span>
+					button adds another match condition and the
+					<span class="guibutton">Less</span>
+					button deletes the last match condition.
+				</p>
+			</dd>
+			<dt>
+				<span class="term">Order By tab</span>
+					<div class="screenshot">
+						<div class="mediaobject">
+							<img src="queryOrder.png" alt="Query Order">
+						</div>
+					</div>
+			</dt>
+			<dd>
+				<p>
+					This tab allows you to add ordering requirements to your
+					query output. If you add several ordering requirements,
+					they will be applied in the sequence listed. The
+					<span class="guibutton">More</span>
+					button adds another ordering requirement and the
+					<span class="guibutton">Less</span>
+					button deletes the last ordering requirement.
+				</p>
+			</dd>
+			<dt>
+				<span class="guibutton">
+					<dfn id ="reset">Reset</dfn>
+				</span>
+			</dt>
+			<dd>
+				<p>
+					This button resets the query to the default state with
+					no columns selected, no match conditions (every row will
+					match), and no ordering requirements. Changing the table
+					name will also force a reset.
+				</p>
+			</dd>
+			<dt>
+				<span class="guibutton">Copy SQL</span>
+			</dt>
+			<dd>
+				<p>
+					This button copies to the clipboard the SQL statement
+					that the query builder would execute. It can then be
+					pasted into the 
+					<a href="ch07s12.html">SQL Editor</a>
+					or some other document.
+				</p>
+			</dd>
+			<dt>
+				<span class="guibutton">OK</span>
+			</dt>
+			<dd>
+				<p>
+					This button executes the query and dismisses the dialog.
+				</p>
+			</dd>
+			<dt>
+				<span class="guibutton">Cancel</span>
+			</dt>
+			<dd>
+				<p>
+					This button dismisses the dialog without executing the
+					query. Any changes made to the query are still
+					remembered.
+				</p>
+			</dd>
+		</dl>
+		<div>
+			<hr>
+			<table width="100%" summary="Navigation footer">
+				<tr>
+					<td width="40%" align="left">
+						<a accesskey="p" href="ch07s10.html">Prev</a>
+					</td>
+					<td width="20%" align="center">
+						<a accesskey="u" href="ch07.html">Up</a>
+					</td>
+					<td width="40%" align="right">
+						<a accesskey="n" href="ch07s12.html">Next</a>
+					</td>
+				</tr>
+				<tr>
+					<td width="40%" align="left" valign="top">
+						Schema Browser
+					</td>
+					<td width="20%" align="center">
+						<a accesskey="h" href="index.html">Contents</a>
+					</td>
+					<td width="40%" align="right" valign="top">
+						SQL Editor
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

@@ -13,9 +13,10 @@ If the table has a rowid but no INTEGER PRIMARY KEY column, and at least one of 
 	rowids are unique, so there can only be one
 Otherwise, we can't do it because we can't identify a unique record to update.
 */
-#include <QScrollBar>
+#include <QClipboard>
 #include <QComboBox>
 #include <QLineEdit>
+#include <QScrollBar>
 #include <QTreeWidgetItem>
 
 #include "queryeditorwidget.h"
@@ -555,6 +556,11 @@ void QueryEditorWidget::resetClicked()
 	}
 	if (tableList->isEnabled()) { tableList->setCurrentIndex(0); }
 	tableSelected(tableList->currentText());
+}
+
+void QueryEditorWidget::copySql()
+{
+	QApplication::clipboard()->setText(statement());
 }
 
 void QueryEditorWidget::treeChanged()
