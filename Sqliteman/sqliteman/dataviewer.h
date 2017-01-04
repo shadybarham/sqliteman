@@ -10,6 +10,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <QMainWindow>
 #include "ui_dataviewer.h"
+#include "sqlmodels.h"
 
 class QAbstractItemModel;
 class QTableView;
@@ -61,6 +62,11 @@ class DataViewer : public QMainWindow
 		// reselect active row and full/item view after doing some changes
 		void saveSelection();
 		void reSelect();
+		void findNext(int column, QString s, Qt::CaseSensitivity cs);
+		void unFindAll();
+		void findAll(int column, QString s, Qt::CaseSensitivity cs);
+		bool searchRow(SqlTableModel * model, int row, int column,
+					   QString s, Qt::CaseSensitivity cs);
 		bool incrementalSearch(QKeyEvent *keyEvent);
 		void setBuiltQuery(bool value);
 

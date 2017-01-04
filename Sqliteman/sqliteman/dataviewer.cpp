@@ -7,31 +7,33 @@ for which a new license (GPL+exception) is in place.
 	FIXME Add row not honouring autoincrement
 */
 
+#include <QApplication>
+#include <QClipboard>
+#include <QCursor>
+#include <QDateTime>
+#include <QtDebug> //qDebug
+#include <QHeaderView>
+#include <QInputDialog>
+#include <QKeyEvent>
 #include <QMessageBox>
+#include <QResizeEvent>
+#include <QScrollBar>
+#include <QSettings>
 #include <QSqlField>
 #include <QSqlQuery>
 #include <QSqlRecord>
 #include <QSqlError>
-#include <QKeyEvent>
-#include <QClipboard>
-#include <QDateTime>
-#include <QHeaderView>
-#include <QResizeEvent>
-#include <QSettings>
-#include <QInputDialog>
-#include <QScrollBar>
-#include <QtDebug> //qDebug
 
-#include "dataviewer.h"
-#include "preferences.h"
-#include "dataexportdialog.h"
-#include "sqlmodels.h"
+#include "blobpreviewwidget.h"
 #include "database.h"
+#include "dataexportdialog.h"
+#include "dataviewer.h"
+#include "multieditdialog.h"
+#include "preferences.h"
+#include "sqltableview.h"
+#include "sqlmodels.h"
 #include "sqldelegate.h"
 #include "utils.h"
-#include "blobpreviewwidget.h"
-#include "sqltableview.h"
-#include "multieditdialog.h"
 
 
 DataViewer::DataViewer(QWidget * parent)
@@ -199,7 +201,10 @@ bool DataViewer::checkForPending()
 		else if (com == QMessageBox::Cancel) { return false; }
 		else
 		{
-			if (!old->submitAll())
+			QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+			bool ok = old->submitAll();
+			QApplication::restoreOverrideCursor();
+			if (!ok)
 			{
 				/* This should never happen */
 				int ret = QMessageBox::question(this, tr("Sqliteman"),
@@ -394,6 +399,98 @@ void DataViewer::reSelect()
 										 ui.tableView->currentIndex().column());
 		}
 	}
+}
+
+void DataViewer::findNext(int column, QString s, Qt::CaseSensitivity cs)
+{
+	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if ((model != 0) && !s.isEmpty())
+	{
+		for (int row = ui.tableView->currentIndex().row() + 1;
+			 row < model->rowCount();
+			 ++row)
+		 {
+			 if (ui.tableView->isRowHidden(row)) { continue; }
+			 if (searchRow(model, row, column, s, cs))
+			 {
+				int column = ui.tableView->currentIndex().isValid() ? 
+					ui.tableView->currentIndex().column() : 0;
+				ui.tableView->setCurrentIndex(model->index(row, column));
+				if (ui.tabWidget->currentIndex() == 1)
+				{
+					ui.itemView->setCurrentIndex(row, column);
+				}
+				updateButtons();
+				return;
+			 }
+		 }
+	}
+	ui.statusText->setPlainText("Not found");
+}
+
+void DataViewer::unFindAll()
+{
+	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (model)
+	{
+		for (int row = 0; row < model->rowCount(); ++row)
+		{
+			if (!model->isDeleted(row))
+			{
+				ui.tableView->setRowHidden(row, false);
+			}
+		}
+	}
+}
+
+void DataViewer::findAll(int column, QString s, Qt::CaseSensitivity cs)
+{
+	bool anyFound = false;
+	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if ((model != 0) && !s.isEmpty())
+	{
+		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+		for (int row = 0; row < model->rowCount(); ++row)
+		{
+			if (ui.tableView->isRowHidden(row)) { continue; }
+			if (searchRow(model, row, column, s, cs))
+			{
+			anyFound = true;
+			}
+			else
+			{
+				ui.tableView->hideRow(row);
+			}
+		}
+		QApplication::restoreOverrideCursor();
+	}
+	if (!anyFound)
+	{
+		ui.statusText->setPlainText("Not found");
+		unFindAll();
+	}
+}
+
+bool DataViewer::searchRow(SqlTableModel * model, int row, int column,
+						   QString s, Qt::CaseSensitivity cs)
+{
+	int start;
+	if (column < 0)
+	{
+		start = 0;
+		column = model->columnCount() - 1;
+	}
+	else
+	{
+		start = column;
+	}
+	for (int i = start; i <= column; ++i)
+	{
+		QModelIndex index(model->index(row, i));
+		QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
+		if (data.toString().contains(s, cs)) { return true; }
+	}
+	return false;
 }
 
 bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
@@ -654,7 +751,10 @@ void DataViewer::commit()
 	// forces to close the editor/delegate.
 	ui.tableView->selectRow(ui.tableView->currentIndex().row());
 	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
-	if (!model->submitAll())
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	bool ok = model->submitAll();
+	QApplication::restoreOverrideCursor();
+	if (!ok)
 	{
 		int ret = QMessageBox::question(this, tr("Sqliteman"),
 				tr("There is a pending transaction in progress."
