@@ -23,13 +23,14 @@ Otherwise, we can't do it because we can't identify a unique record to update.
 #include "querystringmodel.h"
 #include "sqlparser.h"
 #include "utils.h"
+#include "ui_termstabwidget.h"
 
 void QueryEditorWidget::resetModel()
 {
 	selectModel->clear();
 	tabWidget->setCurrentIndex(0);
-	termsTable->clear();
-	termsTable->setRowCount(0); // clear() doesn't seem to do this
+	termsTab->termsTable->clear();
+	termsTab->termsTable->setRowCount(0); // clear() doesn't seem to do this
 	ordersTable->clear();
 	ordersTable->setRowCount(0); // clear() doesn't seem to do this
 }
@@ -123,10 +124,6 @@ QueryEditorWidget::QueryEditorWidget(QWidget * parent): QWidget(parent)
 	columnView->setModel(columnModel);
 	selectView->setModel(selectModel);
 
-	termsTable->setColumnCount(3);
-	termsTable->horizontalHeader()->hide();
-	termsTable->verticalHeader()->hide();
-	termsTable->setShowGrid(false);
 	ordersTable->setColumnCount(3);
 	ordersTable->horizontalHeader()->hide();
 	ordersTable->verticalHeader()->hide();
@@ -136,8 +133,10 @@ QueryEditorWidget::QueryEditorWidget(QWidget * parent): QWidget(parent)
 			this, SLOT(schemaSelected(const QString &)));
 	connect(tableList, SIGNAL(activated(const QString &)),
 			this, SLOT(tableSelected(const QString &)));
-	connect(termMoreButton, SIGNAL(clicked()), this, SLOT(moreTerms()));
-	connect(termLessButton, SIGNAL(clicked()), this, SLOT(lessTerms()));
+	connect(termsTab->termMoreButton, SIGNAL(clicked()),
+			this, SLOT(moreTerms()));
+	connect(termsTab->termLessButton, SIGNAL(clicked()),
+			this, SLOT(lessTerms()));
 	connect(addAllButton, SIGNAL(clicked()), this, SLOT(addAllSelect()));
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
 	connect(removeAllButton, SIGNAL(clicked()), this, SLOT(removeAllSelect()));
@@ -232,21 +231,22 @@ QString QueryEditorWidget::statement()
 					Utils::q(tableList->currentText()));
 
 	// Optionaly add terms
-	if (termsTable->rowCount() > 0)
+	if (termsTab->termsTable->rowCount() > 0)
 	{
 		// But first determine what is the chosen logic word (And/Or)
-		(andButton->isChecked()) ? logicWord = " AND " : logicWord = " OR ";
+		(termsTab->andButton->isChecked())
+			? logicWord = " AND " : logicWord = " OR ";
 
 		sql += "\nWHERE ";
 
-		for(int i = 0; i < termsTable->rowCount(); i++)
+		for(int i = 0; i < termsTab->termsTable->rowCount(); i++)
 		{
-			QComboBox * fields =
-				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 0));
-			QComboBox * relations =
-				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 1));
-			QLineEdit * value =
-				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			QComboBox * fields = qobject_cast<QComboBox *>
+				(termsTab->termsTable->cellWidget(i, 0));
+			QComboBox * relations = qobject_cast<QComboBox *>
+				(termsTab->termsTable->cellWidget(i, 1));
+			QLineEdit * value = qobject_cast<QLineEdit *>
+				(termsTab->termsTable->cellWidget(i, 2));
 			if (fields && relations && value)
 			{
 				if (i > 0) { sql += logicWord; }
@@ -328,21 +328,22 @@ QString QueryEditorWidget::deleteStatement()
 					Utils::q(tableList->currentText()));
 
 	// Optionaly add terms
-	if (termsTable->rowCount() > 0)
+	if (termsTab->termsTable->rowCount() > 0)
 	{
 		// But first determine what is the chosen logic word (And/Or)
-		(andButton->isChecked()) ? logicWord = " AND " : logicWord = " OR ";
+		(termsTab->andButton->isChecked())
+			? logicWord = " AND " : logicWord = " OR ";
 
 		sql += "\nWHERE ";
 
-		for(int i = 0; i < termsTable->rowCount(); i++)
+		for(int i = 0; i < termsTab->termsTable->rowCount(); i++)
 		{
-			QComboBox * fields =
-				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 0));
-			QComboBox * relations =
-				qobject_cast<QComboBox *>(termsTable->cellWidget(i, 1));
-			QLineEdit * value =
-				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			QComboBox * fields = qobject_cast<QComboBox *>
+				(termsTab->termsTable->cellWidget(i, 0));
+			QComboBox * relations = qobject_cast<QComboBox *>
+				(termsTab->termsTable->cellWidget(i, 1));
+			QLineEdit * value = qobject_cast<QLineEdit *>
+				(termsTab->termsTable->cellWidget(i, 2));
 			if (fields && relations && value)
 			{
 				if (i > 0) { sql += logicWord; }
@@ -446,33 +447,33 @@ void QueryEditorWidget::removeSelect()
 
 void QueryEditorWidget::moreTerms()
 {
-	int i = termsTable->rowCount();
-	termsTable->setRowCount(i + 1);
+	int i = termsTab->termsTable->rowCount();
+	termsTab->termsTable->setRowCount(i + 1);
 	QComboBox * fields = new QComboBox();
 	fields->addItems(m_columnList);
-	termsTable->setCellWidget(i, 0, fields);
+	termsTab->termsTable->setCellWidget(i, 0, fields);
 	QComboBox * relations = new QComboBox();
 	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
 									  << tr("Equals") << tr("Not equals")
 									  << tr("Bigger than") << tr("Smaller than")
 									  << tr("Is null") << tr("Is not null"));
-	termsTable->setCellWidget(i, 1, relations);
+	termsTab->termsTable->setCellWidget(i, 1, relations);
 	connect(relations, SIGNAL(currentIndexChanged(const QString &)),
 			this, SLOT(relationsIndexChanged(const QString &)));
 	QLineEdit * value = new QLineEdit();
-	termsTable->setCellWidget(i, 2, value);
-	termsTable->resizeColumnsToContents();
-	termLessButton->setEnabled(true);
+	termsTab->termsTable->setCellWidget(i, 2, value);
+	termsTab->termsTable->resizeColumnsToContents();
+	termsTab->termLessButton->setEnabled(true);
 	resizeWanted = true;
 }
 
 void QueryEditorWidget::lessTerms()
 {
-	int i = termsTable->rowCount() - 1;
-	termsTable->removeRow(i);
-	termsTable->resizeColumnsToContents();
+	int i = termsTab->termsTable->rowCount() - 1;
+	termsTab->termsTable->removeRow(i);
+	termsTab->termsTable->resizeColumnsToContents();
 	if (i == 0)
-		termLessButton->setEnabled(false);
+		termsTab->termLessButton->setEnabled(false);
 }
 
 void QueryEditorWidget::moreOrders()
@@ -508,12 +509,12 @@ void QueryEditorWidget::lessOrders()
 void QueryEditorWidget::relationsIndexChanged(const QString &)
 {
 	QComboBox * relations = qobject_cast<QComboBox *>(sender());
-	for (int i = 0; i < termsTable->rowCount(); ++i)
+	for (int i = 0; i < termsTab->termsTable->rowCount(); ++i)
 	{
-		if (relations == termsTable->cellWidget(i, 1))
+		if (relations == termsTab->termsTable->cellWidget(i, 1))
 		{
-			QLineEdit * value =
-				qobject_cast<QLineEdit *>(termsTable->cellWidget(i, 2));
+			QLineEdit * value = qobject_cast<QLineEdit *>
+				(termsTab->termsTable->cellWidget(i, 2));
 			if (value)
 			{
 				switch (relations->currentIndex())
@@ -677,7 +678,6 @@ void QueryEditorWidget::paintEvent(QPaintEvent * event)
 {
 	if (resizeWanted)
 	{
-		Utils::setColumnWidths(termsTable);
 		Utils::setColumnWidths(ordersTable);
 		resizeWanted = false;
 	}

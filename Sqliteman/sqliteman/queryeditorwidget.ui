@@ -61,7 +61,7 @@
    <item row="2" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -146,60 +146,10 @@
       <attribute name="title">
        <string>Terms</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_3">
+      <layout class="QGridLayout" name="termsgridlayout">
        <item row="0" column="0">
-        <widget class="QRadioButton" name="andButton">
-         <property name="text">
-          <string>Match all of the following terms</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
+        <widget class="TermsTabWidget" name="termsTab" native="true">
         </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QRadioButton" name="orButton">
-         <property name="text">
-          <string>Match any of the following terms</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>284</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="termMoreButton">
-           <property name="text">
-            <string>More</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="termLessButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="text">
-            <string>Less</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item row="2" column="0">
-        <widget class="QTableWidget" name="termsTable"/>
        </item>
       </layout>
      </widget>
@@ -258,6 +208,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TermsTabWidget</class>
+   <extends>QWidget</extends>
+   <header>termstabwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

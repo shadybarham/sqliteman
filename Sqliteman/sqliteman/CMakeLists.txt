@@ -54,6 +54,7 @@ SET( SQLITEMAN_SRC
     sqlparser.cpp
     tableeditordialog.cpp
     tabletree.cpp
+    termstabwidget.cpp
     vacuumdialog.cpp
     utils.cpp
     sqlparser/tosqlparse.h
@@ -121,6 +122,7 @@ SET( SQLITEMAN_MOC
     sqltableview.h
     tableeditordialog.h
     tabletree.h
+    termstabwidget.h
     vacuumdialog.h
 )
 IF (WANT_INTERNAL_SQLDRIVER)
@@ -159,6 +161,7 @@ SET( SQLITEMAN_UI
     sqleditor.ui
     sqlitemview.ui
     tableeditordialog.ui
+    termstabwidget.ui
     vacuumdialog.ui
 )
 
