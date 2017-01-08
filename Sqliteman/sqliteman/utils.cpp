@@ -122,6 +122,16 @@ QString Utils::like(QString s)
 		   + "%' ESCAPE '@'";
 }
 
+QString Utils::startswith(QString s)
+{
+	return "'"
+		   + s.replace("'", "''")
+			  .replace("_", "@_")
+			  .replace("%", "@%")
+			  .replace("@", "@@")
+		   + "%' ESCAPE '@'";
+}
+
 /* Set suitable column widths for a QTableView (or a QTableWidget which inherits
  * from it).
  */
@@ -280,6 +290,7 @@ void Utils::dump(QColor c)
 }
 QString Utils::variantToString(QVariant x)
 {
+	if (x.isNull()) { return QString("Null"); }
 	switch(x.type())
 	{
 		case QVariant::Invalid: return QString("Invalid QVariant");
@@ -395,7 +406,7 @@ QString Utils::variantToString(QVariant x)
 		case QVariant::Vector3D: return QString("Vector3D");
 		case QVariant::Vector4D: return QString("Vector4D");
 		case QVariant::UserType: return QString("UserType");
-		default: return QString("Unknown type QVariant");
+		default: return QString("Unhandled type QVariant::") + x.typeName();
 	}
 }
 void Utils::dump(QVariant x) { dump(variantToString(x)); }

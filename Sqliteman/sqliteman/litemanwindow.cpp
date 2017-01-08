@@ -4,7 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
-	FIXME creating table right at start crashes on SIGNAL 11
+	FIXME switching between table and view does not reset position
 */
 #include <QTreeWidget>
 #include <QTableView>
@@ -31,31 +31,31 @@ for which a new license (GPL+exception) is in place.
 #include <QProcess>
 #include <QtDebug>
 
-#include "litemanwindow.h"
-#include "preferences.h"
-#include "preferencesdialog.h"
-#include "queryeditordialog.h"
+#include "altertabledialog.h"
+#include "altertriggerdialog.h"
+#include "alterviewdialog.h"
+#include "analyzedialog.h"
+#include "buildtime.h"
+#include "constraintsdialog.h"
+#include "createindexdialog.h"
 #include "createtabledialog.h"
 #include "createtriggerdialog.h"
 #include "createviewdialog.h"
-#include "alterviewdialog.h"
-#include "altertabledialog.h"
-#include "altertriggerdialog.h"
-#include "dataviewer.h"
-#include "schemabrowser.h"
 #include "database.h"
-#include "sqleditor.h"
-#include "sqlmodels.h"
-#include "createindexdialog.h"
-#include "constraintsdialog.h"
-#include "analyzedialog.h"
-#include "vacuumdialog.h"
+#include "dataviewer.h"
 #include "helpbrowser.h"
 #include "importtabledialog.h"
-#include "sqliteprocess.h"
+#include "litemanwindow.h"
 #include "populatordialog.h"
+#include "preferences.h"
+#include "preferencesdialog.h"
+#include "queryeditordialog.h"
+#include "schemabrowser.h"
+#include "sqleditor.h"
+#include "sqliteprocess.h"
+#include "sqlmodels.h"
 #include "utils.h"
-#include "buildtime.h"
+#include "vacuumdialog.h"
 
 #ifdef INTERNAL_SQLDRIVER
 #include "driver/qsql_sqlite.h"
@@ -176,10 +176,6 @@ void LiteManWindow::closeEvent(QCloseEvent * e)
 		QSqlDatabase::removeDatabase(SESSION_NAME);
 	}
 
-	// It has to go after writeSettings()!
-	//foreach (QWidget *widget, QApplication::topLevelWidgets())
-	//	widget->close();
-
 	e->accept();
 }
 
@@ -279,10 +275,10 @@ void LiteManWindow::initActions()
 	execSqlAct->setCheckable(true);
 	connect(execSqlAct, SIGNAL(triggered()), this, SLOT(handleSqlEditor()));
 
-	objectBrowserAct = new QAction(tr("Object &Browser"), this);
-	objectBrowserAct->setShortcut(tr("Ctrl+B"));
-	objectBrowserAct->setCheckable(true);
-	connect(objectBrowserAct, SIGNAL(triggered()), this, SLOT(handleObjectBrowser()));
+	schemaBrowserAct = new QAction(tr("Schema &Browser"), this);
+	schemaBrowserAct->setShortcut(tr("Ctrl+B"));
+	schemaBrowserAct->setCheckable(true);
+	connect(schemaBrowserAct, SIGNAL(triggered()), this, SLOT(handleSchemaBrowser()));
 
 	dataViewerAct = new QAction(tr("Data Vie&wer"), this);
 	dataViewerAct->setShortcut(tr("Ctrl+D"));
@@ -385,7 +381,7 @@ void LiteManWindow::initActions()
 	connect(loadExtensionAct, SIGNAL(triggered()), this, SLOT(loadExtension()));
 #endif
 
-	refreshTreeAct = new QAction(tr("&Refresh Object Tree"), this);
+	refreshTreeAct = new QAction(tr("&Refresh Schema Browser"), this);
 	connect(refreshTreeAct, SIGNAL(triggered()), schemaBrowser->tableTree, SLOT(buildTree()));
 
 	consTriggAct = new QAction(tr("&Constraint Triggers..."), this);
@@ -412,7 +408,7 @@ void LiteManWindow::initMenus()
 	databaseMenu->addSeparator();
 	databaseMenu->addAction(buildQueryAct);
 	databaseMenu->addAction(execSqlAct);
-	databaseMenu->addAction(objectBrowserAct);
+	databaseMenu->addAction(schemaBrowserAct);
 	databaseMenu->addAction(dataViewerAct);
 	databaseMenu->addSeparator();
 	databaseMenu->addAction(exportSchemaAct);
@@ -502,7 +498,7 @@ void LiteManWindow::readSettings()
 
 	sqlEditor->setVisible(settings.value("sqleditor/show", true).toBool());
 	schemaBrowser->setVisible(settings.value("objectbrowser/show", true).toBool());
-	objectBrowserAct->setChecked(settings.value("objectbrowser/show", true).toBool());
+	schemaBrowserAct->setChecked(settings.value("objectbrowser/show", true).toBool());
 	execSqlAct->setChecked(settings.value("sqleditor/show", true).toBool());
 
 	QString fn(settings.value("sqleditor/filename", QString()).toString());
@@ -830,10 +826,10 @@ void LiteManWindow::handleSqlEditor()
 	execSqlAct->setChecked(sqlEditor->isVisible());
 }
 
-void LiteManWindow::handleObjectBrowser()
+void LiteManWindow::handleSchemaBrowser()
 {
 	schemaBrowser->setVisible(!schemaBrowser->isVisible());
-	objectBrowserAct->setChecked(schemaBrowser->isVisible());
+	schemaBrowserAct->setChecked(schemaBrowser->isVisible());
 }
 
 void LiteManWindow::handleDataViewer()

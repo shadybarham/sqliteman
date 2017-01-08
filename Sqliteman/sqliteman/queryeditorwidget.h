@@ -45,7 +45,6 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 		QueryStringModel * columnModel;
 		QueryStringModel * selectModel;
 		QString m_rowid;
-		QStringList m_columnList;
 		bool resizeWanted;
 		void paintEvent(QPaintEvent * event);
 		void resizeEvent(QResizeEvent * event);
@@ -58,9 +57,6 @@ class QueryEditorWidget : public QWidget, public Ui::QueryEditorWidget
 private slots:
 		void schemaSelected(const QString & table);
 		void tableSelected(const QString & schema);
-		// Term tab
-		void moreTerms();
-		void lessTerms();
 		// Fields tab
 		void addAllSelect();
 		void addSelect();
@@ -69,7 +65,6 @@ private slots:
 		// Order by tab
 		void moreOrders();
 		void lessOrders();
-		void relationsIndexChanged(const QString &);
 		void resetClicked();
 		void copySql();
 };

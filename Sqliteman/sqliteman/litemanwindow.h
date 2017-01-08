@@ -149,7 +149,7 @@ class LiteManWindow : public QMainWindow
 		void tableTree_currentItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* prev);
 
 		void handleSqlEditor();
-		void handleObjectBrowser();
+		void handleSchemaBrowser();
 		void handleDataViewer();
 
 		void analyzeDialog();
@@ -225,7 +225,7 @@ class LiteManWindow : public QMainWindow
 		QAction * describeTriggerAct;
 
 		QAction * execSqlAct;
-		QAction * objectBrowserAct;
+		QAction * schemaBrowserAct;
 		QAction * dataViewerAct;
 		QAction * buildQueryAct;
 		QAction * contextBuildQueryAct;

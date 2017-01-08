@@ -382,6 +382,12 @@ void SqlTableModel::fetchAll()
 	}
 }
 
+void SqlTableModel::fetchMore()
+{
+	emit moreFetched();
+	QSqlTableModel::fetchMore();
+}
+
 bool SqlTableModel::select()
 {
 	bool result = QSqlTableModel::select();

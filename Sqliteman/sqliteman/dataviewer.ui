@@ -148,6 +148,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionFind"/>
    <addaction name="actionNew_Row"/>
    <addaction name="actionCopy_Row"/>
    <addaction name="actionRemove_Row"/>
@@ -174,6 +175,21 @@
    <addaction name="action_Goto_Line"/>
    <addaction name="actionClose"/>
   </widget>
+  <action name="actionFind">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/system-search.png</normaloff>icons/system-search.png</iconset>
+   </property>
+   <property name="text">
+    <string>Find...</string>
+   </property>
+   <property name="iconText">
+    <string>Find...</string>
+   </property>
+   <property name="toolTip">
+    <string>Find...</string>
+   </property>
+  </action>
   <action name="actionNew_Row">
    <property name="icon">
     <iconset>

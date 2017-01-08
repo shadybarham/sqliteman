@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME Allow editing on views with INSTEAD OF triggers
 	FIXME Add row not honouring autoincrement
 */
 
@@ -17,7 +16,6 @@ for which a new license (GPL+exception) is in place.
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QResizeEvent>
-#include <QScrollBar>
 #include <QSettings>
 #include <QSqlField>
 #include <QSqlQuery>
@@ -33,194 +31,10 @@ for which a new license (GPL+exception) is in place.
 #include "sqltableview.h"
 #include "sqlmodels.h"
 #include "sqldelegate.h"
+#include "ui_finddialog.h"
 #include "utils.h"
 
-
-DataViewer::DataViewer(QWidget * parent)
-	: QMainWindow(parent),
-	  dataResized(true)
-{
-	ui.setupUi(this);
-	canFetchMore= tr("(More rows can be fetched. "
-		"Scroll the resultset for more rows and/or read the documentation.)");
-	// force the status window to have a document
-	ui.statusText->setDocument(new QTextDocument());
-
-#ifdef Q_WS_MAC
-    ui.mainToolBar->setIconSize(QSize(16, 16));
-    ui.exportToolBar->setIconSize(QSize(16, 16));
-#endif
-
-	haveBuiltQuery = false;
-	ui.splitter->setCollapsible(0, false);
-	ui.splitter->setCollapsible(1, false);
-	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
-    ui.actionCopy_Row->setIcon(Utils::getIcon("duplicate_table_row.png"));
-	ui.actionRemove_Row->setIcon(Utils::getIcon("delete_table_row.png"));
-	ui.actionCommit->setIcon(Utils::getIcon("database_commit.png"));
-	ui.actionRollback->setIcon(Utils::getIcon("database_rollback.png"));
-	ui.actionRipOut->setIcon(Utils::getIcon("snapshot.png"));
-	ui.actionBLOB_Preview->setIcon(Utils::getIcon("blob.png"));
-	ui.actionExport_Data->setIcon(Utils::getIcon("document-export.png"));
-	ui.actionClose->setIcon(Utils::getIcon("close.png"));
-	ui.action_Goto_Line->setIcon(Utils::getIcon("go-next-use.png"));
-	ui.actionClose->setVisible(false);
-	ui.actionClose->setEnabled(false);
-	isTopLevel = true;
-
-	ui.mainToolBar->show();
-	ui.exportToolBar->show();
-	
-	handleBlobPreview(false);
-
-	actCopyWhole = new QAction(tr("Copy Whole"), ui.tableView);
-	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
-    connect(actCopyWhole, SIGNAL(triggered()), this,
-			SLOT(doCopyWhole()));
-	actPasteOver = new QAction(tr("Paste"), ui.tableView);
-	actPasteOver->setShortcut(QKeySequence("Ctrl+V"));
-    connect(actPasteOver, SIGNAL(triggered()), this,
-			SLOT(doPasteOver()));
-	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
-								tr("Insert NULL"), ui.tableView);
-	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
-    connect(actInsertNull, SIGNAL(triggered()), this,
-			SLOT(actInsertNull_triggered()));
-    actOpenEditor = new QAction(tr("Open Data Editor..."), ui.tableView);
-	actOpenEditor->setShortcut(QKeySequence("Ctrl+ "));
-    connect(actOpenEditor, SIGNAL(triggered()), this,
-			SLOT(actOpenEditor_triggered()));
-    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
-									 tr("Open Multiline Editor..."),
-									 ui.tableView);
-	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
-    connect(actOpenMultiEditor, SIGNAL(triggered()),
-			this, SLOT(actOpenMultiEditor_triggered()));
-    ui.tableView->addAction(actCopyWhole);
-    ui.tableView->addAction(actPasteOver);
-    ui.tableView->addAction(actInsertNull);
-    ui.tableView->addAction(actOpenEditor);
-    ui.tableView->addAction(actOpenMultiEditor);
-
-	// custom delegate
-	SqlDelegate * delegate = new SqlDelegate(this);
-	ui.tableView->setItemDelegate(delegate);
-	connect(delegate, SIGNAL(dataChanged()),
-		this, SLOT(tableView_dataChanged()));
-
-	// workaround for Ctrl+C
-	DataViewerTools::KeyPressEater *keyPressEater = new DataViewerTools::KeyPressEater(this);
-	ui.tableView->installEventFilter(keyPressEater);
-
-	connect(ui.actionNew_Row, SIGNAL(triggered()),
-			this, SLOT(addRow()));
-    connect(ui.actionCopy_Row, SIGNAL(triggered()),
-            this, SLOT(copyRow()));
-	connect(ui.actionRemove_Row, SIGNAL(triggered()),
-			this, SLOT(removeRow()));
-	connect(ui.actionExport_Data, SIGNAL(triggered()),
-			this, SLOT(exportData()));
-	connect(ui.actionCommit, SIGNAL(triggered()),
-			this, SLOT(commit()));
-	connect(ui.actionRollback, SIGNAL(triggered()),
-			this, SLOT(rollback()));
-	connect(ui.actionRipOut, SIGNAL(triggered()),
-			this, SLOT(openStandaloneWindow()));
-	connect(ui.actionClose, SIGNAL(triggered()),
-			this, SLOT(close()));
-	connect(ui.action_Goto_Line, SIGNAL(triggered()),
-			this, SLOT(gotoLine()));
-	connect(keyPressEater, SIGNAL(copyRequest()),
-			this, SLOT(copyHandler()));
-// 	connect(parent, SIGNAL(prefsChanged()), ui.tableView, SLOT(repaint()));
-	connect(ui.actionBLOB_Preview, SIGNAL(toggled(bool)),
-			this, SLOT(handleBlobPreview(bool)));
-	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
-			this, SLOT(tabWidget_currentChanged(int)));
-	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
-			this, SLOT(tableView_dataResized(int, int, int)));
-	connect(ui.tableView->verticalHeader(), SIGNAL(sectionResized(int, int, int)),
-			this, SLOT(tableView_dataResized(int, int, int)));
-	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
-			this, SLOT(rowDoubleClicked(int)));
-	connect(ui.tableView->verticalHeader(), SIGNAL(sectionClicked(int)),
-			this, SLOT(nonColumnClicked()));
-	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionClicked(int)),
-			this, SLOT(columnClicked(int)));
-	connect(ui.tableView->verticalScrollBar(), SIGNAL(valueChanged(int)),
-					this, SLOT(rowCountChanged()));
-	connect(ui.tableView, SIGNAL(clicked(const QModelIndex &)),
-			this, SLOT(nonColumnClicked()));
-
-	activeRow = -1;
-	columnSelected = -1;
-}
-
-DataViewer::~DataViewer()
-{
-	if (!isTopLevel)
-	{
-		QSettings settings("yarpen.cz", "sqliteman");
-	    settings.setValue("dataviewer/height", QVariant(height()));
-	    settings.setValue("dataviewer/width", QVariant(width()));
-	}
-	freeResources( ui.tableView->model()); // avoid memory leak of model
-	delete ui.statusText->document();
-}
-
-void DataViewer::setNotPending()
-{
-	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
-	if (old) { old->setPendingTransaction(false); }
-}
-
-bool DataViewer::checkForPending()
-{
-	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
-	if (old && old->pendingTransaction())
-	{
-		QString msg (Database::isAutoCommit()
-			? tr("There are unsaved changes in table %1.%2.\n"
-				 "Do you wish to commit them to the database?\n\n"
-				 "Yes = commit changes\nNo = discard changes\n"
-				 "Cancel = skip this operation and stay in %1.%2")
-			: tr("There are unsaved changes in table %1.%2.\n"
-				 "Do you wish to save them to the database?\n"
-				 "(This will not commit as you are in pending"
-				 " transaction mode)\n"
-				 "\nYes = save changes\nNo = discard changes\n"
-				 "Cancel = skip this operation and stay in %1.%2"));
-		int com = QMessageBox::question(this, tr("Sqliteman"),
-			msg.arg(old->schema(), old->objectName()),
-			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
-		if (com == QMessageBox::No)
-		{
-			rollback();
-			return true;
-		}
-		else if (com == QMessageBox::Cancel) { return false; }
-		else
-		{
-			QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-			bool ok = old->submitAll();
-			QApplication::restoreOverrideCursor();
-			if (!ok)
-			{
-				/* This should never happen */
-				int ret = QMessageBox::question(this, tr("Sqliteman"),
-					tr("Failed to write unsaved changes to the database."
-					   "\nError: %1\n"
-					   "Discard changes?").arg(old->lastError().text()),
-												QMessageBox::Yes, QMessageBox::No);
-				if (ret == QMessageBox::Yes) { rollback(); }
-				else { return false; }
-			}
-            old->setPendingTransaction(false);
-			return true;
-		}
-	}
-	else { return true; }
-}
+// private methods
 
 void DataViewer::updateButtons()
 {
@@ -288,6 +102,7 @@ void DataViewer::updateButtons()
 	{
 		canPreview = false;
 	}
+	ui.actionFind->setEnabled(table && (m_finder == 0));
 	ui.actionNew_Row->setEnabled(editable);
 	ui.actionCopy_Row->setEnabled(editable && rowSelected);
 	if (haveBuiltQuery)
@@ -318,6 +133,8 @@ void DataViewer::updateButtons()
 	ui.actionRipOut->setEnabled(haveRows && isTopLevel);
 	ui.tabWidget->setTabEnabled(1, rowSelected);
 	ui.tabWidget->setTabEnabled(2, ui.scriptEdit->lines() > 1);
+	
+	if (m_finder) { m_finder->updateButtons(); }
 
 	// Sometimes the main toolbar doesn't get displayed. Inserting this line
 	// causes it to reappear. Removing the line again does nothing until I've
@@ -328,223 +145,68 @@ void DataViewer::updateButtons()
 	ui.mainToolBar->show();
 }
 
-bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
-{
-	if (!checkForPending()) { return false; }
-
-	QAbstractItemModel * old = ui.tableView->model();
-	ui.tableView->setModel(model); // references old model
-	freeResources(old); // avoid memory leak of model
-
-	connect(ui.tableView->selectionModel(),
-			SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
-			this,
-			SLOT(tableView_selectionChanged(const QItemSelection &, const QItemSelection &)));
-	connect(ui.tableView->selectionModel(),
-			SIGNAL(currentChanged(const QModelIndex &, const QModelIndex & )),
-			this,
-			SLOT(tableView_currentChanged(const QModelIndex &, const QModelIndex & )));
-	SqlTableModel * stm = qobject_cast<SqlTableModel*>(model);
-	if (stm)
-	{
-		connect(stm, SIGNAL(reallyDeleting(int)),
-				this, SLOT(deletingRow(int)));
-	}
-	ui.itemView->setModel(model);
-	ui.itemView->setTable(ui.tableView);
-	if (model->columnCount() > 0)
-	{
-		ui.tabWidget->setCurrentIndex(0);
-		resizeViewToContents(model);
-	}
-	updateButtons();
-	
-	rowCountChanged();
-
-	return true;
-}
-
-void DataViewer::freeResources(QAbstractItemModel * old)
-{
-	SqlTableModel * t = qobject_cast<SqlTableModel*>(old);
-	if (t)
-	{
-		SqlTableModel::detach(t);
-	}
-	else
-	{
-		SqlQueryModel * q = qobject_cast<SqlQueryModel*>(old);
-		if (q)
-		{
-			SqlQueryModel::detach(q);
-		}
-	}
-}
-
-void DataViewer::saveSelection()
-{
-	savedActiveRow = activeRow;
-	wasItemView = (ui.tabWidget->currentIndex() == 1);
-}
-
-void DataViewer::reSelect()
-{
-	if (savedActiveRow >= 0)
-	{
-		ui.tableView->selectRow(savedActiveRow);
-		if (wasItemView)
-		{
-			ui.tabWidget->setCurrentIndex(1);
-			ui.itemView->setCurrentIndex(ui.tableView->currentIndex().row(),
-										 ui.tableView->currentIndex().column());
-		}
-	}
-}
-
-void DataViewer::findNext(int column, QString s, Qt::CaseSensitivity cs)
-{
-	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
-	if ((model != 0) && !s.isEmpty())
-	{
-		for (int row = ui.tableView->currentIndex().row() + 1;
-			 row < model->rowCount();
-			 ++row)
-		 {
-			 if (ui.tableView->isRowHidden(row)) { continue; }
-			 if (searchRow(model, row, column, s, cs))
-			 {
-				int column = ui.tableView->currentIndex().isValid() ? 
-					ui.tableView->currentIndex().column() : 0;
-				ui.tableView->setCurrentIndex(model->index(row, column));
-				if (ui.tabWidget->currentIndex() == 1)
-				{
-					ui.itemView->setCurrentIndex(row, column);
-				}
-				updateButtons();
-				return;
-			 }
-		 }
-	}
-	ui.statusText->setPlainText("Not found");
-}
-
 void DataViewer::unFindAll()
 {
 	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
 	if (model)
 	{
+		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+		model->fetchAll();
 		for (int row = 0; row < model->rowCount(); ++row)
 		{
 			if (!model->isDeleted(row))
 			{
-				ui.tableView->setRowHidden(row, false);
-			}
-		}
-	}
-}
-
-void DataViewer::findAll(int column, QString s, Qt::CaseSensitivity cs)
-{
-	bool anyFound = false;
-	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
-	if ((model != 0) && !s.isEmpty())
-	{
-		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-		for (int row = 0; row < model->rowCount(); ++row)
-		{
-			if (ui.tableView->isRowHidden(row)) { continue; }
-			if (searchRow(model, row, column, s, cs))
-			{
-			anyFound = true;
-			}
-			else
-			{
-				ui.tableView->hideRow(row);
+				ui.tableView->showRow(row);
 			}
 		}
 		QApplication::restoreOverrideCursor();
 	}
-	if (!anyFound)
-	{
-		ui.statusText->setPlainText("Not found");
-		unFindAll();
-	}
+	m_doneFindAll = false;
 }
 
-bool DataViewer::searchRow(SqlTableModel * model, int row, int column,
-						   QString s, Qt::CaseSensitivity cs)
+void DataViewer::findNext(int row)
 {
-	int start;
-	if (column < 0)
+	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (model)
 	{
-		start = 0;
-		column = model->columnCount() - 1;
-	}
-	else
-	{
-		start = column;
-	}
-	for (int i = start; i <= column; ++i)
-	{
-		QModelIndex index(model->index(row, i));
-		QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
-		if (data.toString().contains(s, cs)) { return true; }
-	}
-	return false;
-}
-
-bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
-{
-	QString s (keyEvent->text());
-	if (keyEvent->key() == Qt::Key_Backspace)
-	{
-		if (searchString.isEmpty()) { return false; }
-		searchString.chop(1);
-		while (topRow > 0)
+		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+		if (m_doneFindAll) { unFindAll(); }
+		model->fetchAll();
+		for (; row < model->rowCount(); ++row)
 		{
-			QModelIndex index(
-				ui.tableView->model()->index(topRow - 1, columnSelected));
-			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
-			if (searchString.compare(data.toString(), Qt::CaseInsensitive) >= 0)
+			if (ui.tableView->isRowHidden(row)) { continue; }
+			QSqlRecord rec = model->record(row);
+			if (m_finder->isMatch(&rec))
 			{
-				ui.tableView->scrollTo(
-					ui.tableView->model()->index(topRow, columnSelected),
-					QAbstractItemView::PositionAtTop);
-				break;
-			}
-			--topRow;
-		}
-		return true;
-	}
-	else if (s.isEmpty()) { return false; }
-	else
-	{
-		searchString.append(s);
-		int rows = ui.tableView->model()->rowCount();
-		for (int i = topRow; i < rows; ++i)
-		{
-			QModelIndex index(ui.tableView->model()->index(i, columnSelected));
-			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
-			if (searchString.compare(data.toString(), Qt::CaseInsensitive) <= 0)
-			{
-				topRow = i;
-				ui.tableView->scrollTo(index, QAbstractItemView::PositionAtTop);
-				break;
+				int column = ui.tableView->currentIndex().isValid() ? 
+					ui.tableView->currentIndex().column() : 0;
+				QModelIndex left = model->createIndex(row, column);
+				ui.tableView->selectionModel()->select(
+					QItemSelection(left, left),
+					QItemSelectionModel::ClearAndSelect);
+				ui.tableView->setCurrentIndex(left);
+				if (ui.tabWidget->currentIndex() == 1)
+				{
+					ui.itemView->setCurrentIndex(row, column);
+				}
+				updateButtons();
+				QApplication::restoreOverrideCursor();
+				return;
 			}
 		}
-		return true;
+		QApplication::restoreOverrideCursor();
 	}
+	ui.statusText->setPlainText("Not found");
 }
 
-void DataViewer::tableView_dataResized(int column, int oldWidth, int newWidth) 
+void DataViewer::removeFinder()
 {
-	dataResized = true;
-}
-
-void DataViewer::resizeEvent(QResizeEvent * event)
-{
-	if (!dataResized && ui.tableView->model())
-		resizeViewToContents(ui.tableView->model());
+	if (m_finder)
+	{
+		m_doneFindAll = false;
+		m_finder->close();
+		m_finder = 0;
+	}
 }
 
 void DataViewer::resizeViewToContents(QAbstractItemModel * model)
@@ -559,45 +221,107 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 	dataResized = false;
 }
 
-void DataViewer::setStatusText(const QString & text)
+void DataViewer::resizeEvent(QResizeEvent * event)
 {
-	ui.statusText->setHtml(text);
-	int lh = QFontMetrics(ui.statusText->currentFont()).lineSpacing();
-	QTextDocument * doc = ui.statusText->document();
-	if (doc)
-	{
-		int h = (int)(doc->size().height());
-		if (h < lh * 2) { h = lh * 2 + lh / 2; }
-		ui.statusText->setFixedHeight(h + lh / 2);
-	}
-	else
-	{
-		int lines = text.split("<br/>").count() + 1;
-		ui.statusText->setFixedHeight(lh * lines);
-	}
-	showStatusText(true);
+	if (!dataResized && ui.tableView->model())
+		resizeViewToContents(ui.tableView->model());
 }
 
-void DataViewer::removeErrorMessage()
+// private slots
+
+void DataViewer::findFirst()
 {
-	QString s = ui.statusText->toHtml();
-	if (s.contains("<span style=\" color:#ff0000;\">"))
+	findNext(0);
+}
+
+void DataViewer::findNext()
+{
+	findNext(ui.tableView->currentIndex().row() + 1);
+}
+
+void DataViewer::findAll()
+{
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	bool anyFound = false;
+	SqlTableModel * model = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (model)
+	{
+		model->fetchAll();
+		for (int row = 0; row < model->rowCount(); ++row)
+		{
+			if (!(model->isDeleted(row)))
+			{
+				QSqlRecord rec = model->record(row);
+				if (m_finder->isMatch(&rec))
+				{
+					anyFound = true;
+					ui.tableView->showRow(row);
+				}
+				else
+				{
+					ui.tableView->hideRow(row);
+				}
+			}
+		}
+	}
+	if (!anyFound)
+	{
+		ui.statusText->setPlainText("No match found");
+		unFindAll();
+	}
+	else
 	{
 		showStatusText(false);
+		m_doneFindAll = true;
+	}
+	QApplication::restoreOverrideCursor();
+}
+
+void DataViewer::findClosing()
+{
+	if (m_doneFindAll)
+	{
+		unFindAll();
+		m_doneFindAll = false;
+	}
+	m_finder = 0;
+}
+
+void DataViewer::find()
+{
+	SqlTableModel *stm = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (stm)
+	{
+#ifdef WIN32
+	    // win windows are always top when there is this parent
+	    m_finder = new FindDialog(0);
+#else
+	    m_finder = new FindDialog(this);
+#endif
+		m_finder->setAttribute(Qt::WA_DeleteOnClose);
+		m_finder->doConnections(this);
+		m_finder->setup(stm->schema(), stm->objectName());
+		m_doneFindAll = false;
+		m_finder->show();
 	}
 }
 
-void DataViewer::showStatusText(bool show)
+void DataViewer::columnClicked(int col)
 {
-	if (show)
-	{
-		ui.statusText->show();
-	}
-	else
-	{
-		ui.statusText->hide();
-		ui.statusText->setFixedHeight(0);
-	}
+	columnSelected = col;
+	topRow = 0;
+	searchString.clear();
+}
+
+void DataViewer::nonColumnClicked()
+{
+	columnSelected = -1;
+}
+
+void DataViewer::rowDoubleClicked(int)
+{
+	nonColumnClicked();
+	ui.tabWidget->setCurrentIndex(1);
 }
 
 void DataViewer::addRow()
@@ -609,7 +333,7 @@ void DataViewer::addRow()
 		= qobject_cast<SqlTableModel *>(ui.tableView->model());
 	if (model)
 	{
-		while (model->canFetchMore()) { model->fetchMore(); }
+		model->fetchAll();
 		activeRow = model->rowCount();
 		model->insertRows(activeRow, 1);
 		ui.tableView->scrollToBottom();
@@ -641,12 +365,7 @@ void DataViewer::copyRow()
         if (row >= 0)
         {
             QSqlRecord rec(model->record(row));
-			/* We should be able to insert the copied row after the current one,
-			 * but there seems to be some kind of strange bug in QSqlTableModel
-			 * such that if we do so, we get a reference to the same record
-			 * rather than a new different one.
-			 */
-			while (model->canFetchMore()) { model->fetchMore(); }
+			model->fetchAll();
 			if (model->insertRecord(-1, rec))
 			{
 				QModelIndex newIndex = ui.tableView->model()->index(
@@ -666,12 +385,6 @@ void DataViewer::copyRow()
 			}
         }
     }
-}
-
-void DataViewer::setBuiltQuery(bool value)
-{
-	haveBuiltQuery = value;
-	updateButtons();
 }
 
 void DataViewer::removeRow()
@@ -725,20 +438,30 @@ void DataViewer::exportData()
 	delete dia;
 }
 
-QAbstractItemModel * DataViewer::tableData()
+void DataViewer::rollback()
 {
-	return ui.tableView->model();
-}
-
-QStringList DataViewer::tableHeader()
-{
-	QStringList ret;
-	QSqlQueryModel *q = qobject_cast<QSqlQueryModel *>(ui.tableView->model());
-
-	for (int i = 0; i < q->columnCount() ; ++i)
-		ret << q->headerData(i, Qt::Horizontal).toString();
-
-	return ret;
+	removeErrorMessage();
+	nonColumnClicked();
+	saveSelection();
+	// HACK: some Qt4 versions crash on commit/rollback when there
+	// is a new - currently edited - row in a transaction. This
+	// forces to close the editor/delegate.
+	ui.tableView->selectRow(ui.tableView->currentIndex().row());
+	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
+	if (model) // paranoia
+	{
+		m_doneFindAll = false;
+		model->revertAll();
+		model->setPendingTransaction(false);
+		int n = model->rowCount();
+		for (int i = 0; i < n; ++i)
+		{
+			ui.tableView->showRow(i);
+		}
+		reSelect();
+		resizeViewToContents(model);
+		updateButtons();
+	}
 }
 
 void DataViewer::commit()
@@ -750,7 +473,8 @@ void DataViewer::commit()
 	// is a new - currently edited - row in a transaction. This
 	// forces to close the editor/delegate.
 	ui.tableView->selectRow(ui.tableView->currentIndex().row());
-	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
+	SqlTableModel * model
+		= qobject_cast<SqlTableModel *>(ui.tableView->model());
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 	bool ok = model->submitAll();
 	QApplication::restoreOverrideCursor();
@@ -774,32 +498,6 @@ void DataViewer::commit()
 	updateButtons();
 	emit tableUpdated();
 }
-
-void DataViewer::rollback()
-{
-	removeErrorMessage();
-	nonColumnClicked();
-	saveSelection();
-	// HACK: some Qt4 versions crash on commit/rollback when there
-	// is a new - currently edited - row in a transaction. This
-	// forces to close the editor/delegate.
-	ui.tableView->selectRow(ui.tableView->currentIndex().row());
-	SqlTableModel * model = qobject_cast<SqlTableModel *>(ui.tableView->model());
-	if (model) // paranoia
-	{
-		model->revertAll();
-		model->setPendingTransaction(false);
-		int n = model->rowCount();
-		for (int i = 0; i < n; ++i)
-		{
-			ui.tableView->showRow(i);
-		}
-		reSelect();
-		resizeViewToContents(model);
-		updateButtons();
-	}
-}
-
 void DataViewer::copyHandler()
 {
 	removeErrorMessage();
@@ -846,7 +544,6 @@ void DataViewer::openStandaloneWindow()
 #endif
 	SqlQueryModel *qm = new SqlQueryModel(w);
 	w->setAttribute(Qt::WA_DeleteOnClose);
-	w->isTopLevel = false;
 	QSettings settings("yarpen.cz", "sqliteman");
 	int hh = settings.value("dataviewer/height", QVariant(607)).toInt();
 	int ww = settings.value("dataviewer/width", QVariant(819)).toInt();
@@ -890,20 +587,6 @@ void DataViewer::openStandaloneWindow()
 		.arg("<br/><tt>" + qm->query().lastQuery())+ "</tt>");
 }
 
-void DataViewer::handleBlobPreview(bool state)
-{
-	nonColumnClicked();
-	if (state)
-		tableView_selectionChanged(QItemSelection(), QItemSelection());
-	updateButtons();
-	if (ui.blobPreviewBox->isVisible())
-	{
-		ui.blobPreview->setBlobData(
-			ui.tableView->model()->data(ui.tableView->currentIndex(),
-										Qt::EditRole));
-	}
-}
-
 void DataViewer::tableView_selectionChanged(const QItemSelection & current,
 											const QItemSelection & previous)
 {
@@ -936,6 +619,32 @@ void DataViewer::tableView_currentChanged(const QModelIndex & current,
 										  const QModelIndex & previous)
 {
 	// only used for debug output
+}
+
+void DataViewer::tableView_dataResized(int column, int oldWidth, int newWidth) 
+{
+	dataResized = true;
+}
+
+void DataViewer::tableView_dataChanged()
+{
+	removeErrorMessage();
+	updateButtons();
+	ui.tableView->viewport()->update();
+}
+
+void DataViewer::handleBlobPreview(bool state)
+{
+	nonColumnClicked();
+	if (state)
+		tableView_selectionChanged(QItemSelection(), QItemSelection());
+	updateButtons();
+	if (ui.blobPreviewBox->isVisible())
+	{
+		ui.blobPreview->setBlobData(
+			ui.tableView->model()->data(ui.tableView->currentIndex(),
+										Qt::EditRole));
+	}
 }
 
 void DataViewer::tabWidget_currentChanged(int ix)
@@ -975,31 +684,6 @@ void DataViewer::itemView_indexChanged()
 		ui.tableView->model()->index(ui.itemView->currentRow(),
 								     ui.itemView->currentColumn()));
 	updateButtons();
-}
-
-void DataViewer::tableView_dataChanged()
-{
-	removeErrorMessage();
-	updateButtons();
-	ui.tableView->viewport()->update();
-}
-
-void DataViewer::showSqlScriptResult(QString line)
-{
-	removeErrorMessage();
-	if (line.isEmpty()) { return; }
-	ui.scriptEdit->append(line);
-	ui.scriptEdit->append("\n");
-	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
-	ui.tabWidget->setCurrentIndex(2);
-	haveBuiltQuery = false;
-	updateButtons();
-	emit tableUpdated();
-}
-
-void DataViewer::sqlScriptStart()
-{
-	ui.scriptEdit->clear();
 }
 
 void DataViewer::gotoLine()
@@ -1084,43 +768,6 @@ void DataViewer::actInsertNull_triggered()
 	}
 }
 
-void DataViewer::rowDoubleClicked(int)
-{
-	nonColumnClicked();
-	ui.tabWidget->setCurrentIndex(1);
-}
-
-void DataViewer::nonColumnClicked()
-{
-	columnSelected = -1;
-}
-
-void DataViewer::columnClicked(int col)
-{
-	columnSelected = col;
-	topRow = 0;
-	searchString.clear();
-}
-
-void DataViewer::rowCountChanged()
-{
-	QString cached;
-	QSqlQueryModel * model = qobject_cast<QSqlQueryModel*>(ui.tableView->model());
-	if ((model != 0) && (model->columnCount() > 0))
-	{
-		if(   (model->rowCount() != 0)
-		   && model->canFetchMore())
-	    {
-			cached = canFetchMore + "<br/>";
-	    }
-	    else { cached = ""; }
-
-		setStatusText(tr("Query OK<br/>Row(s) returned: %1 %2")
-					  .arg(model->rowCount()).arg(cached));
-	}
-	else { showStatusText(false); }
-}
-
 void DataViewer::doCopyWhole()
 {
 	QAbstractItemModel * model = ui.tableView->model();
@@ -1141,6 +788,435 @@ void DataViewer::doPasteOver()
 	}
 }
 
+// public methods
+
+DataViewer::DataViewer(QWidget * parent)
+	: QMainWindow(parent),
+	  dataResized(true)
+{
+	ui.setupUi(this);
+	m_finder = 0;
+	canFetchMore = tr("(More rows can be fetched. "
+		"Scroll the resultset for more rows and/or read the documentation.)");
+	// force the status window to have a document
+	ui.statusText->setDocument(new QTextDocument());
+
+#ifdef Q_WS_MAC
+    ui.mainToolBar->setIconSize(QSize(16, 16));
+    ui.exportToolBar->setIconSize(QSize(16, 16));
+#endif
+
+	haveBuiltQuery = false;
+	ui.splitter->setCollapsible(0, false);
+	ui.splitter->setCollapsible(1, false);
+	ui.actionFind->setIcon(Utils::getIcon("system-search.png"));
+	ui.actionNew_Row->setIcon(Utils::getIcon("insert_table_row.png"));
+    ui.actionCopy_Row->setIcon(Utils::getIcon("duplicate_table_row.png"));
+	ui.actionRemove_Row->setIcon(Utils::getIcon("delete_table_row.png"));
+	ui.actionCommit->setIcon(Utils::getIcon("database_commit.png"));
+	ui.actionRollback->setIcon(Utils::getIcon("database_rollback.png"));
+	ui.actionRipOut->setIcon(Utils::getIcon("snapshot.png"));
+	ui.actionBLOB_Preview->setIcon(Utils::getIcon("blob.png"));
+	ui.actionExport_Data->setIcon(Utils::getIcon("document-export.png"));
+	ui.actionClose->setIcon(Utils::getIcon("close.png"));
+	ui.action_Goto_Line->setIcon(Utils::getIcon("go-next-use.png"));
+	ui.actionClose->setVisible(false);
+	ui.actionClose->setEnabled(false);
+	isTopLevel = true;
+
+	ui.mainToolBar->show();
+	ui.exportToolBar->show();
+	
+	handleBlobPreview(false);
+
+	actCopyWhole = new QAction(tr("Copy Whole"), ui.tableView);
+	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
+    connect(actCopyWhole, SIGNAL(triggered()), this,
+			SLOT(doCopyWhole()));
+	actPasteOver = new QAction(tr("Paste"), ui.tableView);
+	actPasteOver->setShortcut(QKeySequence("Ctrl+V"));
+    connect(actPasteOver, SIGNAL(triggered()), this,
+			SLOT(doPasteOver()));
+	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
+								tr("Insert NULL"), ui.tableView);
+	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+    connect(actInsertNull, SIGNAL(triggered()), this,
+			SLOT(actInsertNull_triggered()));
+    actOpenEditor = new QAction(tr("Open Data Editor..."), ui.tableView);
+	actOpenEditor->setShortcut(QKeySequence("Ctrl+ "));
+    connect(actOpenEditor, SIGNAL(triggered()), this,
+			SLOT(actOpenEditor_triggered()));
+    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
+									 tr("Open Multiline Editor..."),
+									 ui.tableView);
+	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
+    connect(actOpenMultiEditor, SIGNAL(triggered()),
+			this, SLOT(actOpenMultiEditor_triggered()));
+    ui.tableView->addAction(actCopyWhole);
+    ui.tableView->addAction(actPasteOver);
+    ui.tableView->addAction(actInsertNull);
+    ui.tableView->addAction(actOpenEditor);
+    ui.tableView->addAction(actOpenMultiEditor);
+
+	// custom delegate
+	SqlDelegate * delegate = new SqlDelegate(this);
+	ui.tableView->setItemDelegate(delegate);
+	connect(delegate, SIGNAL(dataChanged()),
+		this, SLOT(tableView_dataChanged()));
+
+	// workaround for Ctrl+C
+	DataViewerTools::KeyPressEater *keyPressEater = new DataViewerTools::KeyPressEater(this);
+	ui.tableView->installEventFilter(keyPressEater);
+
+	connect(ui.actionFind, SIGNAL(triggered()),
+			this, SLOT(find()));
+	connect(ui.actionNew_Row, SIGNAL(triggered()),
+			this, SLOT(addRow()));
+    connect(ui.actionCopy_Row, SIGNAL(triggered()),
+            this, SLOT(copyRow()));
+	connect(ui.actionRemove_Row, SIGNAL(triggered()),
+			this, SLOT(removeRow()));
+	connect(ui.actionExport_Data, SIGNAL(triggered()),
+			this, SLOT(exportData()));
+	connect(ui.actionCommit, SIGNAL(triggered()),
+			this, SLOT(commit()));
+	connect(ui.actionRollback, SIGNAL(triggered()),
+			this, SLOT(rollback()));
+	connect(ui.actionRipOut, SIGNAL(triggered()),
+			this, SLOT(openStandaloneWindow()));
+	connect(ui.actionClose, SIGNAL(triggered()),
+			this, SLOT(close()));
+	connect(ui.action_Goto_Line, SIGNAL(triggered()),
+			this, SLOT(gotoLine()));
+	connect(keyPressEater, SIGNAL(copyRequest()),
+			this, SLOT(copyHandler()));
+// 	connect(parent, SIGNAL(prefsChanged()), ui.tableView, SLOT(repaint()));
+	connect(ui.actionBLOB_Preview, SIGNAL(toggled(bool)),
+			this, SLOT(handleBlobPreview(bool)));
+	connect(ui.tabWidget, SIGNAL(currentChanged(int)),
+			this, SLOT(tabWidget_currentChanged(int)));
+	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
+			this, SLOT(tableView_dataResized(int, int, int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionResized(int, int, int)),
+			this, SLOT(tableView_dataResized(int, int, int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionDoubleClicked(int)),
+			this, SLOT(rowDoubleClicked(int)));
+	connect(ui.tableView->verticalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(nonColumnClicked()));
+	connect(ui.tableView->horizontalHeader(), SIGNAL(sectionClicked(int)),
+			this, SLOT(columnClicked(int)));
+	connect(ui.tableView, SIGNAL(clicked(const QModelIndex &)),
+			this, SLOT(nonColumnClicked()));
+
+	activeRow = -1;
+	columnSelected = -1;
+}
+
+DataViewer::~DataViewer()
+{
+	removeFinder();
+	if (!isTopLevel)
+	{
+		QSettings settings("yarpen.cz", "sqliteman");
+	    settings.setValue("dataviewer/height", QVariant(height()));
+	    settings.setValue("dataviewer/width", QVariant(width()));
+	}
+	freeResources( ui.tableView->model()); // avoid memory leak of model
+	delete ui.statusText->document();
+}
+
+void DataViewer::setNotPending()
+{
+	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (old) { old->setPendingTransaction(false); }
+}
+
+bool DataViewer::checkForPending()
+{
+	SqlTableModel * old = qobject_cast<SqlTableModel*>(ui.tableView->model());
+	if (old && old->pendingTransaction())
+	{
+		QString msg (Database::isAutoCommit()
+			? tr("There are unsaved changes in table %1.%2.\n"
+				 "Do you wish to commit them to the database?\n\n"
+				 "Yes = commit changes\nNo = discard changes\n"
+				 "Cancel = skip this operation and stay in %1.%2")
+			: tr("There are unsaved changes in table %1.%2.\n"
+				 "Do you wish to save them to the database?\n"
+				 "(This will not commit as you are in pending"
+				 " transaction mode)\n"
+				 "\nYes = save changes\nNo = discard changes\n"
+				 "Cancel = skip this operation and stay in %1.%2"));
+		int com = QMessageBox::question(this, tr("Sqliteman"),
+			msg.arg(old->schema(), old->objectName()),
+			QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+		if (com == QMessageBox::No)
+		{
+			rollback();
+			return true;
+		}
+		else if (com == QMessageBox::Cancel) { return false; }
+		else
+		{
+			QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+			bool ok = old->submitAll();
+			QApplication::restoreOverrideCursor();
+			if (!ok)
+			{
+				/* This should never happen */
+				int ret = QMessageBox::question(this, tr("Sqliteman"),
+					tr("Failed to write unsaved changes to the database."
+					   "\nError: %1\n"
+					   "Discard changes?").arg(old->lastError().text()),
+												QMessageBox::Yes, QMessageBox::No);
+				if (ret == QMessageBox::Yes) { rollback(); }
+				else { return false; }
+			}
+            old->setPendingTransaction(false);
+			return true;
+		}
+	}
+	else { return true; }
+}
+
+bool DataViewer::setTableModel(QAbstractItemModel * model, bool showButtons)
+{
+	if (!checkForPending()) { return false; }
+	QAbstractItemModel * old = ui.tableView->model();
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	ui.tableView->setModel(model); // references old model
+	ui.tableView->scrollToTop();
+	QApplication::restoreOverrideCursor();
+	freeResources(old); // avoid memory leak of model
+
+	connect(ui.tableView->selectionModel(),
+			SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+			this,
+			SLOT(tableView_selectionChanged(const QItemSelection &, const QItemSelection &)));
+	connect(ui.tableView->selectionModel(),
+			SIGNAL(currentChanged(const QModelIndex &, const QModelIndex & )),
+			this,
+			SLOT(tableView_currentChanged(const QModelIndex &, const QModelIndex & )));
+	SqlTableModel * stm = qobject_cast<SqlTableModel*>(model);
+	if (stm)
+	{
+		connect(stm, SIGNAL(reallyDeleting(int)), this, SLOT(deletingRow(int)));
+		connect(stm, SIGNAL(moreFetched()), this, SLOT(rowCountChanged()));
+		if (m_finder)
+		{
+			m_doneFindAll = false;
+			m_finder->setup(stm->schema(), stm->objectName());
+		}
+	}
+	else if (m_finder)
+	{
+		m_doneFindAll = false;
+		m_finder->close();
+		m_finder = 0;
+	}
+
+	ui.itemView->setModel(model);
+	ui.itemView->setTable(ui.tableView);
+	if (model->columnCount() > 0)
+	{
+		ui.tabWidget->setCurrentIndex(0);
+		resizeViewToContents(model);
+	}
+	updateButtons();
+	
+	rowCountChanged();
+
+	return true;
+}
+
+void DataViewer::setBuiltQuery(bool value)
+{
+	haveBuiltQuery = value;
+	updateButtons();
+}
+
+void DataViewer::setStatusText(const QString & text)
+{
+	ui.statusText->setHtml(text);
+	int lh = QFontMetrics(ui.statusText->currentFont()).lineSpacing();
+	QTextDocument * doc = ui.statusText->document();
+	if (doc)
+	{
+		int h = (int)(doc->size().height());
+		if (h < lh * 2) { h = lh * 2 + lh / 2; }
+		ui.statusText->setFixedHeight(h + lh / 2);
+	}
+	else
+	{
+		int lines = text.split("<br/>").count() + 1;
+		ui.statusText->setFixedHeight(lh * lines);
+	}
+	showStatusText(true);
+}
+
+void DataViewer::removeErrorMessage()
+{
+	QString s = ui.statusText->toHtml();
+	if (s.contains("<span style=\" color:#ff0000;\">"))
+	{
+		showStatusText(false);
+	}
+}
+
+void DataViewer::showStatusText(bool show)
+{
+	if (show)
+	{
+		ui.statusText->show();
+	}
+	else
+	{
+		ui.statusText->hide();
+		ui.statusText->setFixedHeight(0);
+	}
+}
+
+QAbstractItemModel * DataViewer::tableData()
+{
+	return ui.tableView->model();
+}
+
+QStringList DataViewer::tableHeader()
+{
+	QStringList ret;
+	QSqlQueryModel *q = qobject_cast<QSqlQueryModel *>(ui.tableView->model());
+
+	for (int i = 0; i < q->columnCount() ; ++i)
+		ret << q->headerData(i, Qt::Horizontal).toString();
+
+	return ret;
+}
+
+void DataViewer::freeResources(QAbstractItemModel * old)
+{
+	SqlTableModel * t = qobject_cast<SqlTableModel*>(old);
+	if (t)
+	{
+		SqlTableModel::detach(t);
+	}
+	else
+	{
+		SqlQueryModel * q = qobject_cast<SqlQueryModel*>(old);
+		if (q)
+		{
+			SqlQueryModel::detach(q);
+		}
+	}
+}
+
+void DataViewer::saveSelection()
+{
+	savedActiveRow = activeRow;
+	wasItemView = (ui.tabWidget->currentIndex() == 1);
+}
+
+void DataViewer::reSelect()
+{
+	if (savedActiveRow >= 0)
+	{
+		ui.tableView->selectRow(savedActiveRow);
+		if (wasItemView)
+		{
+			ui.tabWidget->setCurrentIndex(1);
+			ui.itemView->setCurrentIndex(ui.tableView->currentIndex().row(),
+										 ui.tableView->currentIndex().column());
+		}
+	}
+}
+
+bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
+{
+	QString s (keyEvent->text());
+	if (keyEvent->key() == Qt::Key_Backspace)
+	{
+		if (searchString.isEmpty()) { return false; }
+		searchString.chop(1);
+		SqlTableModel * model
+			= qobject_cast<SqlTableModel*>(ui.tableView->model());
+		if (!model) { return false; }
+		if (m_doneFindAll) { unFindAll(); }
+		while (topRow > 0)
+		{
+			QModelIndex index(
+				model->index(topRow - 1, columnSelected));
+			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
+			if (searchString.compare(data.toString(), Qt::CaseInsensitive) >= 0)
+			{
+				ui.tableView->scrollTo(
+					model->index(topRow, columnSelected),
+					QAbstractItemView::PositionAtTop);
+				break;
+			}
+			--topRow;
+		}
+		return true;
+	}
+	else if (s.isEmpty()) { return false; }
+	else
+	{
+		searchString.append(s);
+		SqlTableModel * model
+			= qobject_cast<SqlTableModel*>(ui.tableView->model());
+		if (!model) { return false; }
+		if (m_doneFindAll) { unFindAll(); }
+		int rows = model->rowCount();
+		for (int i = topRow; i < rows; ++i)
+		{
+			QModelIndex index(model->index(i, columnSelected));
+			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
+			if (searchString.compare(data.toString(), Qt::CaseInsensitive) <= 0)
+			{
+				topRow = i;
+				ui.tableView->scrollTo(index, QAbstractItemView::PositionAtTop);
+				break;
+			}
+		}
+		return true;
+	}
+}
+
+void DataViewer::showSqlScriptResult(QString line)
+{
+	removeErrorMessage();
+	if (line.isEmpty()) { return; }
+	ui.scriptEdit->append(line);
+	ui.scriptEdit->append("\n");
+	ui.scriptEdit->ensureLineVisible(ui.scriptEdit->lines());
+	ui.tabWidget->setCurrentIndex(2);
+	haveBuiltQuery = false;
+	updateButtons();
+	emit tableUpdated();
+}
+
+void DataViewer::sqlScriptStart()
+{
+	ui.scriptEdit->clear();
+}
+
+void DataViewer::rowCountChanged()
+{
+	QString cached;
+	QSqlQueryModel * model
+		= qobject_cast<QSqlQueryModel*>(ui.tableView->model());
+	if ((model != 0) && (model->columnCount() > 0))
+	{
+		if(   (model->rowCount() != 0)
+		   && model->canFetchMore())
+	    {
+			cached = canFetchMore + "<br/>";
+	    }
+	    else { cached = ""; }
+
+		setStatusText(tr("Query OK<br/>Row(s) returned: %1 %2")
+					  .arg(model->rowCount()).arg(cached));
+	}
+	else { showStatusText(false); }
+}
 
 /* Tools *************************************************** */
 

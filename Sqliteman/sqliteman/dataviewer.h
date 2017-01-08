@@ -9,19 +9,20 @@ for which a new license (GPL+exception) is in place.
 #define DATAVIEWER_H
 
 #include <QMainWindow>
-#include "ui_dataviewer.h"
+
+#include "finddialog.h"
 #include "sqlmodels.h"
+#include "ui_dataviewer.h"
 
 class QAbstractItemModel;
-class QTableView;
-class QTextEdit;
-class QToolBar;
 class QAction;
+class QModelIndex;
 class QSplitter;
 class QSqlQueryModel;
 class QResizeEvent;
-class QModelIndex;
-
+class QTableView;
+class QTextEdit;
+class QToolBar;
 
 /*! \brief A Complex widget handling the database outputs and status messages.
 \author Petr Vanek <petr@scribus.info>
@@ -29,57 +30,6 @@ class QModelIndex;
 class DataViewer : public QMainWindow
 {
 		Q_OBJECT
-	public:
-		DataViewer(QWidget * parent = 0);
-		~DataViewer();
-
-		/*! \brief Set data model. See Qt model/view documentation.
-		\retval bool true when the model is set succesfully
-		*/
-		bool checkForPending();
-		void setNotPending();
-		bool setTableModel(QAbstractItemModel * model, bool showButtons = false);
-		//! \brief Set text to the status widget.
-		void setStatusText(const QString & text);
-		void removeErrorMessage();
-		//! \brief Show/hide status widget
-		void showStatusText(bool show);
-
-		QAbstractItemModel * tableData();
-		QStringList tableHeader();
-
-		QByteArray saveSplitter() { return ui.splitter->saveState(); };
-		void restoreSplitter(QByteArray state) { ui.splitter->restoreState(state); };
-
-		QString canFetchMore;
-		bool isTopLevel;
-		int columnSelected;
-		bool haveBuiltQuery;
-
-		/*! \brief Free locked resources */
-		void freeResources(QAbstractItemModel * old);
-
-		// reselect active row and full/item view after doing some changes
-		void saveSelection();
-		void reSelect();
-		void findNext(int column, QString s, Qt::CaseSensitivity cs);
-		void unFindAll();
-		void findAll(int column, QString s, Qt::CaseSensitivity cs);
-		bool searchRow(SqlTableModel * model, int row, int column,
-					   QString s, Qt::CaseSensitivity cs);
-		bool incrementalSearch(QKeyEvent *keyEvent);
-		void setBuiltQuery(bool value);
-
-	signals:
-		void tableUpdated();
-		void deleteMultiple();
-
-public slots:
-		//! \brief Append the line to the "Script Result" tab.
-		void showSqlScriptResult(QString line);
-		//! \brief Clean the "Script Result" report
-		void sqlScriptStart();
-		void rowCountChanged();
 
 	private:
 		Ui::DataViewer ui;
@@ -89,6 +39,8 @@ public slots:
 		bool wasItemView;
 		QString searchString;
 		int topRow;
+		FindDialog * m_finder;
+		bool m_doneFindAll;
 
         QAction * actCopyWhole;
         QAction * actPasteOver;
@@ -96,19 +48,30 @@ public slots:
         QAction * actOpenMultiEditor;
         QAction * actInsertNull;
 		
-		void resizeViewToContents(QAbstractItemModel * model);
-		void resizeEvent(QResizeEvent * event);
 		//! \brief Show/hide action tools
 		void updateButtons();
+		void unFindAll();
+		void findNext(int column);
+		void removeFinder();
+		void resizeViewToContents(QAbstractItemModel * model);
+		void resizeEvent(QResizeEvent * event);
 
 	private slots:
+		void findFirst();
+		void findNext();
+		void findAll();
+		void findClosing();
+		void find();
+		void columnClicked(int);
+		void nonColumnClicked();
+		void rowDoubleClicked(int);
 		void addRow();
 		void copyRow();
 		void removeRow();
 		void deletingRow(int row); // when it actually gets deleted
 		void exportData();
-		void commit();
 		void rollback();
+		void commit();
 		/*! \brief Handle selection as "excel-like copypasting".
 		Qt4 takes only last selected item into clipboard so
 		we have to create structure such this:
@@ -130,10 +93,12 @@ public slots:
 		The new window is destroyed on its close. */
 		void openStandaloneWindow();
 
-		void handleBlobPreview(bool);
-		void tableView_selectionChanged(const QItemSelection &, const QItemSelection &);
+		void tableView_selectionChanged(
+			const QItemSelection &, const QItemSelection &);
 		void tableView_currentChanged(const QModelIndex &, const QModelIndex &);
 		void tableView_dataResized(int column, int oldWidth, int newWidth);
+		void tableView_dataChanged();
+		void handleBlobPreview(bool);
 
 		//! \brief Set position in the models when user switches his views.
 		void tabWidget_currentChanged(int);
@@ -146,18 +111,61 @@ public slots:
 		*/
 		void itemView_indexChanged();
 
-		void tableView_dataChanged();
 		void gotoLine();
 
         void actOpenEditor_triggered();
         void actOpenMultiEditor_triggered();
         void actInsertNull_triggered();
 
-		void rowDoubleClicked(int);
-		void nonColumnClicked();
-		void columnClicked(int);
 		void doCopyWhole();
 		void doPasteOver();
+
+	public:
+		QString canFetchMore;
+		bool isTopLevel;
+		int columnSelected;
+		bool haveBuiltQuery;
+
+		DataViewer(QWidget * parent = 0);
+		~DataViewer();
+
+		void setNotPending();
+		bool checkForPending();
+		bool setTableModel(
+			QAbstractItemModel * model, bool showButtons = false);
+		void setBuiltQuery(bool value);
+
+		//! \brief Set text to the status widget.
+		void setStatusText(const QString & text);
+		void removeErrorMessage();
+
+		//! \brief Show/hide status widget
+		void showStatusText(bool show);
+
+		QAbstractItemModel * tableData();
+		QStringList tableHeader();
+
+		/*! \brief Free locked resources */
+		void freeResources(QAbstractItemModel * old);
+
+		// reselect active row and full/item view after doing some changes
+		void saveSelection();
+		void reSelect();
+		bool incrementalSearch(QKeyEvent *keyEvent);
+
+		QByteArray saveSplitter() { return ui.splitter->saveState(); };
+		void restoreSplitter(QByteArray state) { ui.splitter->restoreState(state); };
+
+	signals:
+		void tableUpdated();
+		void deleteMultiple();
+
+	public slots:
+		//! \brief Append the line to the "Script Result" tab.
+		void showSqlScriptResult(QString line);
+		//! \brief Clean the "Script Result" report
+		void sqlScriptStart();
+		void rowCountChanged();
 };
 
 

@@ -70,8 +70,9 @@ void QueryEditorWidget::tableSelected(const QString & table)
 {
 	resetModel();
 	m_table = table;
-	m_columnList = getColumns();
-	columnModel->setStringList(m_columnList);
+	termsTab->m_columnList = getColumns();
+	columnModel->setStringList(termsTab->m_columnList);
+	termsTab->update();
 	resizeWanted = true;
 }
 
@@ -133,10 +134,6 @@ QueryEditorWidget::QueryEditorWidget(QWidget * parent): QWidget(parent)
 			this, SLOT(schemaSelected(const QString &)));
 	connect(tableList, SIGNAL(activated(const QString &)),
 			this, SLOT(tableSelected(const QString &)));
-	connect(termsTab->termMoreButton, SIGNAL(clicked()),
-			this, SLOT(moreTerms()));
-	connect(termsTab->termLessButton, SIGNAL(clicked()),
-			this, SLOT(lessTerms()));
 	connect(addAllButton, SIGNAL(clicked()), this, SLOT(addAllSelect()));
 	connect(addButton, SIGNAL(clicked()), this, SLOT(addSelect()));
 	connect(removeAllButton, SIGNAL(clicked()), this, SLOT(removeAllSelect()));
@@ -230,7 +227,7 @@ QString QueryEditorWidget::statement()
 			sql += ("\nFROM " + Utils::q(m_schema) + "." +
 					Utils::q(tableList->currentText()));
 
-	// Optionaly add terms
+	// Optionally add terms
 	if (termsTab->termsTable->rowCount() > 0)
 	{
 		// But first determine what is the chosen logic word (And/Or)
@@ -247,7 +244,7 @@ QString QueryEditorWidget::statement()
 				(termsTab->termsTable->cellWidget(i, 1));
 			QLineEdit * value = qobject_cast<QLineEdit *>
 				(termsTab->termsTable->cellWidget(i, 2));
-			if (fields && relations && value)
+			if (fields && relations)
 			{
 				if (i > 0) { sql += logicWord; }
 				sql += Utils::q(fields->currentText());
@@ -263,27 +260,32 @@ QString QueryEditorWidget::statement()
 								+ Utils::like(value->text()));
 						break;
 
-					case 2:		// Equals
+					case 2: 	// Starts with
+						sql += (" LIKE "
+								+ Utils::startswith(value->text()));
+						break;
+
+					case 3:		// Equals
 						sql += (" = " + Utils::q(value->text(), "'"));
 						break;
 
-					case 3:		// Not equals
+					case 4:		// Not equals
 						sql += (" <> " + Utils::q(value->text(), "'"));
 						break;
 
-					case 4:		// Bigger than
+					case 5:		// Bigger than
 						sql += (" > " + Utils::q(value->text(), "'"));
 						break;
 
-					case 5:		// Smaller than
+					case 6:		// Smaller than
 						sql += (" < " + Utils::q(value->text(), "'"));
 						break;
 
-					case 6:		// is null
+					case 7:		// is null
 						sql += (" ISNULL");
 						break;
 
-					case 7:		// is not null
+					case 8:		// is not null
 						sql += (" NOTNULL");
 						break;
 				}
@@ -344,7 +346,7 @@ QString QueryEditorWidget::deleteStatement()
 				(termsTab->termsTable->cellWidget(i, 1));
 			QLineEdit * value = qobject_cast<QLineEdit *>
 				(termsTab->termsTable->cellWidget(i, 2));
-			if (fields && relations && value)
+			if (fields && relations)
 			{
 				if (i > 0) { sql += logicWord; }
 				sql += Utils::q(fields->currentText());
@@ -360,27 +362,32 @@ QString QueryEditorWidget::deleteStatement()
 								+ Utils::like(value->text()));
 						break;
 
-					case 2:		// Equals
+					case 2: 	// Starts with
+						sql += (" LIKE "
+								+ Utils::startswith(value->text()));
+						break;
+
+					case 3:		// Equals
 						sql += (" = " + Utils::q(value->text(), "'"));
 						break;
 
-					case 3:		// Not equals
+					case 4:		// Not equals
 						sql += (" <> " + Utils::q(value->text(), "'"));
 						break;
 
-					case 4:		// Bigger than
+					case 5:		// Bigger than
 						sql += (" > " + Utils::q(value->text(), "'"));
 						break;
 
-					case 5:		// Smaller than
+					case 6:		// Smaller than
 						sql += (" < " + Utils::q(value->text(), "'"));
 						break;
 
-					case 6:		// is null
+					case 7:		// is null
 						sql += (" ISNULL");
 						break;
 
-					case 7:		// is not null
+					case 8:		// is not null
 						sql += (" NOTNULL");
 						break;
 				}
@@ -445,43 +452,12 @@ void QueryEditorWidget::removeSelect()
 	selectModel->setStringList(list);
 }
 
-void QueryEditorWidget::moreTerms()
-{
-	int i = termsTab->termsTable->rowCount();
-	termsTab->termsTable->setRowCount(i + 1);
-	QComboBox * fields = new QComboBox();
-	fields->addItems(m_columnList);
-	termsTab->termsTable->setCellWidget(i, 0, fields);
-	QComboBox * relations = new QComboBox();
-	relations->addItems(QStringList() << tr("Contains") << tr("Doesn't contain")
-									  << tr("Equals") << tr("Not equals")
-									  << tr("Bigger than") << tr("Smaller than")
-									  << tr("Is null") << tr("Is not null"));
-	termsTab->termsTable->setCellWidget(i, 1, relations);
-	connect(relations, SIGNAL(currentIndexChanged(const QString &)),
-			this, SLOT(relationsIndexChanged(const QString &)));
-	QLineEdit * value = new QLineEdit();
-	termsTab->termsTable->setCellWidget(i, 2, value);
-	termsTab->termsTable->resizeColumnsToContents();
-	termsTab->termLessButton->setEnabled(true);
-	resizeWanted = true;
-}
-
-void QueryEditorWidget::lessTerms()
-{
-	int i = termsTab->termsTable->rowCount() - 1;
-	termsTab->termsTable->removeRow(i);
-	termsTab->termsTable->resizeColumnsToContents();
-	if (i == 0)
-		termsTab->termLessButton->setEnabled(false);
-}
-
 void QueryEditorWidget::moreOrders()
 {
 	int i = ordersTable->rowCount();
 	ordersTable->setRowCount(i + 1);
 	QComboBox * fields = new QComboBox();
-	fields->addItems(m_columnList);
+	fields->addItems(termsTab->m_columnList);
 	ordersTable->setCellWidget(i, 0, fields);
 	QComboBox * collators = new QComboBox();
 	collators->addItem("BINARY");
@@ -504,48 +480,6 @@ void QueryEditorWidget::lessOrders()
 	ordersTable->removeRow(i);
 	if (i == 0)
 		orderLessButton->setEnabled(false);
-}
-
-void QueryEditorWidget::relationsIndexChanged(const QString &)
-{
-	QComboBox * relations = qobject_cast<QComboBox *>(sender());
-	for (int i = 0; i < termsTab->termsTable->rowCount(); ++i)
-	{
-		if (relations == termsTab->termsTable->cellWidget(i, 1))
-		{
-			QLineEdit * value = qobject_cast<QLineEdit *>
-				(termsTab->termsTable->cellWidget(i, 2));
-			if (value)
-			{
-				switch (relations->currentIndex())
-				{
-					case 0: value->show(); // Contains
-						return;
-
-					case 1: value->show(); // Doesn't contain
-						return;
-
-					case 2: value->show(); // Equals
-						return;
-
-					case 3: value->show(); // Not equals
-						return;
-
-					case 4: value->show(); // Bigger than
-						return;
-
-					case 5: value->show(); // Smaller than
-						return;
-
-					case 6: value->hide(); // is null
-						return;
-
-					case 7: value->hide(); // is not null
-						return;
-				}
-			}
-		}
-	}
 }
 
 void QueryEditorWidget::resetClicked()
@@ -623,11 +557,11 @@ void QueryEditorWidget::treeChanged()
 		else
 		{
 			QStringList columns = getColumns();
-			if (m_columnList != columns)
+			if (termsTab->m_columnList != columns)
 			{
 				resetModel();
-				m_columnList = columns;
-				columnModel->setStringList(m_columnList);
+				termsTab->m_columnList = columns;
+				columnModel->setStringList(termsTab->m_columnList);
 				resizeWanted = true;
 			}
 		}
@@ -648,11 +582,11 @@ void QueryEditorWidget::tableAltered(QString oldName, QTreeWidgetItem * item)
 				{
 					m_table = newName;
 					QStringList columns = getColumns();
-					if (m_columnList != columns)
+					if (termsTab->m_columnList != columns)
 					{
 						resetModel();
-						m_columnList = columns;
-						columnModel->setStringList(m_columnList);
+						termsTab->m_columnList = columns;
+						columnModel->setStringList(termsTab->m_columnList);
 						resizeWanted = true;
 					}
 				}

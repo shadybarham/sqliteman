@@ -27,6 +27,7 @@ SET( SQLITEMAN_SRC
     dataexportdialog.cpp
     dataviewer.cpp
     extensionmodel.cpp
+    finddialog.cpp
     helpbrowser.cpp
     importtabledialog.cpp
     importtablelogdialog.cpp
@@ -95,6 +96,7 @@ SET( SQLITEMAN_MOC
     dataexportdialog.h
     dataviewer.h
     extensionmodel.h
+    finddialog.h
     helpbrowser.h
     importtabledialog.h
     importtablelogdialog.h
@@ -142,6 +144,7 @@ SET( SQLITEMAN_UI
     createtriggerdialog.ui
     dataexportdialog.ui
     dataviewer.ui
+    finddialog.ui
     helpbrowser.ui
     importtabledialog.ui
     importtablelogdialog.ui

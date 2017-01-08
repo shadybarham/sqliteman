@@ -54,6 +54,7 @@ QString unQuote(QString s);
 #endif
 
 QString like(QString s);
+QString startswith(QString s);
 
 void setColumnWidths(QTableView * tv);
 
