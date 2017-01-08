@@ -1,18 +1,18 @@
 <html><head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Data Viewer</title>
+<title>Find Dialog</title>
 <link rel="stylesheet" href="kde-default.css" type="text/css">
 <meta name="generator" content="DocBook XSL Stylesheets V1.67.2">
 <meta name="keywords" content="Sqliteman, SQL, Sqlite, development, database">
 <link rel="start" href="index.html" title="The Sqliteman Handbook">
 <link rel="up" href="ch07.html" title="Chapter 7. Features and Dialogs">
 <link rel="prev" href="ch07s12.html" title="SQL Editor">
-<link rel="next" href="ch07s14.html" title="Export Data">
+<link rel="next" href="ch07s15.html" title="Data Viewer">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
 <div class="navheader">
 	<table width="100%" summary="Navigation header">
-		<tr><th colspan="3" align="center">Data Viewer</th></tr>
+		<tr><th colspan="3" align="center">Find Dialog</th></tr>
 		<tr>
 			<td width="20%" align="left">
 				<a accesskey="p" href="ch07s12.html">Prev</a>
@@ -29,746 +29,70 @@
 <div class="sect1" lang="en">
 	<div class="titlepage">
 		<h2 class="title" style="clear: both">
-			<a name="dataViewer"></a>Data Viewer
+			<a name="findDialog"></a>Find Dialog
 		</h2>
 	</div>
-	<p>All data are displayed here. Displayed data can be:</p>
-	<div class="itemizedlist">
-		<ul type="disc">
-			<li><p>Results of queries launched by
-				<a href="ch07s11.html" title="Query Builder">
-					the graphical query builder
-				</a>.
-			</p></li>
-			<li><p>Results of statements launched in
-			<a href="ch07s12.html" title="SQL Editor">the SQL Editor</a>.
-			</p></li>
-			<li><p>Content of tables and views listed in
-			<a href="ch07s10.html" title="Schema Browser">
-			the Schema Browser</a>.
-			Click on a table name to fetch its data.
-			</p></li>
-		</ul>
-	</div>
-	<p>Changes in Data Viewer are handled in a separate transaction. So you
-		<span class="emphasis">have to</em></span>
-		click the
-		<span class="guibutton"><a href="ch07s13.html#commit">Commit</a>
-		</span>
-		button to promote them into the database file or the
-		<span class="guibutton"><a href="ch07s13.html#rollback">Rollback</a>
-		</span>
-		button to discard them.
-	</p>
-	<div class="important" style="margin-left: 0.5in; margin-right: 0.5in;">
-		<h3 class="title">Important</h3>
-		<p>Transactions in the Data Viewer are separate from transactions
-			in the SQL Editor. You cannot commit your Data Viewer changes by a
-			<span><strong class="command">COMMIT</strong></span>
-			in the SQL Editor. However if you have a pending transaction
-			(unclosed
-			<span><strong class="command">BEGIN TRANSACTION</strong></span>
-			or
-			<span><strong class="command">SAVEPOINT</strong></span>)
-			from the SQL editor you have to close that as well after using the
-			<span class="guibutton"><a href="ch07s13.html#commit">Commit</a>
-			</span>
-			button in order for your changes to become permanent in the
-			database. See
-			<a href="ch07s01.html">
-				Auto Commit and Transaction Pending modes
-			</a>
-			for further details.
-		</p>
-	</div>
-	<p>Data changes are available only for tables (invoked in Schema Browser).
-		There is no way to edit the data returned by an SQL statement yet.
-	</p>
-	<p></p>
-	<div class="variablelist">
-		<dl>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="insert_table_row.png">
-						<dfn id = "newrow">New Row</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button is enabled only when viewing a table. It
-						 creates a new and empty row at the end of the table.
-						 Default values are prefilled except for PRIMARY KEY
-						 AUTOINCREMENT fields.
-						 <a href="ch07s13.html#commit">Commit</a>
-						 action is required to make this permanent. If a field
-						 has a default of CURRENT_TIMESTAMP, CURRENT_DATE, or
-						 CURRENT_TIME, it will be prefilled with the date and/or
-						 time when the record is created, but if the field is
-						 not modified it will be overwritten when changes are
-						 committed with the date and/or time then.
-					 </span>
-				 </p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="duplicate_table_row.png">
-						<dfn id = "copyrow">Duplicate Row</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button is enabled only when viewing a table and a
-						current row is selected. It creates a copy of the
-						current row at the end of the table (this can be useful
-						when creating rows which differ only in one field). Note
-						that the Qt SQL library gets confused
-						if the database contains multiple rows with the same
-						data fields: make sure to modify the copy before
-						committing.
-						<a href="ch07s13.html#commit">Commit</a>
-						action is required to make this permanent.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="delete_table_row.png">
-						<dfn id = "removerow">Remove Row</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button is enabled only when viewing a table and a
-						current row is selected. It deletes the selected row
-						from the table.
-						<a href="ch07s13.html#commit">Commit</a>
-						action is required to make this permanent.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="delete_multiple.png">
-						<dfn id = "deletemultiple">Delete Multiple</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button replaces the
-						<a href="ch07s13.html#removerow">Remove Row</a>
-						button when you have just executed a query created by
-						the
-						<a href="ch07s11.html">Query Builder</a>.
-						It deletes all the records found by the query from the
-						table against which the query was run. It will ask you
-						if you really want to do this first as this can delete a
-						lot of records. This is an immediate action and does not
-						require
-						<a href="ch07s13.html#commit">Commit</a>
-						action to update the database. Note this button is not
-						available after executing a query from the
-						<a href="ch07s12.html">SQL Editor</a>
-						widget, since this can contain a more complex SELECT
-						which cannot be simply modified into a DELETE
-						statement.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="database_commit.png">
-						<dfn id = "commit">Commit</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button is enabled only when changes have been made
-						in the DataViewer. It promotes the changes into the
-						database.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="database_rollback.png">
-						<dfn id ="rollback">Rollback</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button is enabled only when changes have been made
-						in the DataViewer. It rejects the changes and reloads
-						the Data Viewer from the database.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="blob.png">
-						<dfn id="blobpreview">Blob Preview</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						Enable or disable BLOB preview widget. The blob preview
-						widget can only be enabled when a field containing a
-						blob is selected, but it can be disabled whenever it is
-						enabled. If the blob preview is enabled, it will appear
-						whenever a field containing a blob is selected and it
-						will attempt to display the blob as an image.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="document-export.png">
-						<dfn id="dataexport">Data Export</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						Open the Data Export dialog. You can export currently
-						selected data in various formats.
-						<a href="ch07s14.html" title="Export Data">
-							See Data Export documentation</a>.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="snapshot.png">
-						<dfn id ="snapshot">Table Snapshot</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						Duplicate current result table into a new read only
-						window. You can compare data versions etc. with it.
-					</span>
-				</p>
-			</dd>
-			<dt>
-				<span class="term">
-					<span class="guiicon">
-						<img src="go-next-use.png">
-						<dfn id="linenumber">Go to line number</dfn>
-					</span>
-				</span>
-			</dt>
-			<dd>
-				<p>
-					<span class="action">
-						This button pops up a dialog to select a row number. It
-						will select the first field of that row and scroll the
-						Data Viewer to make it visible. It ignores any attempt
-						to go to a row which has been deleted.
-					</span>
-				</p>
-			</dd>
-		</dl>
-	</div>
-	<div class="sect2" lang="en">
-		<div class="titlepage">
-			<h2 class="title"><a name="id2527777"></a>Display Types</h2>
-		</div>
-		<div class="variablelist">
-			<dl>
-				<dt>
-					<span class="term">
-						<dfn id="fullview">Full View</dfn>
-					</span>
-				</dt>
-				<div class="screenshot">
-					<div class="mediaobject">
-						<img src="dataViewer.png" alt="Data Viewer/Browser">
-					</div>
-				</div>
-				<dd>
-					<p>
-						Display data as  a table. This is the most common view
-						on SQL results.
-					</p>
-					<p>
-						Clicking on the Item View tab will display the
-						<a href="ch07s13.html#itemview">Item View</a>
-						for the currently selected row (the tab is disabled
-						when there is no current row). Double-clicking on a row
-						number in the Full View will open the
-						<a href="ch07s13.html#itemview">Item View</a>
-						for that row.
-					</p>
-					<p>
-						The following functions are available from the context
-						menu invoked by right-clicking in a field, or with the
-						keyboard shortcuts shown:-
-					</p>
-					<dl>
-						<dt>
-							Copy Whole
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">W</strong>
-							</strong>
-						</dt>
-						<dd>
-							Copies the whole field to the Clipboard.
-						</dd>
-						<dt>
-							Paste Over
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">V</strong>
-							</strong>
-						</dt>
-						<dd>
-							If there is text in the Clipboard, replace the
-							whole field with that text: otherwise do nothing.
-						</dd>
-						<dt>
-							<span class="guiicon">
-								<img src="setnull.png">Insert NULL
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">N</strong>
-							</strong>
-						</dt>
-						<dd>
-							Replace the contents of the field with a Null: SQL 
-							does not treat a Null field the same as an empty
-							one.
-						</dd>
-						<dt>
-							Open In-line Editor
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Space</strong>
-							</strong>
-						</dt>
-						<dd>
-							Open the
-							<a href="ch07s13.html#line-edit">In-line Editor</a>
-							in the field. This can also be invoked by
-							double-clicking on the field.
-						<dt>
-							<span class="guiicon">
-								<img src="edit.png">Open Multiline Editor
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">E</strong>
-							</strong>
-						</dt>
-						<dd>
-							Bring up the
-							<a href="ch07s13.html#advanced">Multiline Editor</a>
-							to edit the contents of the field in a pop-up
-							window.
-						</dd>
-					</dl>
-				</dd>
-				<dt>
-					<span class="term">
-						<dfn id ="itemview">Item View</dfn>
-					</span>
-				</dt>
-				<div class="screenshot">
-					<div class="mediaobject">
-						<img src="itemViewer.png" alt="Item Viewer/Browser">
-					</div>
-				</div>
-				<dd>
-					<p>
-						The Item View displays only one row at a time, but
-						with more space to edit each field. The navigation
-						buttons at the right move to the first, previous, next, and last row respectively, and are disabled if
-						you are already at that row. Below the navigation
-						buttons there are two small buttons to overwrite the
-						selected field with a NULL and to open the
-						<a href="ch07s13.html#advanced">Multiline Editor</a>:
-						these are only visible if the table is editable.
-						You can also use the
-						<a href="ch07s13.html#linenumber">go to line number</a>
-						button.
-					</p>
-					<p>
-						This view is now fully editable and synchronised
-						with the Full View. If you are using NULL
-						higlighting, the NULL alias will disappear if you
-						click on a NULL field in an editable table, so that
-						you can type something in there.
-					</p>
-					<p>
-						The following functions are available from the context
-						menu invoked by right-clicking in a field, or with the
-						keyboard shortcuts shown:-
-					</p>
-					<dl>
-						<dt>
-							Copy
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">C</strong>
-							</strong>
-						</dt>
-						<dd>
-							Copies the selected text to the Clipboard.
-						</dd>
-						<dt>
-							Copy Whole
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">W</strong>
-							</strong>
-						</dt>
-						<dd>
-							Copies the whole field to the Clipboard.
-						</dd>
-						<dt>
-							Cut
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">X</strong>
-							</strong>
-						</dt>
-						<dd>
-							Copies the selected text to the Clipboard and
-							deletes it from the field.
-						</dd>
-						<dt>
-							Paste
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">V</strong>
-							</strong>
-						</dt>
-						<dd>
-							Pastes text from the Clipboard in place of the
-							selection or at the cursor position if nothing is
-							selected.
-						</dd>
-						<dt>
-							Paste Over
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">V</strong>
-							</strong>
-						</dt>
-						<dd>
-							If there is text in the Clipboard, replace the
-							whole field with that text: otherwise do nothing.
-						</dd>
-						<dt>
-							<span class="guiicon">
-								<img src="setnull.png">Insert NULL
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">N</strong>
-							</strong>
-						</dt>
-						<dd>
-							Replace the contents of the field with a Null: SQL 
-							does not treat a Null field the same as an empty
-							one.
-						</dd>
-						<dt>
-							<span class="guiicon">
-								<img src="edit.png">Open Multiline Editor
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">E</strong>
-							</strong>
-						</dt>
-						<dd>
-							Bring up the
-							<a href="ch07s13.html#advanced">Multiline Editor</a>
-							to edit the contents of the field in a pop-up
-							window.
-						</dd>
-					</dl>
-				</dd>
-				<dt>
-					<span class="term">
-						<dfn id="scriptoutput">Script Output</dfn>
-					</span>
-				</dt>
-				<dd>
-					Results from the
-					<span class="guibutton">Describe</span>
-					menu action or from running multiple commands as a
-					script in the
-					<a href="ch07s12.html">SQL Editor</a>
-					are listed in this tab. It is automatically
-					selected if you run a script which does not generate a
-					table.
-				</dd>
-			</dl>
-		</div>
-	</div>
-	<div class="sect2" lang="en">
-		<div class="titlepage">
-			<h2 class="title"><a name="dataViewer-editor"></a>Data Editing</h2>
-		</div>
-		<div class="variablelist">
-			<dl>
-				<dt>
-					<h3>
-						<dfn id="line-edit">In-line Editor</dfn>
-					</h3>
-				</dt>
-				<dd>
-					<div class="screenshot">
-						<div class="mediaobject">
-							<img src="dataViewer-editor.png"
-							alt="Simple Data Editor">
-						</div>
-					</div>
-					<p>
-						Simple strings can be edited in this widget. There are
-						also two buttons:-
-					</p>
-				</dd>
-				<div style="margin-left: 0.5in; margin-right: 0.5in;">
-					<dt>
-						<span class="term">
-							<span class="guiicon">
-								<img src="setnull.png">Set NULL
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">N</strong>
-							</strong>
-						</span>
-					</dt>
-					<dd>
-						<span class="action">
-							Set the cell to the real NULL value.
-						</span>
-					</dd>
-					<dt>
-						<span class="term">
-							<span class="guiicon">
-								<img src="edit.png">Multiline Editor
-							</span>
-							<strong class="shortcut">
-								<strong
-									class="keycap">Ctrl</strong>+<strong
-									class="keycap">Alt</strong>+<strong
-									class="keycap">E</strong>
-							</strong>
-						</span>
-					</dt>
-					<dd>
-						<span class="action">
-							Open multiline editor
-						</span>
-					</dd>
-				</div>
-			</dl>
-		</div>
-	</div>
-	<div class="sect2" lang="en">
-		<h3>
-			<dfn id="advanced">Multiline Editor</dfn>
-		</h3>
-		<p>
-			This dialog is designed because the In-line Editor cannot handle
-			advanced features comfortably. It allows you to edit multi line
-			texts, BLOBs and the other special data formats.
-		</p>
-		<div class="screenshot">
-			<div class="mediaobject">
-				<img src="dataViewer-advanced.png" alt="Advanced Data Editor">
-			</div>
-		</div>
-		<p>
-			When you accept changes in this dialog with the
-			<span class="guibutton">OK</span>
-			button, only the result of the active tab will be promoted to the
-			Data Viewer. If the
-			<span class="guibutton">Insert NULL</span>
-			option is checked, only NULL is inserted. As usual the
-			<a href="ch07s13.html#commit">commit</a>
-			button then has to be used to promote the changes into the database.
-		</p>
-		<div class="variablelist">
-			<dl>
-				<dt>
-					<span class="term">Text tab</span>
-				</dt>
-				<dd>
-					<p>
-						Full plain text editor. There is no rich text support.
-					</p>
-				</dd>
-				<dt>
-					<span class="term">Blob tab</span>
-				</dt>
-				<dd>
-					<p>
-						The content of the chosen file will be transferred into
-						the cell as is. No data transformations are performed.
-						The original value of the cell can be saved into a local
-						file with the
-						<span class="guibutton">Save...</span>
-						button.
-					</p>
-				</dd>
-				<dt>
-					<span class="term">Date to String tab</span>
-				</dt>
-				<dd>
-					<p>
-						A helper wizard for storing date and time in string
-						values.
-					</p>
-					<div class="important" style=
-						"margin-left: 0.5in; margin-right: 0.5in;">
-						<h3 class="title">Important</h3>
-						<p>
-							Consult the Sqlite manual for date and time issues.
-						</p>
-					</div>
-					<p>
-						The
-						<span class="guilabel">Date</span>
-						item in this form can be set with a drop-down calendar
-						by clicking on the arrow to the right of the date.
-					</p>
-					<p>
-						The
-						<span class="guilabel">String Format</span>
-						should be set with a
-						<span class="emphasis">
-							<em>date time transform mask</em>.
-						</span>
-						Consult the
-						<a
-						href="http://doc.qt.io/qt-4.8/qdatetime.html#toString">
-							Qt4 documentation</a>
-						for an explanation of its codes.
-					</p>
-					<div class="example">
-						<a name="id2528212"></a>
-						<p class="title"><b>Example Date to String</b>
-						</p>
-						<p>
-							E. g.
-							<strong class="command">
-								dd.MM.yyyy hh:mm.ss
-							</strong>
-							will produce
-							<code class="computeroutput">
-								"24.12.2007 18:30:45"
-							</code>
-						</p>
-					</div>
-				</dd>
-			</dl>
-		</div>
-	</div>
-	<div class="sect2" lang="en">
-		<div class="titlepage">
-			<h2 class="title">
-				<a name="dataViewer-fetching"></a>
-				Fetching the data
-			</h2>
+	<div class="screenshot">
+		<div class="mediaobject">
+			<img src="finddialog.png" alt="Find Dialog">
 		</div>
 	</div>
 	<p>
-		<span class="application">Sqliteman</span>
-		can use progressive (step-by-step) fetching of data in the result set.
-		This means that you don't need to wait until all data are transferred
-		from the database file to
-		the result table.
+		This dialog allows you to search for rows in the current table. It
+		is a modeless dialog and will remain visible until either you dismiss it
+		or you open a non-table (a query or view) in the
+		<a href="ch07s14.html">Data Viewer</a>. If your window manager can find
+		space on the screen, the Find Dialog will be displayed without
+		overlapping the sqliteman main window.
 	</p>
 	<p>
-		When you call a select statement from table with e.g. thousands of rows
-		only the first part of rows is physically fetched. The remaining rows
-		are available on demand - scrolling down in the result table will perform next fetch.
+		The search conditions are specified similarly to the
+		<a href="ch07s11.html">Query Builder</a>
+		but they are interpreted internally to sqliteman instead of being used
+		to construct an SQL query. You can search for the first matching row,
+		the next matching row after the currently selected one, or all matching rows (with the non-matching rows hidden). The output looks a bit like
+		the output from running a query, but it is actually the real table with
+		all the non-matching rows hidden. Since it's the real table, you can
+		edit the rows, which you can't do with output from the
+		<a href="ch07s11.html">Query Builder</a>.
 	</p>
 	<p>
-		A message in the error log widget will inform you:
+		The
+		<span class="guibutton">More</span>
+		button adds another match condition to the search and the
+		<span class="guibutton">Less</span>
+		button deletes the last match condition. If you add several conditions
+		you can choose whether the search finds rows which match all of them or
+		match any of them. 
 	</p>
 	<p>
-		<span class="guilabel">
-			More rows can be fetched. Scroll the result set for more rows and/or
-			read the documentation.
-		</span>
+		The
+		<span class="guibutton">Find First</span>
+		button finds the first matching row in the table and selects the first
+		field as if you had clicked on it. If there is no matching row, the
+		Error Log will show "Not found".
 	</p>
 	<p>
-		Alternatively you can set a
-		<a href="ch07.html#preferences">preference</a>
-		to read all of a table when opening it: this can be more convenient on a
-		fast computer with plenty of memory.
+		The
+		<span class="guibutton">Find Next</span>
+		button finds the next matching row in the table after the row currently
+		selected and selects the first field as if you had clicked on it. If
+		there is no matching row, the Error Log will show "Not found".
 	</p>
-	<div class="sect2" lang="en">
-		<div class="titlepage">
-			<h2 class="title">
-				<a name="dataViewer-searching"></a>
-				Incremental Search
-			</h2>
-		</div>
-	</div>
 	<p>
-		If you select a column by clicking on the column name at the top, and
-		then type characters,
-		<span class="application">Sqliteman</span>
-		will do an incremental search on the data in the selected column. The
-		view will be scrolled so that the first matching row is visible, at the
-		top of the window unless there are not enough rows below it to fill the
-		window. This works best with a sorted column, but
-		<span class="application">Sqliteman</span>
-		will do the search anyway.
+		The
+		<span class="guibutton">Find All</span>
+		button hides all rows in the table which do not match the search
+		conditions, so that you can easily examine and edit those which do
+		match. If there are no matching rows, the whole table is shown and the
+		Error Log will show "No match found".
+	</p>
+	<p>
+		The
+		<span class="guibutton">Finished</span>
+		button dismisses the dialog. Any rows hidden after a
+		<span class="guibutton">Find All</span>
+		are made visible again.
 	</p>
 </div>
 <div class="navfooter">
@@ -790,7 +114,7 @@
 			<td width="20%" align="center">
 				<a accesskey="h" href="index.html">Contents</a>
 			</td>
-			<td width="40%" align="right" valign="top"> Export Data</td>
+			<td width="40%" align="right" valign="top">Data Viewer</td>
 		</tr>
 	</table>
 </div>

@@ -190,6 +190,7 @@ void DataViewer::findNext(int row)
 					ui.itemView->setCurrentIndex(row, column);
 				}
 				updateButtons();
+				ui.statusText->hide();
 				QApplication::restoreOverrideCursor();
 				return;
 			}
@@ -197,6 +198,7 @@ void DataViewer::findNext(int row)
 		QApplication::restoreOverrideCursor();
 	}
 	ui.statusText->setPlainText("Not found");
+	ui.statusText->show();
 }
 
 void DataViewer::removeFinder()
@@ -267,6 +269,7 @@ void DataViewer::findAll()
 	if (!anyFound)
 	{
 		ui.statusText->setPlainText("No match found");
+		ui.statusText->show();
 		unFindAll();
 	}
 	else
