@@ -29,6 +29,7 @@ class FindDialog : public QMainWindow, public Ui::findDialog
 		QString m_schema;
 		QString m_table;
 		bool notSame(QStringList l1, QStringList l2);
+		bool isNumeric(QVariant::Type t);
 
 	protected:
 		void closeEvent(QCloseEvent * event);

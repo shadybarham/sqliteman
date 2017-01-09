@@ -9,6 +9,7 @@ for which a new license (GPL+exception) is in place.
 #include <QLineEdit>
 #include <QScrollBar>
 #include <QSettings>
+#include <QSqlField>
 #include <QSqlRecord>
 #include <QTreeWidgetItem>
 
@@ -27,6 +28,39 @@ bool FindDialog::notSame(QStringList l1, QStringList l2)
 	l1s.sort();
 	l2s.sort();
 	return l1s != l2s;
+}
+
+bool FindDialog::isNumeric(QVariant::Type t)
+{
+	// This switch generates compilation warnings because data.type() is
+	// declared to return QVariant::Type but actually returns QMetaType::Type,
+	// and there is no conversion.
+	// How stupid can you get!!!
+	// This fixes it for the GNU compiler, for platforms with non-GNU
+	// compilers, there might be something similar available.
+#ifdef __GNUC__
+#pragma GCC diagnostic push "-Wswitch"
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+	switch (t)
+	{
+		case QMetaType::Int:
+		case QMetaType::UInt:
+		case QMetaType::LongLong:
+		case QMetaType::ULongLong:
+		case QMetaType::Double:
+		case QMetaType::Long:
+		case QMetaType::Short:
+		case QMetaType::ULong:
+		case QMetaType::UShort:
+		case QMetaType::Float:
+			return true;
+		default:
+			return false;
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop "-Wswitch"
+#endif
 }
 
 void FindDialog::closeEvent(QCloseEvent * event)
@@ -107,27 +141,88 @@ bool FindDialog::isMatch(QSqlRecord * rec, int i)
 	if (field && relation)
 	{
 		QVariant data(rec->value(field->currentText()));
+		bool dataOk;
+		double dataDouble = data.toDouble(&dataOk);
+		bool valOk;
+		QString valString = value->text();
+		double valDouble = valString.toDouble(&valOk);
 		switch (relation->currentIndex())
 		{
 			case 0:	// Contains
-				return  data.toString().contains(value->text());
+				return  data.toString().contains(valString);
 
 			case 1:	// Doesn't contain
-				return !(data.toString().contains(value->text()));
+				return !(data.toString().contains(valString));
 			
 			case 2:	// Starts with
-				return data.toString().startsWith(value->text());
+				return data.toString().startsWith(valString);
 
 			case 3:	// Equals
-				return data.toString() == value->text();
+				return data.toString() == valString;
 
 			case 4:	// Not equals
-				return data.toString() != value->text();
+				return data.toString() != valString;
 
 			case 5:	// Bigger than
+				if (isNumeric(rec->field(field->currentText()).type()))
+				{
+					// Column has NUMERIC affinity
+					// so value will be converted to NUMERIC if possible
+					if (valOk)
+					{
+						if (dataOk)
+						{
+							return dataDouble > valDouble;
+						}
+						else
+						{
+							// Value was converted, but not data
+							// and TEXT > NUMERIC
+							return true;
+						}
+					}
+					else
+					{
+						if (dataOk)
+						{
+							// Data was converted, but not value
+							// and NUMERIC < TEXT
+							return false;
+						}
+					}
+				}
+				// No conversions, do string comparison
 				return data.toString() > value->text();
 
 			case 6:	// Smaller than
+				if (isNumeric(rec->field(field->currentText()).type()))
+				{
+					// Column has NUMERIC affinity
+					// so value will be converted to NUMERIC if possible
+					if (valOk)
+					{
+						if (dataOk)
+						{
+							return dataDouble < valDouble;
+						}
+						else
+						{
+							// Value was converted, but not data
+							// and TEXT > NUMERIC
+							return false;
+						}
+					}
+					else
+					{
+						if (dataOk)
+						{
+							// Data was converted, but not value
+							// and NUMERIC < TEXT
+							return true;
+						}
+					}
+				}
+				// No conversions, do string comparison
 				return data.toString() < value->text();
 
 			case 7:	// is null

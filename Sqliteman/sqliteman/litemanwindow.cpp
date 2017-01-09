@@ -4,7 +4,7 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
-	FIXME switching between table and view does not reset position
+	FIXME remove dropped table if being displayed
 */
 #include <QTreeWidget>
 #include <QTableView>
