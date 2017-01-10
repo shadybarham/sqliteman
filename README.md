@@ -4,4 +4,4 @@ This is an improved version of pvanek/sqliteman. The main change is that the Ite
 
 Any volunteer to build on Windows would be welcome.
 
-This version now supports incremental search on a column.
+This version supports incremental search on a column and a new search widget allowing editing the rows found by the search.
