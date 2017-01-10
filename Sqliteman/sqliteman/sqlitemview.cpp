@@ -63,7 +63,6 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	m_gridLayout = new QGridLayout(layoutWidget);
 	QString tmp("%1:");
 	actCopy = new QAction(tr("Copy"), layoutWidget);
-	actCopy->setShortcut(QKeySequence("Ctrl+C"));
     connect(actCopy, SIGNAL(triggered()), this,
 			SLOT(doCopy()));
 	actCopyWhole = new QAction(tr("Copy Whole"), layoutWidget);
