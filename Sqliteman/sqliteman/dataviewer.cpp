@@ -834,14 +834,18 @@ DataViewer::DataViewer(QWidget * parent)
 
 	actCopyWhole = new QAction(tr("Copy Whole"), ui.tableView);
 	actCopyWhole->setShortcut(QKeySequence("Ctrl+W"));
+	actCopyWhole->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(actCopyWhole, SIGNAL(triggered()), this,
 			SLOT(doCopyWhole()));
 	actPasteOver = new QAction(tr("Paste"), ui.tableView);
+	actPasteOver->setShortcut(QKeySequence("Ctrl+Alt+V"));
+	actPasteOver->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(actPasteOver, SIGNAL(triggered()), this,
 			SLOT(doPasteOver()));
 	actInsertNull = new QAction(Utils::getIcon("setnull.png"),
 								tr("Insert NULL"), ui.tableView);
 	actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+	actInsertNull->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(actInsertNull, SIGNAL(triggered()), this,
 			SLOT(actInsertNull_triggered()));
     actOpenEditor = new QAction(tr("Open Data Editor..."), ui.tableView);
@@ -852,6 +856,7 @@ DataViewer::DataViewer(QWidget * parent)
 									 tr("Open Multiline Editor..."),
 									 ui.tableView);
 	actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
+	actOpenMultiEditor->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     connect(actOpenMultiEditor, SIGNAL(triggered()),
 			this, SLOT(actOpenMultiEditor_triggered()));
     ui.tableView->addAction(actCopyWhole);

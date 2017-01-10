@@ -63,6 +63,7 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	m_gridLayout = new QGridLayout(layoutWidget);
 	QString tmp("%1:");
 	actCopy = new QAction(tr("Copy"), layoutWidget);
+	actCopy->setShortcut(QKeySequence("Ctrl+C"));
     connect(actCopy, SIGNAL(triggered()), this,
 			SLOT(doCopy()));
 	actCopyWhole = new QAction(tr("Copy Whole"), layoutWidget);
@@ -73,24 +74,30 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	{
 		actCut = new QAction(tr("Cut"), layoutWidget);
 		actCut->setShortcut(QKeySequence("Ctrl+X"));
+		actCut->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	    connect(actCut, SIGNAL(triggered()), this,
 				SLOT(doCut()));
 		actPaste = new QAction(tr("Paste"), layoutWidget);
+		actPaste->setShortcut(QKeySequence("Ctrl+V"));
+		actPaste->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	    connect(actPaste, SIGNAL(triggered()), this,
 				SLOT(doPaste()));
 		actPasteOver = new QAction(tr("Paste Over"), layoutWidget);
 		actPasteOver->setShortcut(QKeySequence("Ctrl+Alt+V"));
+		actPasteOver->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	    connect(actPasteOver, SIGNAL(triggered()), this,
 				SLOT(doPasteOver()));
 		actInsertNull = new QAction(Utils::getIcon("setnull.png"),
 									tr("Insert NULL"), layoutWidget);
 		actInsertNull->setShortcut(QKeySequence("Ctrl+Alt+N"));
+		actInsertNull->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	    connect(actInsertNull, SIGNAL(triggered()), this,
 				SLOT(insertNull()));
 	    actOpenMultiEditor = new QAction(Utils::getIcon("edit.png"),
 										 tr("Open Multiline Editor..."),
 										 this);
 		actOpenMultiEditor->setShortcut(QKeySequence("Ctrl+Alt+E"));
+		actOpenMultiEditor->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	    connect(actOpenMultiEditor, SIGNAL(triggered()),
 				this, SLOT(openMultiEditor()));
 	}
