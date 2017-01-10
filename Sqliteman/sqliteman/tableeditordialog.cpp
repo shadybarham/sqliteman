@@ -117,6 +117,7 @@ void TableEditorDialog::addField(QString oldName, QString oldType,
 	connect(defval, SIGNAL(textEdited(const QString &)),
 			this, SLOT(checkChanges()));
 	ui.columnTable->setCellWidget(rc, 3, defval);
+	ui.columnTable->setCurrentCell(rc, 0);
 	resizeWanted = true;
 }
 

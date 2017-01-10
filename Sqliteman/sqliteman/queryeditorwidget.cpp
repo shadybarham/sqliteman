@@ -3,15 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-
-Strategy for editable queries:-
-If the table is WITHOUT ROWID, update record with matching primary key
-	WITHOUT ROWID primary keys are unique, so there can only be one
-If the table has a rowid and an INTEGER PRIMARY KEY column, update record with matching primary key
-	INTEGER PRIMARY KEYs are unique, so there can only be one
-If the table has a rowid but no INTEGER PRIMARY KEY column, and at least one of rowid, _rowid_, or oid is not used as a column name, update record with matching rowid
-	rowids are unique, so there can only be one
-Otherwise, we can't do it because we can't identify a unique record to update.
 */
 #include <QClipboard>
 #include <QComboBox>

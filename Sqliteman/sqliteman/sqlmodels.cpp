@@ -216,7 +216,7 @@ bool SqlTableModel::insertRowIntoTable(const QSqlRecord &values)
 
 void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 {
-	QList<FieldInfo> fl = Database::tableFields(tableName(), m_schema);
+	QList<FieldInfo> fl = Database::tableFields(objectName(), m_schema);
 	bool ok;
 	QString defval;
 	// guess what type is the default value.

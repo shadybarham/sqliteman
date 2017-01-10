@@ -18,8 +18,8 @@ for which a new license (GPL+exception) is in place.
 #include "database.h"
 #include "preferences.h"
 #include "shell.h"
-#include "utils.h"
 #include "sqlparser.h"
+#include "utils.h"
 
 void Database::exception(const QString & message)
 {

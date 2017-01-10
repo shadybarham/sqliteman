@@ -837,7 +837,6 @@ DataViewer::DataViewer(QWidget * parent)
     connect(actCopyWhole, SIGNAL(triggered()), this,
 			SLOT(doCopyWhole()));
 	actPasteOver = new QAction(tr("Paste"), ui.tableView);
-	actPasteOver->setShortcut(QKeySequence("Ctrl+V"));
     connect(actPasteOver, SIGNAL(triggered()), this,
 			SLOT(doPasteOver()));
 	actInsertNull = new QAction(Utils::getIcon("setnull.png"),

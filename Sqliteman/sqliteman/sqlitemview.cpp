@@ -77,7 +77,6 @@ void SqlItemView::setModel(QAbstractItemModel * model)
 	    connect(actCut, SIGNAL(triggered()), this,
 				SLOT(doCut()));
 		actPaste = new QAction(tr("Paste"), layoutWidget);
-		actPaste->setShortcut(QKeySequence("Ctrl+V"));
 	    connect(actPaste, SIGNAL(triggered()), this,
 				SLOT(doPaste()));
 		actPasteOver = new QAction(tr("Paste Over"), layoutWidget);
