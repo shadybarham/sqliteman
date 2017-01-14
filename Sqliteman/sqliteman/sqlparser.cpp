@@ -405,19 +405,53 @@ void SqlParser::clearField(FieldInfo &f)
 	f.defaultIsExpression = false;
 	f.defaultisQuoted = false;
 	f.isPartOfPrimaryKey = false;
+	f.isWholePrimaryKey = false;
 	f.isColumnPkDesc = false;
 	f.isTablePkDesc = false;
 	f.isAutoIncrement = false;
 	f.isNotNull = false;
 }
 
-void SqlParser::addToPrimaryKey(QString s)
+void SqlParser::addToPrimaryKey(FieldInfo &f)
 {
+	int PKCount = 1;
+	f.isPartOfPrimaryKey = true;
 	for (int i = 0; i < m_fields.count(); ++i)
 	{
-		if (s.compare(m_fields.at(i).name, Qt::CaseInsensitive) == 0)
+		if (m_fields[i].isPartOfPrimaryKey)
+		{
+			++PKCount;
+		}
+	}
+	for (int i = 0; i < m_fields.count(); ++i)
+	{
+		if (m_fields[i].isPartOfPrimaryKey)
+		{
+			m_fields[i].isWholePrimaryKey = (PKCount == 1);
+		}
+	}
+	f.isWholePrimaryKey = (PKCount == 1);
+}
+
+void SqlParser::addToPrimaryKey(QString s)
+{
+	int PKCount = 0;
+	for (int i = 0; i < m_fields.count(); ++i)
+	{
+		if (s.compare(m_fields[i].name, Qt::CaseInsensitive) == 0)
 		{
 			m_fields[i].isPartOfPrimaryKey = true;
+		}
+		if (m_fields[i].isPartOfPrimaryKey)
+		{
+			++PKCount;
+		}
+	}
+	for (int i = 0; i < m_fields.count(); ++i)
+	{
+		if (m_fields[i].isPartOfPrimaryKey)
+		{
+			m_fields[i].isWholePrimaryKey = (PKCount == 1);
 		}
 	}
 }
@@ -877,7 +911,7 @@ SqlParser::SqlParser(QString input)
 			case 10: // look for KEY
 				if (s.compare("KEY", Qt::CaseInsensitive) == 0)
 				{
-					f.isPartOfPrimaryKey = true;
+					addToPrimaryKey(f);
 					state = 11; // look for ASC or DESC or conflict clause
 				}
 				else { break; } // not a valid create statement

@@ -64,6 +64,7 @@ typedef struct
 	bool defaultIsExpression;
 	bool defaultisQuoted;
 	bool isPartOfPrimaryKey;
+	bool isWholePrimaryKey;
 	bool isColumnPkDesc;
 	bool isTablePkDesc;
 	bool isAutoIncrement;
@@ -90,6 +91,7 @@ class SqlParser
 		QList<Token> tokenise(QString input);
 		void clearField(FieldInfo &f);
 		void addToPrimaryKey(QString s);
+		void addToPrimaryKey(FieldInfo &f);
 		void destroyExpression(Expression * e);
 		Expression * parseExpression(QList<Token> & tokens, QStringList ends);
 		// replacing column names, returns false if any deleted

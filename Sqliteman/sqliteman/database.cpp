@@ -82,14 +82,13 @@ SqlParser * Database::parseTable(const QString & table, const QString & schema)
 	QString createStatement = createQuery.value(0).toString();
 
 	// Parse the CREATE statement
-	SqlParser * parsed = new SqlParser(createStatement);
-	return parsed;
+	return new SqlParser(createStatement);
 }
 
 QList<FieldInfo> Database::tableFields(const QString & table, const QString & schema)
 {
 	SqlParser * parser = parseTable(table, schema);
-	QList<FieldInfo> result = parser->m_fields;
+	QList<FieldInfo> result(parser->m_fields);
 	delete parser;
 	return result;
 }

@@ -3,7 +3,6 @@ For general Sqliteman copyright and licensing information please refer
 to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
-	FIXME Add row not honouring autoincrement
 */
 
 #include <QApplication>
@@ -329,7 +328,6 @@ void DataViewer::rowDoubleClicked(int)
 
 void DataViewer::addRow()
 {
-	// FIXME adding new row with INTEGER PRIMARY KEY doesn't fill it in
 	showStatusText(false);
 	nonColumnClicked();
 	SqlTableModel * model
@@ -501,6 +499,7 @@ void DataViewer::commit()
 	updateButtons();
 	emit tableUpdated();
 }
+
 void DataViewer::copyHandler()
 {
 	removeErrorMessage();

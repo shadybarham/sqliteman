@@ -7,8 +7,6 @@ for which a new license (GPL+exception) is in place.
 If table name contains non-alphanumeric characters, no rows are displayed,
 although they are actually still there as proved by renaming it back again.
 This is a QT bug.
-FIXME get rid of QSqlQuery::value: not positioned on a valid record emitted
-      on stderr when creating new row
 
 */
 #include <time.h>
@@ -18,9 +16,9 @@ FIXME get rid of QSqlQuery::value: not positioned on a valid record emitted
 #include <QSqlField>
 #include <QSqlQuery>
 
-#include "sqlmodels.h"
 #include "database.h"
 #include "preferences.h"
+#include "sqlmodels.h"
 #include "utils.h"
 
 
@@ -222,7 +220,14 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 	// guess what type is the default value.
 	foreach (FieldInfo column, fl)
 	{
-		if (column.defaultValue.isEmpty())
+		if (   (column.isAutoIncrement)
+			|| (   column.isWholePrimaryKey
+			    && (column.type.toLower() == "integer")))
+		{
+			record.setValue(column.name, QVariant(++m_LastSequence));
+			record.setGenerated(column.name, false);
+		}
+		else if (column.defaultValue.isEmpty())
 		{
 			// prevent integer type being displayed as 0
 			record.setValue(column.name, QVariant());
@@ -230,10 +235,12 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 		else if (column.defaultisQuoted)
 		{
 			record.setValue(column.name, QVariant(column.defaultValue));
+			record.setGenerated(column.name, false);
 		}
 		else if (column.defaultIsExpression)
 		{
 			record.setValue(column.name, QVariant(column.defaultValue));
+			record.setGenerated(column.name, false);
 		}
 		else
 		{
@@ -245,18 +252,22 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 				time(&dummy);
 				(void)strftime(s, 20, "%F %T", localtime(&dummy));
 				record.setValue(column.name, QVariant(s));
+				record.setGenerated(column.name, false);
 			}
 			else if (defval.compare("CURRENT_TIME", Qt::CaseInsensitive) == 0)
 			{
 				time(&dummy);
 				(void)strftime(s, 20, "%T", localtime(&dummy));
 				record.setValue(column.name, QVariant(s));
+				record.setGenerated(column.name, false);
+				
 			}
 			else if (defval.compare("CURRENT_DATE", Qt::CaseInsensitive) == 0)
 			{
 				time(&dummy);
 				(void)strftime(s, 20, "%F", localtime(&dummy));
 				record.setValue(column.name, QVariant(s));
+				record.setGenerated(column.name, false);
 			}
 			else
 			{
@@ -264,6 +275,7 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 				if (ok)
 				{
 					record.setValue(column.name, QVariant(i));
+					record.setGenerated(column.name, false);
 				}
 				else
 				{
@@ -271,10 +283,12 @@ void SqlTableModel::doPrimeInsert(int row, QSqlRecord & record)
 					if (ok)
 					{
 						record.setValue(column.name, QVariant(d));
+						record.setGenerated(column.name, false);
 					}
 					else
 					{
 						record.setValue(column.name, QVariant(defval));
+						record.setGenerated(column.name, false);
 					}
 				}
 			}
@@ -325,34 +339,108 @@ bool SqlTableModel::isNewRow(int row)
 	return m_insertCache.contains(row) && !m_insertCache.value(row);
 }
 
-void SqlTableModel::setTable(const QString &tableName)
+//FIXME We would like to fill in the value for non-autoincrement integer
+//      primary keys, but sqlite doesn't seem to create an sqlite_sequence
+//      entry in this case.
+// FIXME need to check for single column primary key and not WITHOUT_ROWID
+void SqlTableModel::reset(QString tableName, bool isNew)
 {
-	m_header.clear();
+	if (isNew) { m_header.clear(); }
 	m_deleteCache.clear();
 	m_insertCache.clear();
-	QStringList indexes = Database::getSysIndexes(tableName, m_schema);
+	m_LastSequence = 1;
 	QList<FieldInfo> columns = Database::tableFields(tableName, m_schema);
-
+	bool rowid = true;
+	bool _rowid_ = true;
+	bool oid = true;
+	foreach (FieldInfo c, columns)
+	{
+		if (c.name.compare("rowid", Qt::CaseInsensitive) == 0)
+			{ rowid = false; }
+		if (c.name.compare("_rowid_", Qt::CaseInsensitive) == 0)
+			{ _rowid_ = false; }
+		if (c.name.compare("oid", Qt::CaseInsensitive) == 0)
+			{ oid = false; }
+	}
 	int colnum = 0;
 	foreach (FieldInfo c, columns)
 	{
 		if (c.isPartOfPrimaryKey)
 		{
-			m_header[colnum] =
-				(c.isAutoIncrement) ? SqlTableModel::Auto : SqlTableModel::PK;
+			if (c.isAutoIncrement)
+			{
+				QString sql = QString("SELECT seq FROM ") 
+							  + Utils::q(m_schema.toLower())
+							  + ".sqlite_sequence WHERE lower(name) = "
+							  + Utils::q(tableName.toLower())
+							  + ";";
+				QSqlQuery seqQuery(sql, QSqlDatabase::database(SESSION_NAME));
+				if (!(seqQuery.lastError().isValid()))
+				{
+					seqQuery.first();
+					m_LastSequence = seqQuery.value(0).toLongLong();
+				}
+			}
+			else if (   (c.type.toLower() == "integer")
+					 && c.isWholePrimaryKey
+					 && !c.isColumnPkDesc)
+			{
+				QString name;
+				if (rowid) { name = "rowid"; }
+				else if (_rowid_) { name = "_rowid_"; }
+				else if (oid) { name = "oid"; }
+				if (!(name.isEmpty()))
+				{
+					QString sql = QString("SELECT ")
+								  + name
+								  + " FROM "
+								  + Utils::q(m_schema.toLower())
+								  + "."
+								  + Utils::q(tableName.toLower())
+								  + " ORDER BY "
+								  + name
+								  + " DESC LIMIT 1;";
+					QSqlQuery seqQuery(sql,
+									   QSqlDatabase::database(SESSION_NAME));
+					if (!(seqQuery.lastError().isValid()))
+					{
+						seqQuery.first();
+						m_LastSequence = seqQuery.value(0).toLongLong();
+					}
+				}
+			}
+			if (isNew)
+			{
+				if (c.isAutoIncrement)
+				{
+					m_header[colnum] = SqlTableModel::Auto;
+				}
+				else
+				{
+					m_header[colnum] = SqlTableModel::PK;
+				}
+			}
 			++colnum;
 			continue;
 		}
-		// show has default icon
-		if (!c.defaultValue.isEmpty())
+		if (isNew)
 		{
-			m_header[colnum] = SqlTableModel::Default;
-			++colnum;
-			continue;
+			// show has default icon
+			if (!c.defaultValue.isEmpty())
+			{
+				m_header[colnum] = SqlTableModel::Default;
+				++colnum;
+				continue;
+			}
+			m_header[colnum] = SqlTableModel::None;
 		}
-		m_header[colnum] = SqlTableModel::None;
 		++colnum;
 	}
+}
+
+void SqlTableModel::setTable(const QString &tableName)
+{
+	reset(tableName, true);
 	if (m_schema.isEmpty())
 	{
 		QSqlTableModel::setTable(tableName);
@@ -422,6 +510,25 @@ bool SqlTableModel::deleteRowFromTable(int row)
 	bool result = QSqlTableModel::deleteRowFromTable(row);
 	if (result) { emit reallyDeleting(row); }
 	return result;
+}
+
+bool SqlTableModel::submitAll()
+{
+	if (QSqlTableModel::submitAll())
+	{
+		reset(objectName(), false);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void SqlTableModel::revertAll()
+{
+	QSqlTableModel::revertAll();
+	reset(objectName(), false);
 }
 
 

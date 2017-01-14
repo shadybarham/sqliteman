@@ -75,6 +75,7 @@ protected:
 
 		bool m_pending;
 		QString m_schema;
+		qlonglong m_LastSequence;
 		int m_useCount;
 		QList<int> m_deleteCache;
 		QMap<int,IndexType> m_header;
@@ -95,12 +96,16 @@ protected:
 		// override the one in QSqlTableModel
 		bool insertRowIntoTable(const QSqlRecord &values);
 
+		void reset(QString tableName, bool isNew);
+
 	private slots:
 		//! \brief Called when is new row created in the view (not in the model).
 		void doPrimeInsert(int, QSqlRecord &);
 
 	public slots:
 		bool select();
+		bool submitAll();
+		void revertAll();
 };
 
 /*! \brief Simple color/behaviour improvements for standard Qt4 Sql Models */
