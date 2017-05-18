@@ -13,6 +13,7 @@ for which a new license (GPL+exception) is in place.
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QKeyEvent>
+#include <QLocale>
 #include <QMessageBox>
 #include <QResizeEvent>
 #include <QSettings>
@@ -1165,7 +1166,7 @@ bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
 	else if (s.isEmpty()) { return false; }
 	else
 	{
-		searchString.append(s);
+		searchString.append(QLocale().toLower(s));
 		SqlTableModel * model
 			= qobject_cast<SqlTableModel*>(ui.tableView->model());
 		if (!model) { return false; }
@@ -1175,7 +1176,9 @@ bool DataViewer::incrementalSearch(QKeyEvent *keyEvent)
 		{
 			QModelIndex index(model->index(i, columnSelected));
 			QVariant data = ui.tableView->model()->data(index, Qt::EditRole);
-			if (searchString.compare(data.toString(), Qt::CaseInsensitive) <= 0)
+			QString d(QLocale().toLower(data.toString()));
+			
+			if (searchString.localeAwareCompare(d) <= 0)
 			{
 				topRow = i;
 				ui.tableView->scrollTo(index, QAbstractItemView::PositionAtTop);
