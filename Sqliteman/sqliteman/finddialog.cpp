@@ -126,6 +126,7 @@ void FindDialog::setup(QString schema, QString table)
 		termsTab->m_columnList = columns;
 		termsTab->termsTable->clear();
 		termsTab->termsTable->setRowCount(0);
+		termsTab->caseCheckBox->setChecked(false);
 	}
 	updateButtons();
 }
@@ -142,26 +143,44 @@ bool FindDialog::isMatch(QSqlRecord * rec, int i)
 	{
 		QVariant data(rec->value(field->currentText()));
 		bool dataOk;
+		QString dataString(data.toString());
+		if (!(termsTab->caseCheckBox->isChecked()))
+		{
+			dataString = QLocale().toLower(dataString);
+		}
 		double dataDouble = data.toDouble(&dataOk);
 		bool valOk;
-		QString valString = value->text();
-		double valDouble = valString.toDouble(&valOk);
+		QString valString;
+		double valDouble;
+		if (value)
+		{
+			valString = value->text();
+			valDouble = valString.toDouble(&valOk);
+			if (!(termsTab->caseCheckBox->isChecked()))
+			{
+				valString = QLocale().toLower(valString);
+			}
+		}
+		else
+		{
+			valOk = false;
+		}
 		switch (relation->currentIndex())
 		{
 			case 0:	// Contains
-				return  data.toString().contains(valString);
+				return  dataString.contains(valString);
 
 			case 1:	// Doesn't contain
 				return !(data.toString().contains(valString));
 			
 			case 2:	// Starts with
-				return data.toString().startsWith(valString);
+				return dataString.startsWith(valString);
 
 			case 3:	// Equals
-				return data.toString() == valString;
+				return dataString == valString;
 
 			case 4:	// Not equals
-				return data.toString() != valString;
+				return dataString != valString;
 
 			case 5:	// Bigger than
 				if (isNumeric(rec->field(field->currentText()).type()))
@@ -192,7 +211,7 @@ bool FindDialog::isMatch(QSqlRecord * rec, int i)
 					}
 				}
 				// No conversions, do string comparison
-				return data.toString() > value->text();
+				return dataString > value->text();
 
 			case 6:	// Smaller than
 				if (isNumeric(rec->field(field->currentText()).type()))
@@ -223,7 +242,7 @@ bool FindDialog::isMatch(QSqlRecord * rec, int i)
 					}
 				}
 				// No conversions, do string comparison
-				return data.toString() < value->text();
+				return dataString < value->text();
 
 			case 7:	// is null
 				return data.isNull();

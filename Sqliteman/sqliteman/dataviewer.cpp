@@ -49,6 +49,7 @@ void DataViewer::updateButtons()
 	QAbstractItemModel * model = ui.tableView->model();
 	SqlTableModel * table = qobject_cast<SqlTableModel *>(model);
 	QModelIndexList indexList = ui.tableView->selectedIndexes();
+	bool autoCommit = model ? Database::isAutoCommit() : true ;
 	foreach (const QModelIndex &index, indexList)
 	{
 		if (index.isValid())
@@ -116,6 +117,9 @@ void DataViewer::updateButtons()
 		ui.actionRemove_Row->setEnabled(editable && rowSelected);
 	}
 	ui.actionCommit->setEnabled(pending);
+	ui.actionCommit->setToolTip(autoCommit
+		? "Commit unsaved changes in this table to the database"
+		: "Write unsaved changes in this table to the pending database transaction");
 	ui.actionRollback->setEnabled(pending);
 	if (canPreview || ui.actionBLOB_Preview->isChecked())
 	{
@@ -197,8 +201,7 @@ void DataViewer::findNext(int row)
 		}
 		QApplication::restoreOverrideCursor();
 	}
-	ui.statusText->setPlainText("Not found");
-	ui.statusText->show();
+	setStatusText("Not found");
 }
 
 void DataViewer::removeFinder()
@@ -268,8 +271,7 @@ void DataViewer::findAll()
 	}
 	if (!anyFound)
 	{
-		ui.statusText->setPlainText("No match found");
-		ui.statusText->show();
+		setStatusText("No match found");
 		unFindAll();
 	}
 	else
@@ -665,7 +667,7 @@ void DataViewer::tabWidget_currentChanged(int ix)
 	}
 	if (ix == 1)
 	{
-		ui.statusText->setPlainText("");
+		setStatusText("");
 		ui.itemView->setCurrentIndex(ci.row(), ci.column());
 		// be careful with this. See itemView_indexChanged() docs.
 		connect(ui.itemView, SIGNAL(indexChanged()),

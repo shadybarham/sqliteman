@@ -488,7 +488,11 @@ bool SqlTableModel::select()
 	}
 	return result;
 }
-
+/*
+ * Note this isn't SQL's pending transaction mode (between BEGIN and COMMIT),
+ * but our own flag meaning that QT's local copy of the model has pending
+ * changes which haven't yet been written to the database.
+ */
 void SqlTableModel::setPendingTransaction(bool pending)
 {
 	m_pending = pending;

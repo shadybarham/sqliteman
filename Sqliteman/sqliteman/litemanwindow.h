@@ -28,8 +28,9 @@ class SqlQueryModel;
 /*!
  * @brief The main window for LiteMan
  * 
- * This class creates and manages the main window of LiteMan, and preety much everything in it. It 
- * handles actions as well as triggeres other dialogs and windows.
+ * This class creates and manages the main window of LiteMan, and pretty much
+ * everything in it.
+ * It handles actions as well as triggers other dialogs and windows.
  *
  * \author Igor Khanin
  * \author Petr Vanek <petr@scribus.info>

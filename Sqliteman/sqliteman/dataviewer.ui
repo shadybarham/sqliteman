@@ -238,7 +238,7 @@
     <string>Rollback</string>
    </property>
    <property name="toolTip">
-    <string>Rollback the current transaction in the result table</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Roll back unsaved changes in this table&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </action>
   <action name="actionRipOut">

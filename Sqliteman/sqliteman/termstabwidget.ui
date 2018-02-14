@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>333</width>
+    <width>375</width>
     <height>222</height>
    </rect>
   </property>
@@ -79,6 +79,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="caseCheckBox">
+       <property name="text">
+        <string>Case Sensitive</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="termMoreButton">
