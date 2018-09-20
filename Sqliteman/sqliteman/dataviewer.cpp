@@ -290,6 +290,7 @@ void DataViewer::findClosing()
 		m_doneFindAll = false;
 	}
 	m_finder = 0;
+	updateButtons();
 }
 
 void DataViewer::find()
@@ -308,6 +309,7 @@ void DataViewer::find()
 		m_finder->setup(stm->schema(), stm->objectName());
 		m_doneFindAll = false;
 		m_finder->show();
+		updateButtons();
 	}
 }
 
