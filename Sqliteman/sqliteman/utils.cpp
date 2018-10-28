@@ -11,7 +11,10 @@ for which a new license (GPL+exception) is in place.
 #include <QIcon>
 #include <QItemSelection>
 #include <QLineEdit>
+#include <QModelIndex>
 #include <QPixmapCache>
+#include <QRect>
+#include <QRectF>
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QTableView>
@@ -142,6 +145,7 @@ void Utils::setColumnWidths(QTableView * tv)
 	int widthUsed = 0;
 	int columns = tv->horizontalHeader()->count();
 	int columnsLeft = columns;
+	int half = widthView / (columns * 2);
 	QVector<int> wantedWidths(columns);
 	QVector<int> gotWidths(columns);
 	tv->resizeColumnsToContents();
@@ -151,33 +155,35 @@ void Utils::setColumnWidths(QTableView * tv)
 		wantedWidths[i] = tv->columnWidth(i);
 		gotWidths[i] = 0;
 	}
-	i = 0;
 	/* First give all "small" columns what they want. */
-	while (i < columns)
+	for (i = 0; i < columns; ++i)
 	{
 		int w = wantedWidths[i];
-		if ((gotWidths[i] == 0) && (w <= widthLeft / columnsLeft ))
+		if (w <= half)
 		{
 			gotWidths[i] = w;
 			widthLeft -= w;
 			widthUsed += w;
 			columnsLeft -= 1;
-			i = 0;
-			continue;
 		}
-		++i;
 	}
-	/* Now allocate to other columns, giveing smaller ones a larger proportion
+	/* Now allocate to other columns, giving smaller ones a larger proportion
 	 * of what they want;
 	 */
 	for (i = 0; i < columns; ++i)
 	{
 		if (gotWidths[i] == 0)
 		{
-			int w = (int)qSqrt((qreal)(
-				wantedWidths[i] * widthLeft / columnsLeft));
+			int w = wantedWidths[i];
+			w = half + (int)qSqrt((qreal)(
+				(w - half) * widthLeft / columnsLeft));
 			gotWidths[i] = w;
+			if (widthLeft > w)
+			{
+				widthLeft -= w;
+			}
 			widthUsed += w;
+			columnsLeft -= 1;
 		}
 	}
 	/* If there is space left, make all columns proportionately wider to fill
@@ -201,6 +207,28 @@ void Utils::setColumnWidths(QTableView * tv)
 
 // debugging hacks
 void Utils::dump(QString s) { qDebug("%s", s.toUtf8().data()); }
+void Utils::dump(QModelIndex x)
+{
+	if (x.isValid())
+	{
+		dump(QString("row %1, column %2").arg(x.row()).arg(x.column()));
+	}
+	else
+	{
+		qDebug("Invalid ModelIndex");
+	}
+}
+void Utils::dump(QList<QModelIndex> l)
+{
+	if (l.count() == 0)
+	{
+		qDebug("Empty QModelIndexList");
+	}
+	else foreach(QModelIndex x, l)
+	{
+		dump(x);
+	}
+}
 void Utils::dump(QItemSelection selection)
 {
 	QModelIndexList list = selection.indexes();
@@ -209,10 +237,9 @@ void Utils::dump(QItemSelection selection)
 	{
 		qDebug("selection is empty");
 	}
-	else for (int i = 0; i < n; ++i)
+	else
 	{
-		QModelIndex index = list.at(i);
-		qDebug("row %d column %d", index.row(), index.column());
+		dump(list);
 	}
 }
 void Utils::dump(QTreeWidgetItem & item)
@@ -264,17 +291,18 @@ void Utils::dump(QList<int> il)
 }
 void Utils::dump(QVector<int> iv)
 {
-	if (iv.count() == 0)
+	int c = iv.count();
+	if (c == 0)
 	{
 		qDebug("Empty QVector<int>");
 	}
 	else
 	{
 		QString s;
-		foreach (int i, iv)
+		for (int i = 0; i < c; ++i)
 		{
 			if (i != 0) { s.append(", "); }
-			s.append(QString("%1").arg(i));
+			s.append(QString("%1").arg(iv[i]));
 		}
 		dump(s);
 	}
@@ -284,19 +312,46 @@ void Utils::dump(QTextEdit * te)
 {
 	te ? dump(*te) : qDebug("Null QTextEdit");
 }
+QString Utils::colorToString(QColor c)
+{
+	return QString("Red %1, Blue %2, Green %3")
+		.arg(c.red()).arg(c.blue()).arg(c.green());
+}
 void Utils::dump(QColor c)
 {
-	qDebug("Red %d, Blue %d, Green %d", c.red(), c.blue(), c.green());
+	dump(colorToString(c));
+}
+QString Utils::rectToString(QRect r)
+{
+	return QString("Rect from (%1, %2) to (%3, %4)")
+		.arg(r.left()).arg(r.top()).arg(r.right()).arg(r.bottom());
+}
+void Utils::dump(QRect r)
+{
+	dump(rectToString(r));
+}
+QString Utils::rectFToString(QRectF r)
+{
+	return QString("RectF from (%1, %2) to (%3, %4)")
+		.arg(r.left()).arg(r.bottom()).arg(r.right()).arg(r.top());
+}
+void Utils::dump(QRectF r)
+{
+	dump(rectFToString(r));
 }
 QString Utils::variantToString(QVariant x)
 {
-	if (x.isNull()) { return QString("Null"); }
+	if (x.isNull()) { return QString("Null QVariant"); }
+	if (!x.isValid()) { return QString("Invalid QVariant"); }
 	switch(x.type())
 	{
 		case QVariant::Invalid: return QString("Invalid QVariant");
 		case QVariant::BitArray: return QString("BitArray");
 		case QVariant::Bitmap: return QString("Bitmap");
 		case QVariant::Bool: return QString(x.toBool() ? "true" : "false");
+		case QVariant::String:
+			if (x.value<QString>().isNull()) return QString("Null String");
+			//FALLTHRU
 		case QVariant::ByteArray:
 		case QVariant::Char:
 		case QVariant::Date:
@@ -304,17 +359,11 @@ QString Utils::variantToString(QVariant x)
 		case QVariant::Double:
 		case QVariant::Int:
 		case QVariant::LongLong:
-		case QVariant::String:
 		case QVariant::StringList:
 		case QVariant::UInt:
 		case QVariant::ULongLong: return x.toString();
 		case QVariant::Brush: return QString("Brush");
-		case QVariant::Color:
-		{
-			QColor c = x.value<QColor>();
-			return QString("Red %1, Blue %2, Green %3")
-					.arg(c.red()).arg(c.blue()).arg(c.green());
-		}
+		case QVariant::Color: return colorToString(x.value<QColor>());
 		case QVariant::Cursor: return QString("Cursor");
 		case QVariant::EasingCurve: return QString("EasingCurve");
 		case QVariant::Font:
@@ -372,18 +421,8 @@ QString Utils::variantToString(QVariant x)
 			return QString("Array of %1 points").arg(p.count());
 		}
 		case QVariant::Quaternion: return QString("Quaternion");
-		case QVariant::Rect:
-		{
-			QRect r = x.value<QRect>();
-			return QString("Rect from (%1, %2) to (%3, %4)")
-				   .arg(r.left()).arg(r.bottom()).arg(r.right()).arg(r.top());
-		}
-		case QVariant::RectF:
-		{
-			QRectF r = x.value<QRectF>();
-			return QString("Rect from (%1, %2) to (%3, %4)")
-				   .arg(r.left()).arg(r.bottom()).arg(r.right()).arg(r.top());
-		}
+		case QVariant::Rect: return rectToString(x.value<QRect>());
+		case QVariant::RectF: return rectFToString(x.value<QRectF>());
 		case QVariant::RegExp: return QString(x.toRegExp().pattern());
 		case QVariant::Region: return QString("Region");
 		case QVariant::Size:

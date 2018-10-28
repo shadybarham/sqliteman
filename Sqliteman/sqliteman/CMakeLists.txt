@@ -53,6 +53,7 @@ SET( SQLITEMAN_SRC
     sqlkeywords.cpp
     sqlmodels.cpp
     sqlparser.cpp
+    sqltableview.cpp
     tableeditordialog.cpp
     tabletree.cpp
     termstabwidget.cpp

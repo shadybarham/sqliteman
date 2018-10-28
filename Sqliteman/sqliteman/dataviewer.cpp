@@ -219,10 +219,8 @@ void DataViewer::resizeViewToContents(QAbstractItemModel * model)
 	if (model->columnCount() <= 0)
 		return;
 
-	ui.tableView->resizeColumnsToContents();
-	ui.tableView->resizeRowsToContents();
-
 	Utils::setColumnWidths(ui.tableView);
+	ui.tableView->resizeRowsToContents();
 	dataResized = false;
 }
 

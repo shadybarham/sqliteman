@@ -11,8 +11,8 @@ under the GPL.
 #define SQLTABLEVIEW_H
 
 #include <QTableView>
+#include <QHeaderView>
 
-/*! \brief exactly QTableView but with selectedIndexes() public */
 class SqlTableView : public QTableView
 {
 	Q_OBJECT
@@ -23,6 +23,7 @@ class SqlTableView : public QTableView
 		QModelIndexList selectedIndexes() const {
 			return QTableView::selectedIndexes();
 		}
+		int sizeHintForColumn(int column) const;
 
 };
 #endif
