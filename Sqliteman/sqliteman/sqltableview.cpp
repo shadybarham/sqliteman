@@ -34,3 +34,37 @@ int SqlTableView::sizeHintForColumn(int column) const
 
     return (int) (total / rows);
 }
+
+// override QTableview::sizeHintForRow
+int SqlTableView::sizeHintForRow(int row) const
+{
+#if 0
+    if (!model())
+        return -1;
+
+    ensurePolished();
+
+    int columns = horizontalHeader()->count();
+
+    QStyleOptionViewItem option = viewOptions();
+
+	int height = 0;
+    QModelIndex index;
+    for (int col = 0; col <= columns; ++col) {
+        int logicalColumn = horizontalHeader()->logicalIndex(col);
+        if (verticalHeader()->isSectionHidden(logicalColumn))
+            continue;
+        index = model()->index(row, logicalColumn);
+        option.rect.setY(rowViewportPosition(index.row()));
+        option.rect.setHeight(rowHeight(index.row()));
+        option.rect.setX(columnViewportPosition(index.column()));
+        option.rect.setWidth(columnWidth(index.column()));
+		int h = itemDelegate(index)->sizeHint(option, index).height();
+		if (height < h) { height = h; }
+    }
+    if(showGrid()) { ++height; }
+
+    return height;
+#endif
+	return QTableView::sizeHintForRow(row);
+}

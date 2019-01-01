@@ -24,6 +24,7 @@ class SqlTableView : public QTableView
 			return QTableView::selectedIndexes();
 		}
 		int sizeHintForColumn(int column) const;
+		int sizeHintForRow(int row) const;
 
 };
 #endif

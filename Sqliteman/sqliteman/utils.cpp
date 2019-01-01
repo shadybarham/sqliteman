@@ -175,9 +175,9 @@ void Utils::setColumnWidths(QTableView * tv)
 		if (gotWidths[i] == 0)
 		{
 			int w = wantedWidths[i];
-			w = half + (int)qSqrt((qreal)(
+			int x = half + (int)qSqrt((qreal)(
 				(w - half) * widthLeft / columnsLeft));
-			gotWidths[i] = w;
+			gotWidths[i] = (w < x) ? w : x;
 			if (widthLeft > w)
 			{
 				widthLeft -= w;
