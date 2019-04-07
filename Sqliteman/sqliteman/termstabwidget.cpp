@@ -18,17 +18,21 @@ TermsTabWidget::TermsTabWidget(QWidget * parent): QWidget(parent)
 	termsTable->setColumnCount(3);
 	termsTable->horizontalHeader()->hide();
 	termsTable->verticalHeader()->hide();
-	termsTable->setShowGrid(false);
+
+    // needed because the LineEdit's frame has vanished
+	termsTable->setShowGrid(true);
 
 	connect(termMoreButton, SIGNAL(clicked()),
 		this, SLOT(moreTerms()));
 	connect(termLessButton, SIGNAL(clicked()),
 		this, SLOT(lessTerms()));
-
 }
 
 void TermsTabWidget::paintEvent(QPaintEvent * event)
 {
+    // force at least one term because it isn't much use without one
+    // for some reason calling moreTerms() in the constructor doesn't work
+    if (termsTable->rowCount() == 0) { moreTerms(); }
 	Utils::setColumnWidths(termsTable);
 	QWidget::paintEvent(event);
 }
@@ -52,7 +56,7 @@ void TermsTabWidget::moreTerms()
 	QLineEdit * value = new QLineEdit();
 	termsTable->setCellWidget(i, 2, value);
 	termsTable->resizeColumnsToContents();
-	termLessButton->setEnabled(true);
+	termLessButton->setEnabled(i > 0);
 	update();
 }
 
@@ -61,7 +65,7 @@ void TermsTabWidget::lessTerms()
 	int i = termsTable->rowCount() - 1;
 	termsTable->removeRow(i);
 	termsTable->resizeColumnsToContents();
-	if (i == 0) { termLessButton->setEnabled(false); }
+	if (i == 1) { termLessButton->setEnabled(false); }
 	update();
 }
 
