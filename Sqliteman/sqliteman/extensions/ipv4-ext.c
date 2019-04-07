@@ -460,7 +460,7 @@ static void isinnet2Func(
 			}
 			mask = htonl(mask);
 		}
-		int ipLen = (uintptr_t)slashPos  - (uintptr_t)(char*)sqlite3_value_text(argv[1]);
+		int ipLen = slashPos  - (char*)sqlite3_value_text(argv[1]);
 		/* divide the string into ip and mask portion */
 		stringIP = sqlite3_malloc( ipLen +1 );
 		strncpy( stringIP, (char*)sqlite3_value_text(argv[1]), ipLen );

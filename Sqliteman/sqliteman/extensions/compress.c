@@ -1,120 +1,129 @@
 /*
-gcc -lz -lm -fPIC -shared compress.c -o libsqlitecompress.so
+** 2014-06-13
+**
+** The author disclaims copyright to this source code.  In place of
+** a legal notice, here is a blessing:
+**
+**    May you do good and not evil.
+**    May you find forgiveness for yourself and forgive others.
+**    May you share freely, never taking more than you give.
+**
+******************************************************************************
+**
+** This SQLite extension implements SQL compression functions
+** compress() and uncompress() using ZLIB.
 */
+#include "sqlite3ext.h"
+SQLITE_EXTENSION_INIT1
+#include <zlib.h>
 
-#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_COMPRESS)
-
-#include <stdlib.h>
-#include <sys/types.h>
-#include <string.h>
-#include "zlib.h"
-
-#include <assert.h>
-
-#ifndef SQLITE_CORE
-  #include "sqlite3ext.h"
-  SQLITE_EXTENSION_INIT1
-#else
-  #include "sqlite3.h"
-#endif
-
-// see http://www.mail-archive.com/sqlite-users%40sqlite.org/msg17018.html
 /*
-** SQL function to compress content into a blob using libz
+** Implementation of the "compress(X)" SQL function.  The input X is
+** compressed using zLib and the output is returned.
+**
+** The output is a BLOB that begins with a variable-length integer that
+** is the input size in bytes (the size of X before compression).  The
+** variable-length integer is implemented as 1 to 5 bytes.  There are
+** seven bits per integer stored in the lower seven bits of each byte.
+** More significant bits occur first.  The most significant bit (0x80)
+** is a flag to indicate the end of the integer.
+**
+** This function, SQLAR, and ZIP all use the same "deflate" compression
+** algorithm, but each is subtly different:
+**
+**   *  ZIP uses raw deflate.
+**
+**   *  SQLAR uses the "zlib format" which is raw deflate with a two-byte
+**      algorithm-identification header and a four-byte checksum at the end.
+**
+**   *  This utility uses the "zlib format" like SQLAR, but adds the variable-
+**      length integer uncompressed size value at the beginning.
+**
+** This function might be extended in the future to support compression
+** formats other than deflate, by providing a different algorithm-id
+** mark following the variable-length integer size parameter.
 */
 static void compressFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  int nIn, nOut;
-  long int nOut2;
-  const unsigned char *inBuf;
-  unsigned char *outBuf;
-  assert( argc==1 );
+  const unsigned char *pIn;
+  unsigned char *pOut;
+  unsigned int nIn;
+  unsigned long int nOut;
+  unsigned char x[8];
+  int rc;
+  int i, j;
+
+  pIn = sqlite3_value_blob(argv[0]);
   nIn = sqlite3_value_bytes(argv[0]);
-  inBuf = sqlite3_value_blob(argv[0]);
   nOut = 13 + nIn + (nIn+999)/1000;
-  outBuf = malloc( nOut+4 );
-  outBuf[0] = nIn>>24 & 0xff;
-  outBuf[1] = nIn>>16 & 0xff;
-  outBuf[2] = nIn>>8 & 0xff;
-  outBuf[3] = nIn & 0xff;
-  nOut2 = (long int)nOut;
-  compress(&outBuf[4], &nOut2, inBuf, nIn);
-  sqlite3_result_blob(context, outBuf, nOut2+4, free);
+  pOut = sqlite3_malloc( nOut+5 );
+  for(i=4; i>=0; i--){
+    x[i] = (nIn >> (7*(4-i)))&0x7f;
+  }
+  for(i=0; i<4 && x[i]==0; i++){}
+  for(j=0; i<=4; i++, j++) pOut[j] = x[i];
+  pOut[j-1] |= 0x80;
+  rc = compress(&pOut[j], &nOut, pIn, nIn);
+  if( rc==Z_OK ){
+    sqlite3_result_blob(context, pOut, nOut+j, sqlite3_free);
+  }else{
+    sqlite3_free(pOut);
+  }
 }
 
 /*
-** An SQL function to decompress.
+** Implementation of the "uncompress(X)" SQL function.  The argument X
+** is a blob which was obtained from compress(Y).  The output will be
+** the value Y.
 */
 static void uncompressFunc(
   sqlite3_context *context,
   int argc,
   sqlite3_value **argv
 ){
-  unsigned int nIn, nOut, rc;
-  const unsigned char *inBuf;
-  unsigned char *outBuf;
-  long int nOut2;
-
-  assert( argc==1 );
-  nIn = sqlite3_value_bytes(argv[0]);
-  if( nIn<=4 ){
-    return;
-  }
-  inBuf = sqlite3_value_blob(argv[0]);
-  nOut = (inBuf[0]<<24) + (inBuf[1]<<16) + (inBuf[2]<<8) + inBuf[3];
-  outBuf = malloc( nOut );
-  nOut2 = (long int)nOut;
-  rc = uncompress(outBuf, &nOut2, &inBuf[4], nIn);
-  if( rc!=Z_OK ){
-    free(outBuf);
-  }else{
-    sqlite3_result_blob(context, outBuf, nOut2, free);
-  }
-}
-
-
-/* SQLite invokes this routine once when it loads the extension.
-** Create new functions, collating sequences, and virtual table
-** modules here.  This is usually the only exported symbol in
-** the shared library.
-*/
-
-int sqlite3CompressInit(sqlite3 *db){
-  static const struct {
-     char *zName;
-     signed char nArg;
-     int argType;           /* 1: 0, 2: 1, 3: 2,...  N:  N-1. */
-     int eTextRep;          /* 1: UTF-16.  0: UTF-8 */
-     void (*xFunc)(sqlite3_context*,int,sqlite3_value **);
-  } aFuncs[] = {
-    { "compress",           1, 0, SQLITE_UTF8,    compressFunc },
-    { "uncompress",         1, 0, SQLITE_UTF8,    uncompressFunc },
-  };
-
+  const unsigned char *pIn;
+  unsigned char *pOut;
+  unsigned int nIn;
+  unsigned long int nOut;
+  int rc;
   int i;
-  for(i=0; i<sizeof(aFuncs)/sizeof(aFuncs[0]); i++){
-    void *pArg;
-    int argType = aFuncs[i].argType;
-    pArg = (void*)(int)argType;
-    sqlite3_create_function(db, aFuncs[i].zName, aFuncs[i].nArg,
-        aFuncs[i].eTextRep, pArg, aFuncs[i].xFunc, 0, 0);
-  }
 
-  return 0;
+  pIn = sqlite3_value_blob(argv[0]);
+  nIn = sqlite3_value_bytes(argv[0]);
+  nOut = 0;
+  for(i=0; i<nIn && i<5; i++){
+    nOut = (nOut<<7) | (pIn[i]&0x7f);
+    if( (pIn[i]&0x80)!=0 ){ i++; break; }
+  }
+  pOut = sqlite3_malloc( nOut+1 );
+  rc = uncompress(pOut, &nOut, &pIn[i], nIn-i);
+  if( rc==Z_OK ){
+    sqlite3_result_blob(context, pOut, nOut, sqlite3_free);
+  }else{
+    sqlite3_free(pOut);
+  }
 }
 
-#if !SQLITE_CORE
-int sqlite3_extension_init(
+
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int sqlite3_compress_init(
   sqlite3 *db, 
-  char **pzErrMsg,
+  char **pzErrMsg, 
   const sqlite3_api_routines *pApi
 ){
-  SQLITE_EXTENSION_INIT2(pApi)
-  return sqlite3CompressInit(db);
+  int rc = SQLITE_OK;
+  SQLITE_EXTENSION_INIT2(pApi);
+  (void)pzErrMsg;  /* Unused parameter */
+  rc = sqlite3_create_function(db, "compress", 1, SQLITE_UTF8, 0,
+                               compressFunc, 0, 0);
+  if( rc==SQLITE_OK ){
+    rc = sqlite3_create_function(db, "uncompress", 1, SQLITE_UTF8, 0,
+                                 uncompressFunc, 0, 0);
+  }
+  return rc;
 }
-#endif
-
-#endif
