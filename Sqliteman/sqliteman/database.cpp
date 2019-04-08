@@ -288,9 +288,13 @@ bool Database::dumpDatabase(const QString & fileName)
 	Q_ASSERT_X(h!=0, "Database::dumpDatabase", "sqlite3handle is missing");
 	ShellState sh;
 	sh.db = h;
+    sh.autoExplain = 0;
+    sh.autoEQP = 0;
 	sh.out = f;
 	sh.nErr = 0;
 	sh.writableSchema = 0;
+    sh.aiIndent = NULL;
+    sh.expert.pExpert = NULL;
 
 	sqlite3_exec(sh.db, "PRAGMA writable_schema=ON", 0, 0, 0);
 	fprintf(sh.out, "BEGIN TRANSACTION;\n");
