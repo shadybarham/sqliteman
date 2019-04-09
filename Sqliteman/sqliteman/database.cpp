@@ -7,6 +7,7 @@ for which a new license (GPL+exception) is in place.
 
 #include <QSqlDriver>
 #include <QSqlQuery>
+#include <QSqlRecord>
 #include <QSqlError>
 #include <QTextStream>
 #include <QVariant>
@@ -254,19 +255,29 @@ bool Database::exportSql(const QString & fileName)
 
 	QTextStream stream(&file);
 	
-	// Run query for tables
+	// Run query for whole schema
 	QString sql = "SELECT sql FROM sqlite_master;";
 	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
 	
 	if (query.lastError().isValid())
 	{
 		exception(tr(
-			"Error while exporting SQL: %1.").arg(query.lastError().text()));
+			"Error while reading sqlite_master: %1."
+        ).arg(query.lastError().text()));
 		return false;
 	}
 	
+	stream << "BEGIN TRANSACTION;\n";
 	while(query.next())
-		stream << query.value(0).toString() << ";\n";
+    {
+        QString row = query.value(0).toString();
+        row.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
+        row.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+        row.replace("CREATE TRIGGER", "CREATE TRIGGER IF NOT EXISTS");
+        row.replace("CREATE VIEW", "CREATE VIEW IF NOT EXISTS");
+		stream << row << ";\n";
+    }
+	stream << "COMMIT;\n";
 	
 	file.close();
 	return true;
@@ -275,40 +286,105 @@ bool Database::exportSql(const QString & fileName)
 // TODO/FIXME: it definitely requires worker thread - to unfreeze GUI
 bool Database::dumpDatabase(const QString & fileName)
 {
-	char * fname = fileName.toUtf8().data();
-	FILE * f = fopen(fname, "w");
+	QFile file(fileName);
 	
-	if (f == NULL)
+	if(!file.open(QIODevice::WriteOnly | QIODevice::Text))
 	{
 		exception(tr("Unable to open file %1 for writing.").arg(fileName));
 		return false;
 	}
 
-	sqlite3 * h = Database::sqlite3handle();
-	Q_ASSERT_X(h!=0, "Database::dumpDatabase", "sqlite3handle is missing");
-	ShellState sh;
-	sh.db = h;
-    sh.autoExplain = 0;
-    sh.autoEQP = 0;
-	sh.out = f;
-	sh.nErr = 0;
-	sh.writableSchema = 0;
-    sh.aiIndent = NULL;
-    sh.expert.pExpert = NULL;
+	QTextStream stream(&file);
+	
+	// Run query for whole schema
+	QString sql = "SELECT sql FROM sqlite_master;";
+	QSqlQuery query(sql, QSqlDatabase::database(SESSION_NAME));
+	
+	if (query.lastError().isValid())
+	{
+		exception(tr(
+			"Error while reading sqlite_master: %1."
+        ).arg(query.lastError().text()));
+		return false;
+	}
+	
+	stream << "BEGIN TRANSACTION;\n";
+	while(query.next())
+    {
+        QString row = query.value(0).toString();
+        row.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
+        row.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+        row.replace("CREATE TRIGGER", "CREATE TRIGGER IF NOT EXISTS");
+        row.replace("CREATE VIEW", "CREATE VIEW IF NOT EXISTS");
+		stream << row << ";\n";
+    }
 
-	sqlite3_exec(sh.db, "PRAGMA writable_schema=ON", 0, 0, 0);
-	fprintf(sh.out, "BEGIN TRANSACTION;\n");
-	run_schema_dump_query(&sh,
-        "SELECT name, type, sql FROM sqlite_master "
-        "WHERE sql NOT NULL AND type=='table'");
-	run_table_dump_query(&sh,
-		"SELECT sql FROM sqlite_master "
-        "WHERE sql NOT NULL AND type IN ('index','trigger','view')",
-		(const char *)0);
-	fprintf(sh.out, "COMMIT;\n");
-	sqlite3_exec(sh.db, "PRAGMA writable_schema=OFF", 0, 0, 0);
-
-	fclose(f);
+    // Run query on each table
+	sql = "SELECT name, sql FROM sqlite_master WHERE type = \"table\";";
+	QSqlQuery q1(sql, QSqlDatabase::database(SESSION_NAME));
+	if (q1.lastError().isValid())
+	{
+		exception(tr(
+			"Error while reading table names: %1."
+        ).arg(q1.lastError().text()));
+		return false;
+	}
+	while(q1.next())
+    {
+        QString tablename = q1.value(0).toString();
+        sql = "SELECT * FROM ";
+        sql.append(Utils::q(tablename)).append(";");
+        QSqlQuery q2(sql, QSqlDatabase::database(SESSION_NAME));
+        if (q2.lastError().isValid())
+        {
+            exception(tr(
+                "Error while reading table %1: %2."
+            ).arg(Utils::q(tablename)).arg(q2.lastError().text()));
+            return false;
+        }
+        QString fnames;
+        while(q2.next())
+        {
+            int i;
+            QSqlRecord rec = q2.record();
+            QString sep = "";
+            if (fnames.isNull())
+            {
+                fnames = "INSERT OR REPLACE INTO ";
+                fnames.append(Utils::q(tablename)).append(" ( ");
+                QString sep = "";
+                for (i = 0; i < rec.count(); ++i)
+                {
+                    fnames.append(sep).append(Utils::q(rec.fieldName(i)));
+                    sep = ", ";
+                }
+                fnames.append(" ) VALUES ( ");
+            }
+            stream << fnames;
+            sep = "";
+            for (i = 0; i < rec.count(); ++i)
+            {
+                QVariant v =rec.value(i);
+                if (v.isNull())
+                {
+                    stream << sep << "NULL";
+                }
+                else if (v.type() == QVariant::LongLong)
+                {
+                    stream << sep << v.toString();
+                }
+                else
+                {
+                    stream << sep << Utils::q(v.toString(), "'");
+                }
+                sep = ", ";
+            }
+            stream << " );\n";
+        }
+    }
+	stream << "COMMIT;\n";
+	
+	file.close();
 	return true;
 }
 

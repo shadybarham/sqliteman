@@ -910,7 +910,7 @@ void LiteManWindow::exportSchema()
 void LiteManWindow::dumpDatabase()
 {
 	dataViewer->removeErrorMessage();
-	QString fileName = QFileDialog::getSaveFileName(this, tr("Export Database"),
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Dump Database"),
                                                     QDir::currentPath(),
                                                     tr("SQL File (*.sql)"));
 
