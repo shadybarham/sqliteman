@@ -54,7 +54,7 @@ ENDIF (APPLE)
 	)
 	FIND_LIBRARY(UUID_LIBRARY
 		NAMES uuid libuuid
-		PATHS ${UUID_LIB_PATH} /usr/lib/
+		PATHS ${UUID_LIB_PATH} /usr/lib/ /usr/lib64
 	)
 	if (UUID_LIBRARY AND UUID_INCLUDE)
 		SET(EXT_UUID "sqliteuuid")

@@ -33,6 +33,9 @@ Requirements:
  - cmake (http://cmake.org)
  - Qt toolkit, at least version 4.2 or later required (http://trolltech.com)
    with sqlite3 module. 4.3 is strongly suggested.
+ - sqlite library installed
+ - libuuid (libuuid-devel on SUSE) installed
+ - libicu (libicu-devel on SUSE) installed
  - standard building environment (C++ compiler etc.)
 
  - Sqliteman uses cmake building procedure:

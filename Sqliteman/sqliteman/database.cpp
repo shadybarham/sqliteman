@@ -18,7 +18,6 @@ for which a new license (GPL+exception) is in place.
 
 #include "database.h"
 #include "preferences.h"
-#include "shell.h"
 #include "sqlparser.h"
 #include "utils.h"
 
