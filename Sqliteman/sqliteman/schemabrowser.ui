@@ -14,16 +14,7 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout">
-   <property name="leftMargin">
-    <number>9</number>
-   </property>
-   <property name="topMargin">
-    <number>9</number>
-   </property>
-   <property name="rightMargin">
-    <number>9</number>
-   </property>
-   <property name="bottomMargin">
+   <property name="margin">
     <number>9</number>
    </property>
    <property name="spacing">
@@ -32,23 +23,14 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="schemaTabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="schemaTab">
       <attribute name="title">
        <string>Sche&amp;ma</string>
       </attribute>
       <layout class="QGridLayout">
-       <property name="leftMargin">
-        <number>9</number>
-       </property>
-       <property name="topMargin">
-        <number>9</number>
-       </property>
-       <property name="rightMargin">
-        <number>9</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>9</number>
        </property>
        <property name="spacing">
@@ -70,16 +52,7 @@
        <string>&amp;Pragmas</string>
       </attribute>
       <layout class="QGridLayout">
-       <property name="leftMargin">
-        <number>9</number>
-       </property>
-       <property name="topMargin">
-        <number>9</number>
-       </property>
-       <property name="rightMargin">
-        <number>9</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>9</number>
        </property>
        <property name="spacing">
@@ -91,16 +64,7 @@
           <string>Detail</string>
          </property>
          <layout class="QGridLayout">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>9</number>
           </property>
           <property name="spacing">
@@ -117,7 +81,7 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="value_label">
             <property name="text">
              <string>Value (editable):</string>
             </property>

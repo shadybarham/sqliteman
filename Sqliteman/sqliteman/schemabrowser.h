@@ -39,7 +39,8 @@ class SchemaBrowser : public QWidget, public Ui::SchemaBrowser
 		Query the DB for its value and store it in the widget.
 		\param name name of the pragma (PRAGMA name;)
 		*/
-		void addPragma(const QString & name);
+		void addPragma(const QString & name,
+                       const QString & editable, const QString& valueshint);
 
 	private slots:
 		void tabWidget_currentChanged(int);

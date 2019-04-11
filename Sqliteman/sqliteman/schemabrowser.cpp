@@ -40,41 +40,51 @@ void SchemaBrowser::buildPragmasTree()
 	pragmaTable->clearContents();
 	pragmaTable->setRowCount(0);
 
-	addPragma("application_id");
-	addPragma("auto_vacuum");
-	addPragma("automatic_index");
-	addPragma("busy_timeout");
-	addPragma("cache_size");
-	addPragma("cache_spill");
-	addPragma("case_sensitive_like");
-	addPragma("cell_size_check");
-	addPragma("checkpoint_fullfsync");
-	addPragma("data_version");
-	addPragma("default_cache_size");
-	addPragma("default_synchronous");
-	addPragma("encoding");
-	addPragma("foreign_keys");
-	addPragma("fullfsync");
-	addPragma("ignore_check_constraints");
-	addPragma("journal_mode");
-	addPragma("journal_size_limit");
-	addPragma("legacy_file_format");
-	addPragma("locking_mode");
-	addPragma("max_page_count");
-	addPragma("mmap_size");
-	addPragma("page_size");
-	addPragma("query_only");
-	addPragma("read_uncommitted");
-	addPragma("recursive_triggers");
-	addPragma("reverse_unordered_selects");
-	addPragma("secure_delete");
-	addPragma("short_column_names");
-	addPragma("soft_heap_limit");
-	addPragma("synchronous");
-	addPragma("temp_store");
-	addPragma("threads");
-	addPragma("user_version");
-	addPragma("wal_autocheckpoint");
+	addPragma("application_id", "editable", "integer");
+	addPragma("auto_vacuum", "editable", "0, 1, 2");
+	addPragma("automatic_index", "editable", "0 or 1");
+	addPragma("busy_timeout", "editable", "milliseconds");
+	addPragma("cache_size", "editable", "pages or -kbytes");
+	addPragma("cache_spill", "editable", "pages");
+	addPragma("case_sensitive_like", "editable", "0 or 1");
+	addPragma("cell_size_check", "editable", "0 or 1");
+	addPragma("checkpoint_fullfsync", "editable", "0 or 1");
+	addPragma("count_changes", "editable", "0 or 1");
+	addPragma("data_version", "read-only", "");
+	addPragma("default_cache_size", "editable", "pages");
+	addPragma("defer_foreign_keys", "editable", "0 or 1");
+	addPragma("empty_result_callbacks", "editable", "0 or 1");
+	addPragma("encoding", "editable", "UTF-8, UTF-16, UTF16le, UTF16be");
+	addPragma("foreign_keys", "editable", "0 or 1");
+	addPragma("freelist_count", "read-only", "");
+	addPragma("full_column_names", "editable", "0 or 1");
+	addPragma("fullfsync", "editable", "0 or 1");
+	addPragma("ignore_check_constraints", "editable", "0 or 1");
+	addPragma("journal_mode", "editable",
+              "delete, truncate, persist, memory, wal, off");
+	addPragma("journal_size_limit", "editable", "bytes");
+	addPragma("legacy_alter_table", "editable", "0 or 1");
+	addPragma("legacy_file_format", "editable", "0 or 1");
+	addPragma("locking_mode", "editable", "normal, exclusive");
+	addPragma("max_page_count", "editable", "pages");
+	addPragma("mmap_size", "editable", "bytes");
+	addPragma("page_counte", "read-only", "");
+	addPragma("page_size", "read-only", "bytes");
+	addPragma("query_only", "editable", "0 or 1");
+	addPragma("read_uncommitted", "editable", "0 or 1");
+	addPragma("recursive_triggers", "editable", "0 or 1");
+	addPragma("reverse_unordered_selects", "editable", "0 or 1");
+    
+    /* This one is actually editable, but it's dangerous to do so. */
+	addPragma("schema_version", "read-only", "");
+	addPragma("secure_delete", "editable", "0 or 1 or fast");
+	addPragma("short_column_names", "editable", "0 or 1");
+	addPragma("soft_heap_limit", "editable", "bytes");
+	addPragma("synchronous", "editable", "0, 1, 2, 3");
+	addPragma("temp_store", "editable", "0, 1, 2");
+	addPragma("threads", "editable", "integer");
+	addPragma("user_version", "editable", "integer");
+	addPragma("wal_autocheckpoint", "editable", "integer");
 
 	if (row < 0) { row = 0; }
 	pragmaTable_currentCellChanged(row, 0, 0, 0);
@@ -83,16 +93,17 @@ void SchemaBrowser::buildPragmasTree()
 		    this, SLOT(pragmaTable_currentCellChanged(int, int, int, int)));
 }
 
-void SchemaBrowser::addPragma(const QString & name)
+void SchemaBrowser::addPragma(
+    const QString & name, const QString & editable, const QString& valueshint)
 {
 	int row = pragmaTable->rowCount();
 	pragmaTable->setRowCount(row + 1);
 	QTableWidgetItem * twi = new QTableWidgetItem(name);
-	twi->setToolTip(name);
+	twi->setToolTip(editable);
 	pragmaTable->setItem(row, 0, twi);
 	QString value(Database::pragma(name));
 	twi = new QTableWidgetItem(value);
-	twi->setToolTip(value);
+	twi->setToolTip(valueshint);
 	pragmaTable->setItem(row, 1, twi);
 }
 
@@ -108,16 +119,30 @@ void SchemaBrowser::pragmaTable_currentCellChanged(int currentRow, int /*current
 {
 	pragmaName->setText(pragmaTable->item(currentRow, 0)->text());
 	pragmaValue->setText(pragmaTable->item(currentRow, 1)->text());
+    if (pragmaTable->item(currentRow, 0)->toolTip().compare("editable"))
+    {
+        pragmaValue->setReadOnly(true);
+        value_label->setText(QString("Value"));
+    }
+    else
+    {
+        pragmaValue->setReadOnly(false);
+        value_label->setText(QString("Value (")
+            + pragmaTable->item(currentRow, 1)->toolTip() + ")");
+    }
 }
 
 void SchemaBrowser::setPragmaButton_clicked()
 {
-	Database::execSql(QString("PRAGMA main.")
-					  + pragmaName->text()
-					  + " = "
-					  + pragmaValue->text()
-					  + ";");
-	buildPragmasTree();
+    if (value_label->text().compare("Value(editable)") == 0)
+    {
+        Database::execSql(QString("PRAGMA main.")
+                        + pragmaName->text()
+                        + " = "
+                        + pragmaValue->text()
+                        + ";");
+        buildPragmasTree();
+    }
 }
 
 void SchemaBrowser::appendExtensions(const QStringList & list, bool switchToTab)
