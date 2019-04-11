@@ -111,7 +111,7 @@ static void uncompressFunc(
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
-int sqlite3_compress_init(
+int sqlite3_sqlitecompress_init(
   sqlite3 *db, 
   char **pzErrMsg, 
   const sqlite3_api_routines *pApi

@@ -68,7 +68,7 @@ void SchemaBrowser::buildPragmasTree()
 	addPragma("locking_mode", "editable", "normal, exclusive");
 	addPragma("max_page_count", "editable", "pages");
 	addPragma("mmap_size", "editable", "bytes");
-	addPragma("page_counte", "read-only", "");
+	addPragma("page_count", "read-only", "");
 	addPragma("page_size", "read-only", "bytes");
 	addPragma("query_only", "editable", "0 or 1");
 	addPragma("read_uncommitted", "editable", "0 or 1");
