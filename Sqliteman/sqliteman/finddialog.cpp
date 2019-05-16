@@ -104,6 +104,8 @@ void FindDialog::doConnections(DataViewer * dataviewer)
 			dataviewer, SLOT(findAll()));
 	connect(this, SIGNAL(findClosed()),
 			dataviewer, SLOT(findClosing()));
+	connect(termsTab, SIGNAL(firstTerm()),
+			this, SLOT(updateButtons()));
 	connect(termsTab->termMoreButton, SIGNAL(clicked()),
 			this, SLOT(updateButtons()));
 	connect(termsTab->termLessButton, SIGNAL(clicked()),

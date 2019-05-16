@@ -37,6 +37,9 @@ class TermsTabWidget : public QWidget, public Ui::TermsTabWidget
 		void moreTerms();
 		void lessTerms();
 		void relationsIndexChanged(const QString &);
+
+	signals:
+		void firstTerm();
 };
 
 #endif //TERMSTABWIDGET_H

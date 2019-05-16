@@ -32,7 +32,11 @@ void TermsTabWidget::paintEvent(QPaintEvent * event)
 {
     // force at least one term because it isn't much use without one
     // for some reason calling moreTerms() in the constructor doesn't work
-    if (termsTable->rowCount() == 0) { moreTerms(); }
+    if (termsTable->rowCount() == 0)
+    {
+        moreTerms();
+        emit firstTerm();
+    }
 	Utils::setColumnWidths(termsTable);
 	QWidget::paintEvent(event);
 }
