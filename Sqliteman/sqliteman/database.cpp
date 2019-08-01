@@ -562,7 +562,17 @@ QString Database::getTempName(const QString & schema)
 
 bool Database::isAutoCommit()
 {
-	return sqlite3_get_autocommit(sqlite3handle()) != 0;
+    // can't use sqlite3handle() because there may be no database open
+    QVariant v = QSqlDatabase::database(SESSION_NAME).driver()->handle();
+    if (v.isNull())
+    {
+        return 1;
+    }
+    else
+    {
+        sqlite3 *handle = *static_cast<sqlite3 **>(v.data());
+        return sqlite3_get_autocommit(handle) != 0;
+    }
 }
 
 struct do_exec_state {

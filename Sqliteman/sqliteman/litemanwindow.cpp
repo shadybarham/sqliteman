@@ -4,8 +4,6 @@ to the COPYING file provided with the program. Following this notice may exist
 a copyright and/or license notice that predates the release of Sqliteman
 for which a new license (GPL+exception) is in place.
 	FIXME creating empty constraint name is legal
-	FIXME "QSqlQuery::value: not positioned on a valid record" when creating
-	new record
 */
 #include <QTreeWidget>
 #include <QTableView>
