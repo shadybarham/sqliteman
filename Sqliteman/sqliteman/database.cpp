@@ -14,8 +14,6 @@ for which a new license (GPL+exception) is in place.
 #include <QFile>
 #include <QMessageBox>
 
-#include <strings.h>
-
 #include "database.h"
 #include "preferences.h"
 #include "sqlparser.h"
